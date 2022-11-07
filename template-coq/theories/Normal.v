@@ -7,7 +7,7 @@ From MetaCoq.Template Require Import Ast Typing.
 Section Normal.
   Context (Σ : global_env).
 
-  Inductive normal (Γ : context) : term -> Prop :=
+  Inductive normal (Γ : context) : term -> Type :=
   | nf_ne t : neutral Γ t -> normal Γ t
   | nf_sort s : normal Γ (tSort s)
   | nf_prod na A B : normal Γ A -> normal (Γ ,, vass na A) B ->
@@ -21,7 +21,7 @@ Section Normal.
   | nf_cofix mfix idx : All (normal Γ ∘ dbody) mfix ->
                         normal Γ (tCoFix mfix idx)
 
-  with neutral (Γ : context) : term -> Prop :=
+  with neutral (Γ : context) : term -> Type :=
        | ne_rel i :
            option_map decl_body (nth_error Γ i) = Some None ->
            neutral Γ (tRel i)
@@ -30,14 +30,14 @@ Section Normal.
        | ne_const c u decl :
            lookup_env Σ c = Some (ConstantDecl decl) -> decl.(cst_body) = None ->
            neutral Γ (tConst c u)
-       | ne_app f v : neutral Γ f -> Forall (normal Γ) v -> neutral Γ (tApp f v)
+       | ne_app f v : neutral Γ f -> All (normal Γ) v -> neutral Γ (tApp f v)
        | ne_case i p c brs : neutral Γ c ->
             (* FIXME context of the branch can contain let-ins *)
-            Forall (normal Γ ∘ bbody) brs ->
+            All (normal Γ ∘ bbody) brs ->
             neutral Γ (tCase i p c brs)
        | ne_proj p c : neutral Γ c -> neutral Γ (tProj p c).
 
-  Inductive whnf (Γ : context) : term -> Prop :=
+  Inductive whnf (Γ : context) : term -> Type :=
   | whnf_ne t : whne Γ t -> whnf Γ t
   | whnf_sort s : whnf Γ (tSort s)
   | whnf_prod na A B : whnf Γ (tProd na A B)
@@ -47,7 +47,7 @@ Section Normal.
   | whnf_fix mfix idx : whnf Γ (tFix mfix idx)
   | whnf_cofix mfix idx : whnf Γ (tCoFix mfix idx)
 
-  with whne (Γ : context) : term -> Prop :=
+  with whne (Γ : context) : term -> Type :=
   | whne_rel i :
       option_map decl_body (nth_error Γ i) = Some None ->
       whne Γ (tRel i)

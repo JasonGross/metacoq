@@ -88,7 +88,7 @@ Module EnvMap.
   Definition fresh_global (s : kername) (g : list (kername × A)) :=
     Forall (fun g0 : kername × A => g0.1 <> s) g.
 
-  Inductive fresh_globals : list (kername × A) -> Prop :=
+  Inductive fresh_globals : list (kername × A) -> Type :=
     | fresh_globals_empty : fresh_globals []
     | fresh_globals_cons kn d g :
       fresh_globals g -> fresh_global kn g ->
@@ -161,7 +161,7 @@ Module EnvMap.
     rewrite KernameMapFact.F.remove_o.
     destruct KernameMap.E.eq_dec. eapply Kername.compare_eq in e0. subst k'.
     - rewrite {}eq. induction frk. now cbn.
-      rewrite of_global_env_cons //. depelim frΣ. simpl in H0 |- *.
+      rewrite of_global_env_cons //. depelim frΣ. simpl in *.
       rewrite KernameMapFact.F.add_neq_o //. intros c. eapply Kername.compare_eq in c. contradiction.
       now apply IHfrk.
     - rewrite KernameMapFact.F.add_neq_o //.
@@ -386,7 +386,7 @@ Context {A : Type}.
       + rewrite !PTree.gso //.
   Qed.
 
-  Inductive fresh_globals : global_env -> Prop :=
+  Inductive fresh_globals : global_env -> Type :=
     | fresh_globals_empty : fresh_globals []
     | fresh_globals_cons kn d g :
       fresh_globals g -> fresh_global kn g ->

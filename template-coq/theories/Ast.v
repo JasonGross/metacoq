@@ -341,7 +341,7 @@ Proof.
   intros [] []; unfold map_branch; cbn. f_equal. now apply H0.
 Qed.
 
-Lemma tfix_forallb_map_spec {A B} {P P' : A -> Prop} {p p'} {l} {f f' g g' : A -> B} :
+Lemma tfix_forallb_map_spec {A B} {P P' : A -> Type} {p p'} {l} {f f' g g' : A -> B} :
   tFixProp P P' l ->
   forallb (test_def p p') l ->
   (forall x, P x -> p x -> f x = g x) ->
@@ -821,4 +821,3 @@ Definition case_branch_type_gen ind mdecl params puinst ptm i cdecl (br : branch
 
 Definition case_branch_type ind mdecl p ptm i cdecl br : context * term :=
   case_branch_type_gen ind mdecl p.(pparams) p.(puinst) ptm i cdecl br.
-
