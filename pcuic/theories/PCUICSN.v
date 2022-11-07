@@ -32,13 +32,13 @@ Section Normalisation.
 
   Context {cf : checker_flags} {no : normalizing_flags}.
   Context (Σ : global_env_ext).
-
+(*
   Axiom normalisation :
     wf_ext Σ ->
     forall Γ t,
       welltyped Σ Γ t ->
       Acc (cored Σ Γ) t.
-
+*)
 End Normalisation.
 
 
@@ -151,7 +151,7 @@ Section Alpha.
     - eassumption.
     - destruct ee. constructor. symmetry; etransitivity; eassumption.
   Qed.
-
+(*
   Lemma normalisation_upto :
     forall Γ u,
       welltyped Σ Γ u ->
@@ -165,7 +165,7 @@ Section Alpha.
     - eassumption.
     - constructor; reflexivity.
   Qed.
-
+*)
   (* TODO Maybe switch to eq_context *)
   Lemma cored_eq_context_upto_names :
     forall Γ Δ u v,
