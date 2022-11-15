@@ -1,5 +1,6 @@
 (* Distributed under the terms of the MIT license. *)
 From Coq Require Import RelationClasses.
+From Coq Require Import Wellfounded.
 From MetaCoq.Template Require Import config utils utils.MCPartialFuel.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils
      PCUICGeneration PCUICLiftSubst
@@ -316,7 +317,7 @@ Corollary R_Acc_aux :
   Notation givePr' := (conj _ (fun β hl => _)) (only parsing).
 
   Import MCPartialFuelMonadNotation.
-
+(*
   Notation rec reduce t π :=
     (let smaller := _ in
      let '(exist res prf_Σ) := reduce t π smaller in
@@ -325,14 +326,15 @@ Corollary R_Acc_aux :
 
   Notation give t π :=
     ((*@ret (PartiallyFueled _) partial_fuel_monad _*) (exist (t,π) (fun Σ wfΣ => conj _ (conj givePr givePr')))) (only parsing).
-(*  Notation rec reduce t π :=
+*)
+  Notation rec reduce t π :=
     (let smaller := _ in
      '(exist res prf_Σ) <- reduce t π smaller;;
      @ret (PartiallyFueled _) partial_fuel_monad _ (exist res (fun Σ wfΣ => let '((conj prf (conj h (conj h1 h2)))) := prf_Σ Σ wfΣ in conj (Req_trans _ _ _ _ _ (R_to_Req _ (smaller Σ wfΣ))) (conj givePr givePr')))
     ) (only parsing).
 
   Notation give t π :=
-    (@ret (PartiallyFueled _) partial_fuel_monad _ (exist (t,π) (fun Σ wfΣ => conj _ (conj givePr givePr')))) (only parsing).*)
+    (@ret (PartiallyFueled _) partial_fuel_monad _ (exist (t,π) (fun Σ wfΣ => conj _ (conj givePr givePr')))) (only parsing).
 
   Tactic Notation "zip" "fold" "in" hyp(h) :=
     lazymatch type of h with
@@ -452,11 +454,11 @@ Corollary R_Acc_aux :
 
 
 
-  Equations _reduce_stack (*{accT}*) (Γ : context) (t : term) (π : stack)
+  Equations _reduce_stack {accT} (Γ : context) (t : term) (π : stack)
             (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π)))
             (reduce : forall t' π', (forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ (t',π') (t,π)) ->
-                                    (*PartiallyFueled accT*) { t'' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t'' (t',π') /\ Pr t'' π' /\ Pr' t'' })
-    : (*PartiallyFueled accT*) { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t,π) /\ Pr t' π /\ Pr' t' } :=
+                                    PartiallyFueled accT { t'' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t'' (t',π') /\ Pr t'' π' /\ Pr' t'' })
+    : PartiallyFueled accT { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t,π) /\ Pr t' π /\ Pr' t' } :=
 
     _reduce_stack Γ t π h reduce with red_viewc t π := {
 
@@ -499,10 +501,11 @@ Corollary R_Acc_aux :
       | true with inspect (unfold_fix mfix idx) := {
         | @exist (Some (narg, fn)) eq1 with inspect (decompose_stack_at π narg) := {
           | @exist (Some (args, c, ρ)) eq2 :=
-            @red_view_Fix_helper (inspect (reduce c (Fix_app mfix idx args :: ρ) _))
+            (v <-inspect (reduce c (Fix_app mfix idx args :: ρ) _);;
+             @red_view_Fix_helper v)%monad
             where
-            red_view_Fix_helper : { v | v = reduce c (Fix_app mfix idx args :: ρ) _ }
-                                  -> _ := {
+            red_view_Fix_helper : { v | finished v = reduce c (Fix_app mfix idx args :: ρ) _ \/ _ }
+                                  -> PartiallyFueled accT { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (_,π) /\ Pr t' π /\ Pr' t' } := {
               | @exist (@exist (t, ρ') prf) eq3 with construct_viewc t := {
                 | view_construct ind n ui with inspect (decompose_stack ρ') := {
                   | @exist (l, θ) eq4 :=
@@ -523,10 +526,11 @@ Corollary R_Acc_aux :
 
     | red_view_Case ci p c brs π with RedFlags.iota flags := {
       | true :=
-        red_view_Case_helper (inspect (reduce c (Case_discr ci p brs :: π) _))
+        (v <-inspect (reduce c (Case_discr ci p brs :: π) _);;
+         red_view_Case_helper v)%monad
         where
-        red_view_Case_helper : { v | v = reduce c (Case_discr ci p brs :: π) _ }
-                               -> { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (_,π) /\ Pr t' π /\ Pr' t' } := {
+        red_view_Case_helper : { v | finished v = reduce c (Case_discr ci p brs :: π) _ \/ _ }
+                               -> PartiallyFueled accT { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (_,π) /\ Pr t' π /\ Pr' t' } := {
           | @exist (@exist (t,π') prf) eq with inspect (decompose_stack π') := {
             | @exist (args, ρ) prf' with cc_viewc t := {
               | ccview_construct ind' c' inst' with inspect (nth_error brs c') := {
@@ -546,10 +550,11 @@ Corollary R_Acc_aux :
 
     | red_view_Proj p c π with RedFlags.iota flags := {
       | true :=
-        red_view_Proj_helper (inspect (reduce c (Proj p :: π) _))
+        (v <-inspect (reduce c (Proj p :: π) _);;
+         red_view_Proj_helper v)%monad
         where
-        red_view_Proj_helper : { v | v = reduce c (Proj p :: π) _ }
-                               -> { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (_,π) /\ Pr t' π /\ Pr' t' } := {
+        red_view_Proj_helper : { v | finished v = reduce c (Proj p :: π) _ \/ _ }
+                               -> PartiallyFueled accT { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (_,π) /\ Pr t' π /\ Pr' t' } := {
           | @exist (@exist (t,π') prf) eq with inspect (decompose_stack π') := {
             | @exist (args, ρ) prf' with cc0_viewc t := {
               | cc0view_construct ind' _
@@ -1117,7 +1122,7 @@ Corollary R_Acc_aux :
 
     Notation sigmaarg :=
       (sigma (fun t => sigma (fun π => forall Σ, abstract_env_ext_rel X Σ -> welltyped Σ Γ (zipc t π)))).
-
+(*
     Local Instance wf_proof : WellFounded (fun x y : sigmaarg =>
         forall Σ, abstract_env_ext_rel X Σ -> R Σ Γ (pr1 x, pr1 (pr2 x)) (pr1 y, pr1 (pr2 y))).
     Proof.
@@ -1137,8 +1142,41 @@ Corollary R_Acc_aux :
         * cbn in H1. exact H1.
         * reflexivity.
   Defined.
-
-  Equations reduce_stack_full (t : term) (π : stack) (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π))) :
+ *)
+    (*
+    Eval cbv [Telescopes.tele_measure Telescopes.tele_MR] in WellFounded
+        (Telescopes.tele_measure
+           (Telescopes.ext term
+              (fun t : term =>
+               Telescopes.ext stack
+                 (fun π : stack =>
+                  Telescopes.tip (forall Σ, Σ ∼_ext X -> welltyped Σ Γ (zip (t, π))))))
+           (term × list stack_entry)
+           (fun (t : term) (π : stack)
+              (_ : forall Σ, Σ ∼_ext X -> welltyped Σ Γ (zip (t, π))) => (
+            t, π)) (fun x y : term × stack => forall Σ, Σ ∼_ext X -> R Σ Γ x y)).
+     *)
+    Definition reduce_stack_fueled (t : term) (π : stack) (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π))) (fuel : nat) :
+      PartiallyFueled
+        (WellFounded (fun (x y : { '(t, π) : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π)) }) => forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ (`x) (`y)))
+        { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t, π) /\ Pr t' π /\ Pr' t' }.
+      refine (Fix_fueled
+                (fun '(exist (t, π) h) => { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t, π) /\ Pr t' π /\ Pr' t' })
+                (fun '(exist (t, π) h) reduce_stack
+                 => _ (*_reduce_stack Γ t π _ (fun t' π' hr => _)*))
+                (exist (t, π) h) fuel).
+      refine ().
+      refine
+      Print WellFounded.
+      refine
+      refine (_reduce_stack Γ t π h (fun t' π' hr => _)).
+      reduce_stack_full t' π' (fun Σ wfΣ' => welltyped_R_pres Σ wfΣ' Γ _ _ (h Σ wfΣ') (hr Σ wfΣ'))
+      reduce_stack_full t π h := _reduce_stack Γ t π h (fun t' π' hr => reduce_stack_full t' π' (fun Σ wfΣ' => welltyped_R_pres Σ wfΣ' Γ _ _ (h Σ wfΣ') (hr Σ wfΣ'))).
+      :=
+    by wf (t, π) (fun (x y : term * stack) => forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ x y) :=
+    reduce_stack_full t π h := _reduce_stack Γ t π h (fun t' π' hr => reduce_stack_full t' π' (fun Σ wfΣ' => welltyped_R_pres Σ wfΣ' Γ _ _ (h Σ wfΣ') (hr Σ wfΣ'))).
+*)
+    Equations reduce_stack_full (t : term) (π : stack) (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π))) :
     { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t, π) /\ Pr t' π /\ Pr' t' }
     by wf (t, π) (fun (x y : term * stack) => forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ x y) :=
     reduce_stack_full t π h := _reduce_stack Γ t π h (fun t' π' hr => reduce_stack_full t' π' (fun Σ wfΣ' => welltyped_R_pres Σ wfΣ' Γ _ _ (h Σ wfΣ') (hr Σ wfΣ'))).
