@@ -315,7 +315,7 @@ Corollary R_Acc_aux :
 
   Notation givePr' := (conj _ (fun β hl => _)) (only parsing).
 
-  Import MCMonadNotation.
+  Import MCPartialFuelMonadNotation.
 
   Notation rec reduce t π :=
     (let smaller := _ in
@@ -498,18 +498,22 @@ Corollary R_Acc_aux :
     | red_view_Fix mfix idx π with RedFlags.fix_ flags := {
       | true with inspect (unfold_fix mfix idx) := {
         | @exist (Some (narg, fn)) eq1 with inspect (decompose_stack_at π narg) := {
-          | @exist (Some (args, c, ρ)) eq2 with inspect (reduce c (Fix_app mfix idx args :: ρ) _) := {
-            | @exist (@exist (t, ρ') prf) eq3 with construct_viewc t := {
-              | view_construct ind n ui with inspect (decompose_stack ρ') := {
-                | @exist (l, θ) eq4 :=
-                  rec reduce fn (appstack args (App_l (mkApps (tConstruct ind n ui) l) :: ρ))
-                } ;
-              | view_other t ht with inspect (decompose_stack ρ') := {
-                | @exist (l, θ) eq4 :=
-                  give (tFix mfix idx) (appstack args (App_l (mkApps t l) :: ρ))
+          | @exist (Some (args, c, ρ)) eq2 :=
+            @red_view_Fix_helper (inspect (reduce c (Fix_app mfix idx args :: ρ) _))
+            where
+            red_view_Fix_helper : { v | v = reduce c (Fix_app mfix idx args :: ρ) _ }
+                                  -> _ := {
+              | @exist (@exist (t, ρ') prf) eq3 with construct_viewc t := {
+                | view_construct ind n ui with inspect (decompose_stack ρ') := {
+                  | @exist (l, θ) eq4 :=
+                    rec reduce fn (appstack args (App_l (mkApps (tConstruct ind n ui) l) :: ρ))
+                  } ;
+                | view_other t ht with inspect (decompose_stack ρ') := {
+                  | @exist (l, θ) eq4 :=
+                    give (tFix mfix idx) (appstack args (App_l (mkApps t l) :: ρ))
+                  }
                 }
               }
-            } ;
           | _ := give (tFix mfix idx) π
           } ;
         | _ := give (tFix mfix idx) π
@@ -518,48 +522,58 @@ Corollary R_Acc_aux :
       } ;
 
     | red_view_Case ci p c brs π with RedFlags.iota flags := {
-      | true with inspect (reduce c (Case_discr ci p brs :: π) _) := {
-        | @exist (@exist (t,π') prf) eq with inspect (decompose_stack π') := {
-          | @exist (args, ρ) prf' with cc_viewc t := {
-            | ccview_construct ind' c' inst' with inspect (nth_error brs c') := {
-              | exist (Some br) eqbr := rec reduce (iota_red ci.(ci_npar) p args br) π ;
-              | exist None bot := False_rect _ _ } ;
-            | ccview_cofix mfix idx with inspect (unfold_cofix mfix idx) := {
-              | @exist (Some (narg, fn)) eq' :=
-                rec reduce (tCase ci p (mkApps fn args) brs) π ;
-              | @exist None bot := False_rect _ _
-              } ;
-            | ccview_other t ht := give (tCase ci p (mkApps t args) brs) π
+      | true :=
+        red_view_Case_helper (inspect (reduce c (Case_discr ci p brs :: π) _))
+        where
+        red_view_Case_helper : { v | v = reduce c (Case_discr ci p brs :: π) _ }
+                               -> { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (_,π) /\ Pr t' π /\ Pr' t' } := {
+          | @exist (@exist (t,π') prf) eq with inspect (decompose_stack π') := {
+            | @exist (args, ρ) prf' with cc_viewc t := {
+              | ccview_construct ind' c' inst' with inspect (nth_error brs c') := {
+                | exist (Some br) eqbr := rec reduce (iota_red ci.(ci_npar) p args br) π ;
+                | exist None bot := False_rect _ _ } ;
+              | ccview_cofix mfix idx with inspect (unfold_cofix mfix idx) := {
+                | @exist (Some (narg, fn)) eq' :=
+                  rec reduce (tCase ci p (mkApps fn args) brs) π ;
+                | @exist None bot := False_rect _ _
+                } ;
+              | ccview_other t ht := give (tCase ci p (mkApps t args) brs) π
+              }
             }
-          }
-        } ;
+          } ;
       | false := give (tCase ci p c brs) π
       } ;
 
     | red_view_Proj p c π with RedFlags.iota flags := {
-      | true with inspect (reduce c (Proj p :: π) _) := {
-        | @exist (@exist (t,π') prf) eq with inspect (decompose_stack π') := {
-          | @exist (args, ρ) prf' with cc0_viewc t := {
-            | cc0view_construct ind' _
-              with inspect (nth_error args (p.(proj_npars) + p.(proj_arg))) := {
-              | @exist (Some arg) eqa := rec reduce arg π ;
-              | @exist None eqa := False_rect _ _
-              } ;
-            | cc0view_cofix mfix idx with inspect (unfold_cofix mfix idx) := {
-              | @exist (Some (rarg, fn)) eq' :=
-                rec reduce (tProj p (mkApps fn args)) π ;
-              | @exist None bot := False_rect _ _
-              } ;
-            | cc0view_other t ht := give (tProj p (mkApps t args)) π
+      | true :=
+        red_view_Proj_helper (inspect (reduce c (Proj p :: π) _))
+        where
+        red_view_Proj_helper : { v | v = reduce c (Proj p :: π) _ }
+                               -> { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (_,π) /\ Pr t' π /\ Pr' t' } := {
+          | @exist (@exist (t,π') prf) eq with inspect (decompose_stack π') := {
+            | @exist (args, ρ) prf' with cc0_viewc t := {
+              | cc0view_construct ind' _
+                with inspect (nth_error args (p.(proj_npars) + p.(proj_arg))) := {
+                | @exist (Some arg) eqa := rec reduce arg π ;
+                | @exist None eqa := False_rect _ _
+                } ;
+              | cc0view_cofix mfix idx with inspect (unfold_cofix mfix idx) := {
+                | @exist (Some (rarg, fn)) eq' :=
+                  rec reduce (tProj p (mkApps fn args)) π ;
+                | @exist None bot := False_rect _ _
+                } ;
+              | cc0view_other t ht := give (tProj p (mkApps t args)) π
+              }
             }
-          }
-        } ;
+          } ;
       | false := give (tProj p c) π
       } ;
 
     | red_view_other t π discr := give t π
 
-    }.
+    }
+.
+
 
   (* tRel *)
   Next Obligation.
@@ -674,6 +688,56 @@ Corollary R_Acc_aux :
       constructor.
   Qed.
   Next Obligation.
+    symmetry in eq4.
+    clear eq3. specialize (prf _ wfΣ). destruct prf as [r [p p0]].
+    unfold Pr in p. cbn in p.
+    rewrite eq4 in p. simpl in p. subst.
+    unfold Pr. cbn.
+    rewrite decompose_stack_appstack. cbn.
+    case_eq (decompose_stack π). intros ll π' e. cbn.
+    pose proof (decompose_stack_eq _ _ _ e). subst.
+    symmetry in eq2.
+    pose proof (decompose_stack_at_eq _ _ _ _ _ eq2) as e2.
+    pose proof (decompose_stack_at_length _ _ _ _ _ eq2).
+    case_eq (decompose_stack ρ). intros l' θ' e'. cbn.
+    pose proof (decompose_stack_eq _ _ _ e'). subst.
+    rewrite e2 in e. rewrite decompose_stack_appstack in e.
+    cbn in e. rewrite e' in e. cbn in e. inversion e. reflexivity.
+  Qed.
+  Next Obligation.
+    case_eq (decompose_stack π). intros ll π' e.
+    pose proof (decompose_stack_eq _ _ _ e). subst.
+    clear eq3. specialize (prf _ wfΣ). destruct prf as [r [p p0]].
+    symmetry in eq2.
+    pose proof (decompose_stack_at_eq _ _ _ _ _ eq2) as e2.
+    pose proof (decompose_stack_at_length _ _ _ _ _ eq2).
+    case_eq (decompose_stack ρ). intros l' θ' e'.
+    pose proof (decompose_stack_eq _ _ _ e'). subst.
+    rewrite e2 in e. rewrite decompose_stack_appstack in e.
+    cbn in e. rewrite e' in e. cbn in e. inversion e. subst. clear e.
+    symmetry in eq4. apply decompose_stack_eq in eq4 as ?. subst.
+
+    rewrite e2.
+    destruct r as [r | r].
+    - inversion r. subst.
+      destruct l. 2: discriminate.
+      cbn in *. subst.
+      left. reflexivity.
+    - unfold Pr in p. cbn in p.
+      rewrite eq4 in p. simpl in p. subst.
+      dependent destruction r.
+      + cbn in H. rewrite zipc_appstack in H.
+        cbn in H. rewrite !zipc_appstack in H.
+        right. left. cbn. rewrite !zipc_appstack. cbn.
+        rewrite !zipc_appstack. assumption.
+      + cbn in H0. inversion H0.
+        rewrite !zipc_appstack in H2. cbn in H2.
+        rewrite zipc_appstack in H2.
+        apply zipc_inj in H2. apply PCUICAstUtils.mkApps_inj in H2.
+        inversion H2. subst.
+        left. reflexivity.
+  Qed.
+  Next Obligation.
     case_eq (decompose_stack π). intros ll π' e.
     pose proof (decompose_stack_eq _ _ _ e). subst.
     clear eq3. specialize (prf _ wfΣ). destruct prf as [r [p p0]].
@@ -773,62 +837,98 @@ Corollary R_Acc_aux :
     rewrite decompose_stack_appstack. cbn.
     rewrite e. cbn. reflexivity.
   Qed.
-  Next Obligation.
-    case_eq (decompose_stack π). intros ll π' e.
-    pose proof (decompose_stack_eq _ _ _ e). subst.
-    clear eq3. specialize (prf _ wfΣ). destruct prf as [r [p p0]].
-    symmetry in eq2.
-    pose proof (decompose_stack_at_eq _ _ _ _ _ eq2) as e2.
-    pose proof (decompose_stack_at_length _ _ _ _ _ eq2).
-    case_eq (decompose_stack ρ). intros l' θ' e'.
-    pose proof (decompose_stack_eq _ _ _ e'). subst.
-    rewrite e2 in e. rewrite decompose_stack_appstack in e.
-    cbn in e. rewrite e' in e. cbn in e. inversion e. subst. clear e.
-    symmetry in eq4. apply decompose_stack_eq in eq4 as ?. subst.
-
-    rewrite e2.
-    destruct r as [r | r].
-    - inversion r. subst.
-      destruct l. 2: discriminate.
-      cbn in *. subst.
-      left. reflexivity.
-    - unfold Pr in p. cbn in p.
-      rewrite eq4 in p. simpl in p. subst.
-      dependent destruction r.
-      + cbn in H. rewrite zipc_appstack in H.
-        cbn in H. rewrite !zipc_appstack in H.
-        right. left. cbn. rewrite !zipc_appstack. cbn.
-        rewrite !zipc_appstack. assumption.
-      + cbn in H0. inversion H0.
-        rewrite !zipc_appstack in H2. cbn in H2.
-        rewrite zipc_appstack in H2.
-        apply zipc_inj in H2. apply PCUICAstUtils.mkApps_inj in H2.
-        inversion H2. subst.
-        left. reflexivity.
-  Qed.
-  Next Obligation.
-    symmetry in eq4.
-    clear eq3. specialize (prf _ wfΣ). destruct prf as [r [p p0]].
-    unfold Pr in p. cbn in p.
-    rewrite eq4 in p. simpl in p. subst.
-    unfold Pr. cbn.
-    rewrite decompose_stack_appstack. cbn.
-    case_eq (decompose_stack π). intros ll π' e. cbn.
-    pose proof (decompose_stack_eq _ _ _ e). subst.
-    symmetry in eq2.
-    pose proof (decompose_stack_at_eq _ _ _ _ _ eq2) as e2.
-    pose proof (decompose_stack_at_length _ _ _ _ _ eq2).
-    case_eq (decompose_stack ρ). intros l' θ' e'. cbn.
-    pose proof (decompose_stack_eq _ _ _ e'). subst.
-    rewrite e2 in e. rewrite decompose_stack_appstack in e.
-    cbn in e. rewrite e' in e. cbn in e. inversion e. reflexivity.
-  Qed.
 
   (* tCase *)
   Next Obligation.
     right. unfold posR. simpl.
     rewrite stack_position_cons.
     eapply positionR_poscat_nonil. discriminate.
+  Qed.
+  Next Obligation.
+    clear eq reduce h.
+    destruct (hΣ _ wfΣ) as [hΣ]. destruct (prf Σ wfΣ)  as [r [p0 p1]].
+    destruct r.
+    - inversion H. subst.
+      clear H.
+      cbn in prf'. inversion prf'. subst. reflexivity.
+    - unfold Pr in p0. cbn in p0.
+      rewrite <- prf' in p0. cbn in p0. subst.
+      dependent destruction H.
+      + cbn in H. symmetry in prf'.
+        pose proof (decompose_stack_eq _ _ _ prf'). subst.
+        rewrite zipc_appstack in H. cbn in H.
+        right. econstructor. assumption.
+      + cbn in H0. inversion H0. subst. clear H0.
+        symmetry in prf'.
+        pose proof (decompose_stack_eq _ _ _ prf'). subst.
+        rewrite zipc_appstack in H2. cbn in H2.
+        apply zipc_inj in H2. inversion H2. subst.
+        reflexivity.
+  Qed.
+  Next Obligation.
+    clear eq. destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
+    destruct (hΣ _ wfΣ) as [hΣ]. destruct (prf Σ wfΣ)  as [r [p0 p1]].
+    sq.
+    sq.
+    unfold Pr in p0. cbn in p0.
+    pose proof p0 as hh.
+    rewrite <- prf' in hh. cbn in hh. subst.
+    apply eq_sym, decompose_stack_eq in prf'; subst.
+    apply Req_red in r; cbn in r.
+    sq.
+    pose proof r as r'.
+    eapply red_welltyped in r; eauto.
+    zip fold in r.
+    apply welltyped_context in r as (?&typ); auto; cbn in *.
+    apply inversion_CoFix in typ as (?&?&?&?&?&?&?); auto.
+    unfold unfold_cofix in bot.
+    rewrite e in bot.
+    congruence.
+  Qed.
+  Next Obligation.
+    clear eq.
+    destruct (hΣ _ wfΣ) as [hΣ]. destruct (prf Σ wfΣ)  as [r [p0 p1]].
+    sq.
+    unfold Pr in p0. cbn in p0.
+    pose proof p0 as hh.
+    rewrite <- prf' in hh. cbn in hh. subst.
+    apply eq_sym, decompose_stack_eq in prf'; subst.
+    apply Req_red in r; cbn in r. pose hΣ.
+    sq.
+    rewrite zipc_appstack in r.
+    cbn in r.
+    pose proof r as r'.
+    eapply red_welltyped in r; eauto.
+    zip fold in r.
+    apply welltyped_context in r as (?&typ); auto; cbn in *.
+    constructor.
+    eapply cored_red_cored; cycle 1.
+    - zip fold in r'; exact r'.
+    - constructor.
+      eapply red1_context.
+      eapply red_cofix_case; eauto.
+  Qed.
+  Next Obligation.
+    clear eq.
+    destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
+    destruct (hΣ _ wfΣ) as [hΣ]. destruct (prf Σ wfΣ)  as [r [p0 p1]].
+    sq.
+    unfold Pr in p0. cbn in p0.
+    pose proof p0 as hh.
+    rewrite <- prf' in hh. cbn in hh. subst.
+    apply eq_sym, decompose_stack_eq in prf'; subst.
+    apply Req_red in r; cbn in r.
+    sq.
+    rewrite zipc_appstack in r.
+    cbn in r.
+    pose proof r as r'.
+    eapply red_welltyped in r; eauto.
+    zip fold in r.
+    apply welltyped_context in r as (?&typ); auto; cbn in *.
+    apply PCUICInductiveInversion.invert_Case_Construct in typ as H; auto.
+    2: now sq.
+    destruct H as (?&?&nth&?); subst.
+    rewrite nth in bot; congruence.
   Qed.
   Next Obligation.
     clear eq.
@@ -858,80 +958,23 @@ Corollary R_Acc_aux :
       eapply red1_context.
       eapply red_iota; eauto.
   Qed.
+
+  (* tProj *)
   Next Obligation.
-    clear eq.
-    destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
-    destruct (hΣ _ wfΣ) as [hΣ]. destruct (prf Σ wfΣ)  as [r [p0 p1]].
-    sq.
-    unfold Pr in p0. cbn in p0.
-    pose proof p0 as hh.
-    rewrite <- prf' in hh. cbn in hh. subst.
-    apply eq_sym, decompose_stack_eq in prf'; subst.
-    apply Req_red in r; cbn in r.
-    sq.
-    rewrite zipc_appstack in r.
-    cbn in r.
-    pose proof r as r'.
-    eapply red_welltyped in r; eauto.
-    zip fold in r.
-    apply welltyped_context in r as (?&typ); auto; cbn in *.
-    apply PCUICInductiveInversion.invert_Case_Construct in typ as H; auto.
-    2: now sq.
-    destruct H as (?&?&nth&?); subst.
-    rewrite nth in bot; congruence.
-  Qed.
-  Next Obligation.
-    clear eq.
-    destruct (hΣ _ wfΣ) as [hΣ]. destruct (prf Σ wfΣ)  as [r [p0 p1]].
-    sq.
-    unfold Pr in p0. cbn in p0.
-    pose proof p0 as hh.
-    rewrite <- prf' in hh. cbn in hh. subst.
-    apply eq_sym, decompose_stack_eq in prf'; subst.
-    apply Req_red in r; cbn in r. pose hΣ.
-    sq.
-    rewrite zipc_appstack in r.
-    cbn in r.
-    pose proof r as r'.
-    eapply red_welltyped in r; eauto.
-    zip fold in r.
-    apply welltyped_context in r as (?&typ); auto; cbn in *.
+    right. unfold posR. simpl.
+    rewrite stack_position_cons.
+    rewrite <- app_nil_r.
+    eapply positionR_poscat.
     constructor.
-    eapply cored_red_cored; cycle 1.
-    - zip fold in r'; exact r'.
-    - constructor.
-      eapply red1_context.
-      eapply red_cofix_case; eauto.
   Qed.
   Next Obligation.
-    clear eq. destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
-    destruct (hΣ _ wfΣ) as [hΣ]. destruct (prf Σ wfΣ)  as [r [p0 p1]].
-    sq.
-    sq.
-    unfold Pr in p0. cbn in p0.
-    pose proof p0 as hh.
-    rewrite <- prf' in hh. cbn in hh. subst.
-    apply eq_sym, decompose_stack_eq in prf'; subst.
-    apply Req_red in r; cbn in r.
-    sq.
-    pose proof r as r'.
-    eapply red_welltyped in r; eauto.
-    zip fold in r.
-    apply welltyped_context in r as (?&typ); auto; cbn in *.
-    apply inversion_CoFix in typ as (?&?&?&?&?&?&?); auto.
-    unfold unfold_cofix in bot.
-    rewrite e in bot.
-    congruence.
-  Qed.
-  Next Obligation.
-    clear eq reduce h.
-    destruct (hΣ _ wfΣ) as [hΣ]. destruct (prf Σ wfΣ)  as [r [p0 p1]].
-    destruct r.
-    - inversion H. subst.
-      clear H.
-      cbn in prf'. inversion prf'. subst. reflexivity.
-    - unfold Pr in p0. cbn in p0.
-      rewrite <- prf' in p0. cbn in p0. subst.
+    clear eq.
+    destruct (hΣ _ wfΣ) as [hΣ]. destruct (prf Σ wfΣ)  as [r [pr p0]].
+    dependent destruction r.
+    - inversion H. subst. cbn in prf'. inversion prf'. subst.
+      cbn. reflexivity.
+    - unfold Pr in pr. cbn in pr.
+      rewrite <- prf' in pr. cbn in pr. subst.
       dependent destruction H.
       + cbn in H. symmetry in prf'.
         pose proof (decompose_stack_eq _ _ _ prf'). subst.
@@ -943,80 +986,6 @@ Corollary R_Acc_aux :
         rewrite zipc_appstack in H2. cbn in H2.
         apply zipc_inj in H2. inversion H2. subst.
         reflexivity.
-  Qed.
-
-  (* tProj *)
-  Next Obligation.
-    right. unfold posR. simpl.
-    rewrite stack_position_cons.
-    rewrite <- app_nil_r.
-    eapply positionR_poscat.
-    constructor.
-  Qed.
-  Next Obligation.
-    pose proof (hΣ := hΣ _ wfΣ).
-    destruct (prf Σ wfΣ)  as [r [p' p0]].
-    sq.
-    left.
-    apply Req_red in r as hr.
-    sq.
-    pose proof (red_welltyped _ hΣ (h _ wfΣ) hr) as hh.
-    eapply cored_red_cored ; try eassumption.
-    unfold Pr in p'. simpl in p'. pose proof p' as p''.
-    rewrite <- prf' in p''. simpl in p''. subst.
-    symmetry in prf'. apply decompose_stack_eq in prf' as ?.
-    subst. cbn. rewrite zipc_appstack. cbn.
-    do 2 zip fold. eapply cored_context.
-    constructor.
-    cbn in hh. rewrite zipc_appstack in hh. cbn in hh.
-    zip fold in hh. apply welltyped_context in hh. 2: assumption.
-    simpl in hh. apply Proj_Construct_ind_eq in hh. all: eauto.
-    subst. constructor. eauto.
-  Qed.
-  Next Obligation.
-    destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
-    destruct (hΣ _ wfΣ) as [hΣ]. destruct (prf Σ wfΣ)  as [r [pr p0]].
-    sq.
-    unfold Pr in pr. simpl in pr.
-    pose proof pr as p'.
-    rewrite <- prf' in p'. simpl in p'. subst.
-    symmetry in prf'. apply decompose_stack_eq in prf' as ?.
-    subst.
-    apply Req_red in r as hr.
-    sq.
-    pose proof (red_welltyped _ hΣ (h _ wfΣ) hr) as hh.
-    cbn in hh. rewrite zipc_appstack in hh. cbn in hh.
-    zip fold in hh.
-    apply welltyped_context in hh. 2: assumption.
-    simpl in hh.
-    apply Proj_red_cond in hh. all: eauto.
-  Qed.
-  Next Obligation.
-    destruct (hΣ _ wfΣ) as [hΣ]. destruct (prf Σ wfΣ)  as [r [pr p0]].
-    unfold Pr in pr. simpl in pr.
-    pose proof pr as p'.
-    rewrite <- prf' in p'. simpl in p'. subst.
-    dependent destruction r.
-    - inversion H. subst.
-      left. eapply cored_context.
-      constructor.
-      simpl in prf'. inversion prf'. subst.
-      eapply red_cofix_proj with (args := []). eauto.
-    - clear eq.
-      dependent destruction H.
-      + left.
-        symmetry in prf'. apply decompose_stack_eq in prf' as ?. subst.
-        cbn in H. rewrite zipc_appstack in H. cbn in H.
-        eapply cored_trans' ; try eassumption.
-        zip fold. eapply cored_context.
-        constructor. eapply red_cofix_proj. eauto.
-      + left.
-        cbn in H0. destruct y'. inversion H0. subst. clear H0.
-        symmetry in prf'. apply decompose_stack_eq in prf' as ?. subst.
-        rewrite zipc_appstack in H2. cbn in H2.
-        cbn. rewrite H2.
-        zip fold. eapply cored_context.
-        constructor. eapply red_cofix_proj. eauto.
   Qed.
   Next Obligation.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
@@ -1053,24 +1022,69 @@ Corollary R_Acc_aux :
     - cbn. rewrite zipc_appstack. reflexivity.
   Qed.
   Next Obligation.
-    clear eq.
     destruct (hΣ _ wfΣ) as [hΣ]. destruct (prf Σ wfΣ)  as [r [pr p0]].
+    unfold Pr in pr. simpl in pr.
+    pose proof pr as p'.
+    rewrite <- prf' in p'. simpl in p'. subst.
     dependent destruction r.
-    - inversion H. subst. cbn in prf'. inversion prf'. subst.
-      cbn. reflexivity.
-    - unfold Pr in pr. cbn in pr.
-      rewrite <- prf' in pr. cbn in pr. subst.
+    - inversion H. subst.
+      left. eapply cored_context.
+      constructor.
+      simpl in prf'. inversion prf'. subst.
+      eapply red_cofix_proj with (args := []). eauto.
+    - clear eq.
       dependent destruction H.
-      + cbn in H. symmetry in prf'.
-        pose proof (decompose_stack_eq _ _ _ prf'). subst.
-        rewrite zipc_appstack in H. cbn in H.
-        right. econstructor. assumption.
-      + cbn in H0. inversion H0. subst. clear H0.
-        symmetry in prf'.
-        pose proof (decompose_stack_eq _ _ _ prf'). subst.
+      + left.
+        symmetry in prf'. apply decompose_stack_eq in prf' as ?. subst.
+        cbn in H. rewrite zipc_appstack in H. cbn in H.
+        eapply cored_trans' ; try eassumption.
+        zip fold. eapply cored_context.
+        constructor. eapply red_cofix_proj. eauto.
+      + left.
+        cbn in H0. destruct y'. inversion H0. subst. clear H0.
+        symmetry in prf'. apply decompose_stack_eq in prf' as ?. subst.
         rewrite zipc_appstack in H2. cbn in H2.
-        apply zipc_inj in H2. inversion H2. subst.
-        reflexivity.
+        cbn. rewrite H2.
+        zip fold. eapply cored_context.
+        constructor. eapply red_cofix_proj. eauto.
+  Qed.
+  Next Obligation.
+    destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
+    destruct (hΣ _ wfΣ) as [hΣ]. destruct (prf Σ wfΣ)  as [r [pr p0]].
+    sq.
+    unfold Pr in pr. simpl in pr.
+    pose proof pr as p'.
+    rewrite <- prf' in p'. simpl in p'. subst.
+    symmetry in prf'. apply decompose_stack_eq in prf' as ?.
+    subst.
+    apply Req_red in r as hr.
+    sq.
+    pose proof (red_welltyped _ hΣ (h _ wfΣ) hr) as hh.
+    cbn in hh. rewrite zipc_appstack in hh. cbn in hh.
+    zip fold in hh.
+    apply welltyped_context in hh. 2: assumption.
+    simpl in hh.
+    apply Proj_red_cond in hh. all: eauto.
+  Qed.
+  Next Obligation.
+    pose proof (hΣ := hΣ _ wfΣ).
+    destruct (prf Σ wfΣ)  as [r [p' p0]].
+    sq.
+    left.
+    apply Req_red in r as hr.
+    sq.
+    pose proof (red_welltyped _ hΣ (h _ wfΣ) hr) as hh.
+    eapply cored_red_cored ; try eassumption.
+    unfold Pr in p'. simpl in p'. pose proof p' as p''.
+    rewrite <- prf' in p''. simpl in p''. subst.
+    symmetry in prf'. apply decompose_stack_eq in prf' as ?.
+    subst. cbn. rewrite zipc_appstack. cbn.
+    do 2 zip fold. eapply cored_context.
+    constructor.
+    cbn in hh. rewrite zipc_appstack in hh. cbn in hh.
+    zip fold in hh. apply welltyped_context in hh. 2: assumption.
+    simpl in hh. apply Proj_Construct_ind_eq in hh. all: eauto.
+    subst. constructor. eauto.
   Qed.
 
   (* Other *)
