@@ -1,5 +1,5 @@
 Require Import Arith List.
-From MetaCoq.Template Require Import All_Forall MCSquash.
+From MetaCoq.Template Require Import All_Forall MCSquash MCPartialFuel.
 From Equations Require Import Equations.
 Coercion is_true : bool >-> Sortclass.
 
@@ -60,6 +60,11 @@ Import MCMonadNotation.
       | None => f tt
       end
 |}.
+
+#[global] Instance partial_fuel_monad {R} : Monad (PartiallyFueled R) :=
+  {| ret A a := finished a
+  ; bind A B m f := partially_fueled_bind m f
+  |}.
 
 Open Scope monad.
 

@@ -116,6 +116,8 @@ gen-src/mCList.ml
 gen-src/mCList.mli
 gen-src/mCOption.ml
 gen-src/mCOption.mli
+gen-src/mCPartialFuel.ml
+gen-src/mCPartialFuel.mli
 gen-src/mCRelations.ml
 gen-src/mCRelations.mli
 gen-src/mCReflect.mli

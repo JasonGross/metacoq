@@ -1,6 +1,6 @@
 (* Distributed under the terms of the MIT license. *)
 From Coq Require Import RelationClasses.
-From MetaCoq.Template Require Import config utils.
+From MetaCoq.Template Require Import config utils utils.MCPartialFuel.
 From MetaCoq.PCUIC Require Import PCUICAst PCUICAstUtils
      PCUICGeneration PCUICLiftSubst
      PCUICUnivSubst PCUICTyping PCUICPosition PCUICNormal
@@ -17,13 +17,16 @@ From Equations Require Import Equations.
 Set Equations Transparent.
 Set Equations With UIP.
 
-(** * Reduction machine for PCUIC without fuel
+(** * Reduction machine for PCUIC with optional fuel
 
-  We implement the reduction machine of Coq without relying on fuel.
-  Instead we assume strong normalisation of the system (for well-typed terms)
-  and proceed by well-founded induction.
+  We implement the reduction machine of Coq without ultimately relying
+  on fuel.
+  We initially use fuel, and subsequently rely on assuming strong
+  normalisation of the system (for well-typed terms) and proceed by
+  well-founded induction.
 
-  Once extracted, this should roughly correspond to the OCaml implementation.
+  Once extracted, this should roughly correspond to the OCaml
+  implementation.
 
  *)
 
@@ -163,7 +166,7 @@ Section Measure.
   Qed.
 
 End Measure.
-
+(*
 (* Added by Julien Forest on 13/11/20 in Coq stdlib, adapted to subset case by M. Sozeau *)
 Section Acc_sidecond_generator.
   Context {A : Type} {R : A -> A -> Prop} {P : A -> Prop}.
@@ -183,7 +186,7 @@ End Acc_sidecond_generator.
   might otherwise unfold the large Acc proof. Don't forget to make it transparent
   when computing. *)
 Opaque Acc_intro_generator.
-
+*)
 Section Reduce.
 
   Context {cf : checker_flags} {no : normalizing_flags}.
@@ -263,7 +266,7 @@ Fixpoint Acc_equiv A (R R' : A -> A -> Prop)
   econstructor. intros. apply Heq in H.
   destruct HAcc. eapply Acc_equiv; eauto.
 Defined.
-
+(*
 Corollary R_Acc_aux :
     forall Γ t p,
     (forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ t) ->
@@ -296,7 +299,7 @@ Corollary R_Acc_aux :
     constructor. intros y hy.
     eapply H0; eauto.
   Qed.
-
+*)
 
 
   Definition inspect {A} (x : A) : { y : A | y = x } := exist x eq_refl.
@@ -312,14 +315,24 @@ Corollary R_Acc_aux :
 
   Notation givePr' := (conj _ (fun β hl => _)) (only parsing).
 
+  Import MCMonadNotation.
+
   Notation rec reduce t π :=
     (let smaller := _ in
      let '(exist res prf_Σ) := reduce t π smaller in
-     exist res (fun Σ wfΣ => let '((conj prf (conj h (conj h1 h2)))) := prf_Σ Σ wfΣ in conj (Req_trans _ _ _ _ _ (R_to_Req _ (smaller Σ wfΣ))) (conj givePr givePr'))
+     (*@ret (PartiallyFueled _) partial_fuel_monad _*) (exist res (fun Σ wfΣ => let '((conj prf (conj h (conj h1 h2)))) := prf_Σ Σ wfΣ in conj (Req_trans _ _ _ _ _ (R_to_Req _ (smaller Σ wfΣ))) (conj givePr givePr')))
     ) (only parsing).
 
   Notation give t π :=
-    (exist (t,π) (fun Σ wfΣ => conj _ (conj givePr givePr'))) (only parsing).
+    ((*@ret (PartiallyFueled _) partial_fuel_monad _*) (exist (t,π) (fun Σ wfΣ => conj _ (conj givePr givePr')))) (only parsing).
+(*  Notation rec reduce t π :=
+    (let smaller := _ in
+     '(exist res prf_Σ) <- reduce t π smaller;;
+     @ret (PartiallyFueled _) partial_fuel_monad _ (exist res (fun Σ wfΣ => let '((conj prf (conj h (conj h1 h2)))) := prf_Σ Σ wfΣ in conj (Req_trans _ _ _ _ _ (R_to_Req _ (smaller Σ wfΣ))) (conj givePr givePr')))
+    ) (only parsing).
+
+  Notation give t π :=
+    (@ret (PartiallyFueled _) partial_fuel_monad _ (exist (t,π) (fun Σ wfΣ => conj _ (conj givePr givePr')))) (only parsing).*)
 
   Tactic Notation "zip" "fold" "in" hyp(h) :=
     lazymatch type of h with
@@ -437,11 +450,13 @@ Corollary R_Acc_aux :
     cc0_viewc (tCoFix mfix idx) := cc0view_cofix mfix idx ;
     cc0_viewc t := cc0view_other t _.
 
-  Equations _reduce_stack (Γ : context) (t : term) (π : stack)
+
+
+  Equations _reduce_stack (*{accT}*) (Γ : context) (t : term) (π : stack)
             (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π)))
             (reduce : forall t' π', (forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ (t',π') (t,π)) ->
-                               { t'' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t'' (t',π') /\ Pr t'' π' /\ Pr' t'' })
-    : { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t,π) /\ Pr t' π /\ Pr' t' } :=
+                                    (*PartiallyFueled accT*) { t'' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t'' (t',π') /\ Pr t'' π' /\ Pr' t'' })
+    : (*PartiallyFueled accT*) { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t,π) /\ Pr t' π /\ Pr' t' } :=
 
     _reduce_stack Γ t π h reduce with red_viewc t π := {
 

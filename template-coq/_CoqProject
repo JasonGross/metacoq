@@ -26,6 +26,7 @@ theories/utils/MCSquash.v
 theories/utils/MCString.v
 theories/utils/wGraph.v
 theories/utils/MCUtils.v
+theories/utils/MCPartialFuel.v
 # theories/utils/ByteCompare.v
 # theories/utils/ByteCompareSpec.v
 #theories/utils/MC_ExtrOCamlInt63.v

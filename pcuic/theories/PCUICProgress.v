@@ -819,7 +819,7 @@ Proof.
 Qed.
 
 From MetaCoq Require Import PCUICSN.
-
+(*
 Lemma WN {Σ t} : wf_ext Σ -> axiom_free Σ ->
   welltyped Σ [] t  -> exists v, squash (eval Σ t v).
 Proof.
@@ -835,7 +835,7 @@ Proof.
     now eapply subject_closed in HA.
   - exists t. sq. eapply value_final; eauto.
 Qed.
-
+*)
 From MetaCoq Require Import PCUICFirstorder.
 
 Lemma firstorder_value_irred Σ t t' :
@@ -872,7 +872,7 @@ Proof.
   - reflexivity.
   - assert (x = y) as <- by eauto. eauto.
 Qed.
-
+(*
 Lemma ws_wcbv_standardization {Σ i u args mind} {t v : ws_term (fun _ => false)} : wf_ext Σ -> axiom_free Σ ->
   Σ ;;; [] |- t : mkApps (tInd i u) args ->
   lookup_env Σ (i.(inductive_mind)) = Some (InductiveDecl mind) ->
@@ -899,7 +899,8 @@ Proof.
   eapply irred_equal. eauto.
   intros. eapply firstorder_value_irred; eauto.
 Qed.
-
+ *)
+(*
 Lemma wcbv_standardization {Σ i u args mind} {t v : term} : wf_ext Σ -> axiom_free Σ ->
   Σ ;;; [] |- t : mkApps (tInd i u) args ->
   lookup_env Σ (i.(inductive_mind)) = Some (InductiveDecl mind) ->
@@ -923,3 +924,4 @@ Proof.
   - eapply @subject_closed with (Γ := []); eauto.
     eapply subject_reduction; eauto.
 Qed.
+*)

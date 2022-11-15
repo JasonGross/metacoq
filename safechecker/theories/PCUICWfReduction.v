@@ -170,7 +170,7 @@ Section fix_sigma.
     repeat match goal with
     | H : ∥ _ ∥ |- _ => destruct H; try clear H
     end; try eapply sq.
-
+(*
   Definition wf_hnf_subterm_rel : WellFounded hnf_subterm_rel.
   Proof.
     intros (Γ & s & H). sq'.
@@ -224,6 +224,7 @@ Section fix_sigma.
   Opaque wf_hnf_subterm.
   Opaque Acc_intro_generator.
   Opaque Wf.Acc_intro_generator.
+*)
   Ltac sq := try (destruct HΣ as [wfΣ]; clear HΣ);
     repeat match goal with
     | H : ∥ _ ∥ |- _ => destruct H
@@ -242,7 +243,7 @@ Section fix_sigma.
   Definition redp_subterm_rel : Relation_Definitions.relation (∑ Γ t, forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ t) :=
     fun '(Γ2; t2; H) '(Γ1; t1; H2) => forall Σ (wfΣ : abstract_env_ext_rel X Σ),
     ∥ (redp Σ Γ1 t1 t2 * (Γ1 = Γ2)) + ∑ ts : term_subterm t2 t1, Γ2 = (Γ1 ,,, term_subterm_context ts) ∥.
-
+(*
   Definition wf_redp_subterm_rel : WellFounded redp_subterm_rel.
   Proof.
     intros (Γ & s & H). pose proof (abstract_env_ext_exists X) as [[Σ wfΣ]].
@@ -275,5 +276,5 @@ Section fix_sigma.
   Opaque wf_redp_subterm.
   Opaque Acc_intro_generator.
   Opaque Wf.Acc_intro_generator.
-
+*)
 End fix_sigma.
