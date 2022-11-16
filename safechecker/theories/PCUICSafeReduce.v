@@ -1156,80 +1156,137 @@ Corollary R_Acc_aux :
               (_ : forall Σ, Σ ∼_ext X -> welltyped Σ Γ (zip (t, π))) => (
             t, π)) (fun x y : term × stack => forall Σ, Σ ∼_ext X -> R Σ Γ x y)).
      *)
-    Definition reduce_stack_fueled (t : term) (π : stack) (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π))) (fuel : nat) :
+    Let Fix_fueled_helper {A B} {R : A * B -> A * B -> Prop} (P : A -> B -> Type) (Q : forall (a : A) (b : B), P a b -> Type)
+               (F : forall (a : A) (b : B) (p : P a b), (forall (a' : A) (b' : B) (q : P a' b'), R (a', b') (a, b) -> PartiallyFueled (well_founded R) (Q a' b' q)) -> PartiallyFueled (well_founded R) (Q a b p))
+      : forall (a : A) (b : B) (p : P a b) (fuel : nat), PartiallyFueled (well_founded R) (Q a b p)
+      := fun a b p fuel => @Fix_fueled (A * B) R (fun x => P (fst x) (snd x)) (fun x p => Q (fst x) (snd x) p) (fun '(a, b) p rec => F a b p (fun a' b' => rec (a', b'))) (a, b) p fuel.
+
+    Definition reduce_stack_full_fueled (t : term) (π : stack) (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π))) (fuel : nat) :
       PartiallyFueled
-        (WellFounded (fun (x y : { '(t, π) : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π)) }) => forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ (`x) (`y)))
-        { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t, π) /\ Pr t' π /\ Pr' t' }.
-      refine (Fix_fueled
-                (fun '(exist (t, π) h) => { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t, π) /\ Pr t' π /\ Pr' t' })
-                (fun '(exist (t, π) h) reduce_stack
-                 => _ (*_reduce_stack Γ t π _ (fun t' π' hr => _)*))
-                (exist (t, π) h) fuel).
-      refine ().
-      refine
-      Print WellFounded.
-      refine
-      refine (_reduce_stack Γ t π h (fun t' π' hr => _)).
-      reduce_stack_full t' π' (fun Σ wfΣ' => welltyped_R_pres Σ wfΣ' Γ _ _ (h Σ wfΣ') (hr Σ wfΣ'))
-      reduce_stack_full t π h := _reduce_stack Γ t π h (fun t' π' hr => reduce_stack_full t' π' (fun Σ wfΣ' => welltyped_R_pres Σ wfΣ' Γ _ _ (h Σ wfΣ') (hr Σ wfΣ'))).
-      :=
-    by wf (t, π) (fun (x y : term * stack) => forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ x y) :=
-    reduce_stack_full t π h := _reduce_stack Γ t π h (fun t' π' hr => reduce_stack_full t' π' (fun Σ wfΣ' => welltyped_R_pres Σ wfΣ' Γ _ _ (h Σ wfΣ') (hr Σ wfΣ'))).
-*)
-    Equations reduce_stack_full (t : term) (π : stack) (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π))) :
+        (WellFounded (fun (x y : term * stack) => forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ x y))
+        { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t, π) /\ Pr t' π /\ Pr' t' }
+      := Fix_fueled_helper
+           (fun t π => forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π)))
+           (fun t π _ => _)
+           (fun t π h reduce_stack
+            => _reduce_stack Γ t π h (fun t' π' hr => reduce_stack t' π' (fun Σ wfΣ' => welltyped_R_pres Σ wfΣ' Γ _ _ (h Σ wfΣ') (hr Σ wfΣ')) hr))
+           t π h fuel.
+
+    (*Equations reduce_stack_full (t : term) (π : stack) (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π))) :
     { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t, π) /\ Pr t' π /\ Pr' t' }
     by wf (t, π) (fun (x y : term * stack) => forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ x y) :=
     reduce_stack_full t π h := _reduce_stack Γ t π h (fun t' π' hr => reduce_stack_full t' π' (fun Σ wfΣ' => welltyped_R_pres Σ wfΣ' Γ _ _ (h Σ wfΣ') (hr Σ wfΣ'))).
-
+*)
   End reducewf.
 
-  Definition reduce_stack Γ t π h :=
-    let '(exist ts _) := reduce_stack_full Γ t π h in ts.
+  Definition reduce_stack_fueled Γ t π h fuel :=
+    '(exist ts _) <- reduce_stack_full_fueled Γ t π h fuel;; ret ts.
+Fail Check on_PartiallyFueled.
+
+Definition on_PartiallyFueled {R A} (P : A -> Prop) (v : PartiallyFueled R A) : Prop
+  := match v with
+     | finished v => P v
+     | needs_acc f => forall acc, P (f acc)
+     end.
+Definition on_partially_fueled {R A} (P : A -> Type) (v : PartiallyFueled R A) : Type
+  := match v with
+     | finished v => P v
+     | needs_acc f => forall acc, P (f acc)
+     end.
+
+Lemma on_PartiallyFueled_bind {R A A'} {P v f}
+  : on_PartiallyFueled (fun v => on_PartiallyFueled P (f v)) v
+    -> on_PartiallyFueled P (@partially_fueled_bind R A A' v f).
+Proof using Type.
+  cbv [on_PartiallyFueled partially_fueled_bind]; destruct v; [ exact id | ].
+  intros H acc; specialize (H acc); destruct f; eauto.
+Qed.
+
+Lemma on_PartiallyFueled_forall {R A} {P}
+  : (forall v, P v:Prop) -> forall v, @on_PartiallyFueled R A P v.
+Proof using Type.
+  destruct v; cbn; eauto.
+Qed.
+
+Lemma on_PartiallyFueled_finished_iff {R A P v}
+  : (P v:Prop) <-> @on_PartiallyFueled R A P (finished v).
+Proof using Type. cbv [on_PartiallyFueled]; reflexivity. Qed.
+
+Require Import Coq.Classes.RelationClasses.
+Require Import Coq.Relations.Relations.
+Require Import Coq.Classes.Morphisms.
+
+Lemma on_PartiallyFueled_impl {R A P P' v} : on_PartiallyFueled (fun v => (P v:Prop) -> (P' v):Prop) v -> @on_PartiallyFueled R A P v -> on_PartiallyFueled P' v.
+Proof using Type. cbv; destruct v; eauto. Qed.
+
+#[global] Instance on_PartiallyFueled_Proper_impl {R A} : Proper (pointwise_relation _ Basics.impl ==> eq ==> Basics.impl) (@on_PartiallyFueled R A).
+Proof using Type. cbv; intros P Q H [x|x] ? <-; eauto. Qed.
+
+  Lemma reduce_stack_fueled_Req :
+    forall Σ (wfΣ : abstract_env_ext_rel X Σ) Γ t π h fuel,
+     on_PartiallyFueled (fun v => Req Σ Γ v (t, π)) (reduce_stack_fueled Γ t π h fuel).
+  Proof using Type.
+    intros Σ wfΣ Γ t π h fuel.
+    unfold reduce_stack_fueled.
+    apply on_PartiallyFueled_bind, on_PartiallyFueled_forall.
+    intros [[t' π'] [r _]];
+    eassumption.
+  Qed.
 
   Lemma reduce_stack_Req :
-    forall Σ (wfΣ : abstract_env_ext_rel X Σ) Γ t π h,
-     Req Σ Γ (reduce_stack Γ t π h) (t, π).
+    forall Σ (wfΣ : abstract_env_ext_rel X Σ) Γ t π h fuel,
+     on_PartiallyFueled (fun v => Req Σ Γ v (t, π)) (reduce_stack_fueled Γ t π h fuel).
   Proof using Type.
-    intros Σ wfΣ Γ t π h.
-    unfold reduce_stack.
-    destruct (reduce_stack_full Γ t π h) as [[t' π'] [r _]];
+    intros Σ wfΣ Γ t π h fuel.
+    unfold reduce_stack_fueled.
+    apply on_PartiallyFueled_bind, on_PartiallyFueled_forall.
+    intros [[t' π'] [r _]];
     eassumption.
   Qed.
 
   Theorem reduce_stack_sound :
-    forall Σ (wfΣ : abstract_env_ext_rel X Σ) Γ t π h,
-      ∥ Σ ;;; Γ ⊢ zip (t, π) ⇝ zip (reduce_stack Γ t π h) ∥.
+    forall Σ (wfΣ : abstract_env_ext_rel X Σ) Γ t π h fuel,
+      on_PartiallyFueled (fun v => ∥ Σ ;;; Γ ⊢ zip (t, π) ⇝ zip v ∥) (reduce_stack_fueled Γ t π h fuel).
   Proof using Type.
-    intros Σ wfΣ Γ t π h.
-    assert (req := reduce_stack_Req Σ wfΣ _ _ _ h).
+    intros Σ wfΣ Γ t π h fuel.
+    generalize (reduce_stack_Req Σ wfΣ _ _ _ h fuel).
+    apply on_PartiallyFueled_impl, on_PartiallyFueled_forall.
+    intros ? req.
     eapply Req_red in req.
     destruct (hΣ _ wfΣ).
     sq. eapply into_closed_red; fvs.
   Qed.
 
   Lemma reduce_stack_decompose :
-    forall Γ t π h,
-      snd (decompose_stack (snd (reduce_stack Γ t π h))) =
-      snd (decompose_stack π).
+    forall Γ t π h fuel,
+      on_PartiallyFueled (fun v =>
+      snd (decompose_stack (snd v)) =
+      snd (decompose_stack π))
+                         (reduce_stack_fueled Γ t π h fuel).
   Proof using Type.
-    intros Γ t π h.
+    intros Γ t π h fuel.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
-    unfold reduce_stack.
-    destruct (reduce_stack_full Γ t π h) as [[t' π'] [r [p p']]];
+    unfold reduce_stack_fueled.
+    apply on_PartiallyFueled_bind, on_PartiallyFueled_forall.
+    intros [[t' π'] [r [p p']]];
     try eassumption.
     unfold Pr in p. symmetry. assumption.
   Qed.
 
   Lemma reduce_stack_context :
-    forall Γ t π h,
-      stack_context (snd (reduce_stack Γ t π h)) =
-      stack_context π.
+    forall Γ t π h fuel,
+      on_PartiallyFueled (fun v =>
+      stack_context (snd v) =
+      stack_context π)
+                         (reduce_stack_fueled Γ t π h fuel).
   Proof using Type.
-    intros Γ t π h.
+    intros Γ t π h fuel.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
-    pose proof (reduce_stack_decompose Γ t π h) as hd.
+    generalize (reduce_stack_decompose Γ t π h fuel).
+    apply on_PartiallyFueled_impl, on_PartiallyFueled_forall.
+    intros v hd.
     case_eq (decompose_stack π). intros l ρ e1.
-    case_eq (decompose_stack (snd (reduce_stack Γ t π h))). intros l' ρ' e2.
+    case_eq (decompose_stack (snd v)). intros l' ρ' e2.
     rewrite e1 in hd. rewrite e2 in hd. cbn in hd. subst.
     pose proof (decompose_stack_eq _ _ _ e1).
     pose proof (decompose_stack_eq _ _ _ e2) as eq.
@@ -1242,53 +1299,58 @@ Corollary R_Acc_aux :
     (isLambda (fst t) -> isStackApp (snd t) = false).
 
   Lemma reduce_stack_isred :
-    forall Γ t π h,
+    forall Γ t π h fuel,
       RedFlags.beta flags ->
-      isred (reduce_stack Γ t π h).
+      on_PartiallyFueled isred (reduce_stack_fueled Γ t π h fuel).
   Proof using Type.
-    intros Γ t π h hr.
+    intros Γ t π h hr fuel.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
-    unfold reduce_stack.
-    destruct (reduce_stack_full Γ t π h) as [[t' π'] [r [p [hApp hLam]]]]; eauto.
+    unfold reduce_stack_fueled.
+    apply on_PartiallyFueled_bind, on_PartiallyFueled_forall.
+    intros [[t' π'] [r [p [hApp hLam]]]]; eauto.
     split.
     - assumption.
     - apply hLam. assumption.
   Qed.
 
   Lemma reduce_stack_noApp :
-    forall Γ t π h,
-      isApp (fst (reduce_stack Γ t π h)) = false.
+    forall Γ t π h fuel,
+      on_PartiallyFueled (fun v => isApp (fst v) = false) (reduce_stack_fueled Γ t π h fuel).
   Proof using Type.
-    intros Γ t π h.
+    intros Γ t π h fuel.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
-    unfold reduce_stack.
-    destruct (reduce_stack_full Γ t π h) as [[t' π'] [r [p [hApp hLam]]]]; eauto.
+    unfold reduce_stack_fueled.
+    apply on_PartiallyFueled_bind, on_PartiallyFueled_forall.
+    intros [[t' π'] [r [p [hApp hLam]]]]; eauto.
   Qed.
 
   Lemma reduce_stack_noLamApp :
-    forall Γ t π h,
+    forall Γ t π h fuel,
       RedFlags.beta flags ->
-      isLambda (fst (reduce_stack Γ t π h)) ->
-      isStackApp (snd (reduce_stack Γ t π h)) = false.
+      on_PartiallyFueled (fun v => isLambda (fst v)) (reduce_stack_fueled Γ t π h fuel) ->
+      on_PartiallyFueled (fun v => isStackApp (snd v) = false) (reduce_stack_fueled Γ t π h fuel).
   Proof using Type.
-    intros Γ t π h.
-    unfold reduce_stack.
+    intros Γ t π h fuel ?.
+    apply on_PartiallyFueled_impl.
+    unfold reduce_stack_fueled.
+    apply on_PartiallyFueled_bind, on_PartiallyFueled_forall.
     destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
-    destruct (reduce_stack_full Γ t π h) as [[t' π'] [r [p [hApp hLam]]]]; eauto.
+    intros [[t' π'] [r [p [hApp hLam]]]]; cbn; eauto.
   Qed.
 
-  Definition reduce_term Γ t
-    (h : forall Σ, abstract_env_ext_rel X Σ -> welltyped Σ Γ t) :=
-    zip (reduce_stack Γ t [] h).
+  Definition reduce_term_fueled Γ t
+    (h : forall Σ, abstract_env_ext_rel X Σ -> welltyped Σ Γ t) fuel :=
+    v <- reduce_stack_fueled Γ t [] h fuel;; ret (zip v).
 
   Theorem reduce_term_sound :
-    forall Γ t (h : forall Σ, abstract_env_ext_rel X Σ -> welltyped Σ Γ t)
+    forall Γ t (h : forall Σ, abstract_env_ext_rel X Σ -> welltyped Σ Γ t) fuel
       Σ, abstract_env_ext_rel X Σ ->
-      ∥ Σ ;;; Γ ⊢ t ⇝ reduce_term Γ t h ∥.
+      on_PartiallyFueled (fun v => ∥ Σ ;;; Γ ⊢ t ⇝ v ∥) (reduce_term_fueled Γ t h fuel).
   Proof using Type.
-    intros Γ t h Σ wfΣ.
-    unfold reduce_term.
-    refine (reduce_stack_sound _ _ _ _ [] _); eauto.
+    intros Γ t h fuel Σ wfΣ.
+    unfold reduce_term_fueled.
+    apply on_PartiallyFueled_bind.
+    refine (reduce_stack_sound _ _ _ _ [] _ _); eauto.
   Qed.
 
   Scheme Acc_ind' := Induction for Acc Sort Prop.
@@ -1304,15 +1366,17 @@ Corollary R_Acc_aux :
   Qed.
 
   Lemma reduce_stack_prop :
-    forall Γ t π h (P : term × stack -> term × stack -> Prop),
+    forall Γ t π h fuel (P : term × stack -> term × stack -> Prop),
       (forall t π h aux,
-          (forall t' π' hR, P (t', π') (` (aux t' π' hR))) ->
-          P (t, π) (` (_reduce_stack Γ t π h aux))) ->
-      P (t, π) (reduce_stack Γ t π h).
+          (forall t' π' hR, on_PartiallyFueled (fun v => P (t', π') (` v)) (aux t' π' hR)) ->
+          on_PartiallyFueled (R:=True) (fun v => P (t, π) (` v)) (_reduce_stack Γ t π h aux)) ->
+      on_PartiallyFueled (fun v => P (t, π) v) (reduce_stack_fueled Γ t π h fuel).
   Proof using Type.
-    intros Γ t π h P hP.
-    unfold reduce_stack.
-    case_eq (reduce_stack_full Γ t π h).
+    intros Γ t π h fuel P hP.
+    unfold reduce_stack_fueled.
+    apply on_PartiallyFueled_bind.
+    apply_funelim (reduce_stack_full_fueled Γ t π h fuel); clear -hP.
+    case_eq (reduce_stack_full Γ t π h fuel).
     apply_funelim (reduce_stack_full Γ t π h); clear -hP.
     intros t π wt ih [t' ρ] ? e.
     match type of e with
