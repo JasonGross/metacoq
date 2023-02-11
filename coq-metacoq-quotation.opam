@@ -22,17 +22,16 @@ authors: ["Abhishek Anand <aa755@cs.cornell.edu>"
 license: "MIT"
 build: [
   ["bash" "./configure.sh"]
-  [make "-j" "%{jobs}%" "utils"]
+  [make "-j" "%{jobs}%" "-C" "quotation"]
 ]
 install: [
-  [make "-C" "utils" "install"]
+  [make "-C" "quotation" "install"]
 ]
 depends: [
-  "stdlib-shims"
-  "coq" { >= "8.16" & < "8.17~" }
-  "coq-equations" { >= "1.3" }
+  "coq-metacoq-template" {= version}
+  "coq-metacoq-pcuic" {= version}
+  "coq-metacoq-template-pcuic" {= version}
 ]
-synopsis: "The utility library of Template Coq and PCUIC"
+synopsis: "Gallina quotation functions for Template Coq and PCUIC."
 description: """
-MetaCoq is a meta-programming framework for Coq.
 """
