@@ -64,43 +64,17 @@ Module QuoteEnvironment (T : Term) (Import E : EnvironmentSig T) (Import QT : Qu
   #[export] Instance qcst_body : quotation_of cst_body := ltac:(cbv -[quotation_of]; exact _).
   #[export] Instance qcst_universes : quotation_of cst_universes := ltac:(cbv -[quotation_of]; exact _).
   #[export] Instance quniverses : quotation_of universes := ltac:(cbv -[quotation_of]; exact _).
+  #[export] Instance qretroknowledge : quotation_of retroknowledge := ltac:(cbv -[quotation_of]; exact _).
   #[export] Instance qdeclarations : quotation_of declarations := ltac:(cbv -[quotation_of]; exact _).
   #[export] Instance qglobal_declarations : quotation_of global_declarations := ltac:(cbv [global_declarations]; exact _).
   #[export] Instance qglobal_env_ext : quotation_of global_env_ext := ltac:(cbv -[quotation_of]; exact _).
   #[export] Instance qtyp_or_sort : quotation_of typ_or_sort := ltac:(cbv -[quotation_of]; exact _).
-
-  Local Definition extends_sig_prop (Σ Σ' : global_env) (k : Kernames.kername) (decls : list global_decl)
-    := lookup_envs Σ' k = decls ++ lookup_envs Σ k.
-  Local Definition extends_prop (Σ Σ' : global_env) : _ × global_decl -> _
-    := fun '(c, _) => sigT (extends_sig_prop Σ Σ' c).
-  Local Definition extends_fun (Σ Σ' : global_env)
-    := All (extends_prop Σ Σ') (declarations Σ).
-
-  #[export] Instance qextends_sig_prop {Σ Σ' k decls} : quotation_of (extends_sig_prop Σ Σ' k decls) := ltac:(cbv [extends_sig_prop]; exact _).
-  #[export] Instance qextends_prop {Σ Σ' k} : quotation_of (extends_prop Σ Σ' k) := ltac:(cbv [extends_prop]; exact _).
-  Import MetaCoq.Utils.bytestring.
-  Open Scope bs_scope.
-  Print qextends_prop.
-  Check "ab"%bs.
-  #[export] Instance qextends_fun {Σ Σ' k decls} : quotation_of (extends_sig_prop Σ Σ' k decls) := ltac:(cbv [extends_prop]; exact _).
-
-  exact _.
-  cbv -[quotation_of].
-  (Σ Σ' : global_env) (k : Kernames.kername) (decls : list global_decl)
-
-goal 2 (ID 10586) is:
- quotation_of
-   (fun (Σ Σ' : global_env) '(c, _) =>
-    {decls : list global_decl & lookup_envs Σ' c = decls ++ lookup_envs Σ c})
-goal 3 (ID 10859) is:
- quotation_of
-   (fun (Σ Σ' : global_env) (k : Kernames.kername) (decls : list global_decl) =>
-    lookup_envs Σ' k = decls ++ lookup_envs Σ k)
-
+  #[export] Instance qlookup_globals : quotation_of lookup_globals := ltac:(cbv [lookup_globals]; exact _).
+  #[export] Instance qlookup_envs : quotation_of lookup_envs := ltac:(cbv [lookup_envs]; exact _).
 
   Local Lemma forall_all_helper_iff {Σ Σ' : global_env}
     : (forall c, { decls & lookup_envs Σ' c = (decls ++ lookup_envs Σ c)%list })
-        <~> All (fun '(c, _) => { decls & lookup_envs Σ' c = (decls ++ lookup_envs Σ c)%list }) (declarations Σ).
+        <~> All (fun '(c, _) => { decls & lookup_envs Σ' c = decls ++ lookup_envs Σ c }) (declarations Σ).
   Proof.
     split.
     { intro H.
@@ -131,69 +105,37 @@ goal 3 (ID 10859) is:
   (* quotable versions *)
   Definition extends_alt (Σ Σ' : global_env) :=
     [× Σ.(universes) ⊂_cs Σ'.(universes),
-      All (fun '(c, _) => { decls & lookup_envs Σ' c = (decls ++ lookup_envs Σ c)%list }) (declarations Σ) &
+      All (fun '(c, _) => { decls & lookup_envs Σ' c = decls ++ lookup_envs Σ c }) (declarations Σ) &
       Retroknowledge.extends Σ.(retroknowledge) Σ'.(retroknowledge)].
 
   Definition extends_decls_alt (Σ Σ' : global_env) :=
     [× Σ.(universes) = Σ'.(universes),
-      All (fun c => { decls & lookup_envs Σ' c.1 = (decls ++ lookup_envs Σ c.1)%list }) (declarations Σ) &
+      All (fun '(c, _) => { decls & lookup_envs Σ' c = decls ++ lookup_envs Σ c }) (declarations Σ) &
       Σ.(retroknowledge) = Σ'.(retroknowledge)].
 
-  #[export] Instance quote_extends_alt {Σ Σ'} : ground_quotable (@extends_alt Σ Σ').
-  cbv [extends_alt].
-  apply @quote_and3; try exact _.
-  2: apply @quote_All; try exact _.
-  3: intro.
-  Import StrongerInstances.
-  3: destruct x.
-  3: apply @quote_sigT; try exact _.
-  all: revert_quotable_hyps ().
-  all: clear.
+  #[export] Instance quote_extends_alt {Σ Σ'} : ground_quotable (@extends_alt Σ Σ') := ltac:(cbv [extends_alt]; exact _).
+  #[export] Instance quote_extends_decls_alt {Σ Σ'} : ground_quotable (@extends_decls_alt Σ Σ') := ltac:(cbv [extends_decls_alt]; exact _).
+  #[export] Instance qextends_alt : quotation_of extends_alt := ltac:(cbv [extends_alt]; exact _).
+  #[export] Instance qextends_decls_alt : quotation_of extends_decls_alt := ltac:(cbv [extends_decls_alt]; exact _).
+  #[export] Instance qextends : quotation_of extends := ltac:(cbv [extends]; exact _).
+  #[export] Instance qextends_decls : quotation_of extends_decls := ltac:(cbv [extends_decls]; exact _).
 
-  3: { clear.
-  3: exact _.
-    := ltac:(cbv [extends_alt]; exact _).
+  Local Lemma extends_alt_iff {Σ Σ'} : extends_alt Σ Σ' <~> extends Σ Σ'.
+  Proof.
+    cbv [extends extends_alt].
+    destruct (@forall_all_helper_iff Σ Σ').
+    split; intros []; split; auto with nocore.
+  Defined.
 
-  Definition quote_extends_alt  Σ Σ' : global_env) :=
-  #[export] Instance qtyp_or_sort : quotation_of typ_or_sort := ltac:(cbv -[quotation_of]; exact _).
-    [× Σ.(universes) ⊂_cs Σ'.(universes),
-      All (fun '(c, _) => { decls & lookup_envs Σ' c = (decls ++ lookup_envs Σ c)%list }) (declarations Σ) &
-      Retroknowledge.extends Σ.(retroknowledge) Σ'.(retroknowledge)].
+  Local Lemma extends_decls_alt_iff {Σ Σ'} : extends_decls_alt Σ Σ' <~> extends_decls Σ Σ'.
+  Proof.
+    cbv [extends_decls extends_decls_alt].
+    destruct (@forall_all_helper_iff Σ Σ').
+    split; intros []; split; auto with nocore.
+  Defined.
 
-  Definition extends_decls_alt (Σ Σ' : global_env) :=
-    [× Σ.(universes) = Σ'.(universes),
-      All (fun '(c, _) => { decls & lookup_envs Σ' c = (decls ++ lookup_envs Σ c)%list }) (declarations Σ) &
-      Σ.(retroknowledge) = Σ'.(retroknowledge)].
-
-  #[export] Instance quote_extends {Σ Σ'} : ground_quotable (@extends Σ Σ').
-  cbv [extends].
-  apply @MCProd.quote_and3; try exact _.
-  revert_quotable_hyps ().
-
-  exact
-  repeat match goal with
-  | [ H : _ |- quotation_of _ ]
-    => revert H;
-       lazymatch goal with
-       | [ |- forall x : ?A, quotation_of (@?P x) ]
-         => assert (quotation_of P);
-            [
-            | intro H;
-              pose proof (_ : quotation_of H);
-              change (quotation_of (P H)); exact _ ]
-       end
-  end.
-
-  repeat match goal with H : _ |- _ => revert H end.
-  match goal with
-  | [ |-
-  pose proof (_ : ground_quotable global_env).
-  pose proof (_ : quotation_of Σ).
-  pose proof (_ : quotation_of Σ').
-
-
-    := ltac:(cbv [extends]; exact _).
-  #[export] Instance quote_extends_decls {Σ Σ'} : ground_quotable (@extends_decls Σ Σ') := ltac:(cbv [extends_decls]; exact _).
+   #[export] Instance quote_extends {Σ Σ'} : ground_quotable (@extends Σ Σ') := ground_quotable_of_iffT extends_alt_iff.
+   #[export] Instance quote_extends_decls {Σ Σ'} : ground_quotable (@extends_decls Σ Σ') := ground_quotable_of_iffT (@extends_alt_iff Σ Σ').
   #[export] Instance quote_extends_strictly_on_decls {Σ Σ'} : ground_quotable (@extends_strictly_on_decls Σ Σ') := ltac:(cbv [extends_strictly_on_decls]; exact _).
   #[export] Instance quote_strictly_extends_decls {Σ Σ'} : ground_quotable (@strictly_extends_decls Σ Σ') := ltac:(cbv [strictly_extends_decls]; exact _).
 

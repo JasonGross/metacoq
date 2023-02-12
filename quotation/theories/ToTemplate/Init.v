@@ -32,16 +32,51 @@ Fixpoint modpath_is_absolute (mp : modpath) : bool
      end.
 Definition kername_is_absolute (kn : kername) : bool
   := modpath_is_absolute (fst kn).
+(* returns None if p is not a prefix or either modpath is bound, otherwise returns the list of idents *)
+Fixpoint remove_prefix_r (f : dirpath) (mp : modpath) : option (list ident)
+  := match mp with
+     | MPfile f' => if f == f' then Some [] else None
+     | MPbound _ _ _ => None
+     | MPdot mp i => option_map (cons i) (remove_prefix_r f mp)
+     end.
+Fixpoint remove_prefix (p : modpath) (mp : modpath) : option (list ident)
+  := match p with
+     | MPfile f => remove_prefix_r f mp
+     | MPbound _ _ _ => None
+     | MPdot p i
+       => match remove_prefix p mp with
+          | None => None
+          | Some [] => None
+          | Some (i' :: ls) => if i == i' then Some ls else None
+          end
+     end.
+(* Kludge for not having https://github.com/MetaCoq/metacoq/issues/839 *)
+Definition modpath_is_okay (cur_modpath : modpath) (mp : modpath) : bool
+  := andb (modpath_is_absolute mp)
+       match mp with
+       | MPfile _ => true
+       | MPbound _ _ _ => false
+       | MPdot _ _
+         => match remove_prefix cur_modpath mp with
+            | None => true (* it's not part of the current module, so it's fine *)
+            | Some _ => match cur_modpath with
+                        | MPfile _ => true (* toplevel, so it can't be a functor *)
+                        | _ => false
+                        end
+            end
+       end.
+Definition kername_is_okay (cur_modpath : modpath) (kn : kername) : bool
+  := modpath_is_okay cur_modpath (fst kn).
 
 (* returns false iff a term is suitable for quotation at the top-level, i.e., returns true iff it mentions functor-bound arguments or is a local variable or evar *)
-Definition head_term_is_bound (t : term) : bool
+Definition head_term_is_bound (cur_modpath : modpath) (t : term) : bool
   := match t with
      | tConst kn _
      | tInd {| inductive_mind := kn |} _
      | tConstruct {| inductive_mind := kn |} _ _
      | tProj {| proj_ind := {| inductive_mind := kn |} |} _
      | tCase {| ci_ind := {| inductive_mind := kn |} |} _ _ _
-       => negb (kername_is_absolute kn)
+       => negb (kername_is_okay cur_modpath kn)
      | tVar _
      | tEvar _ _
        => true
@@ -124,17 +159,18 @@ Proof.
            end) in
      let tmMaybeInferQuotation 'tt :=
        if do_top_inference then tmInferQuotation qt else tmFail "Avoiding loops" in
+     cur_modpath <- tmCurrentModPath tt;;
      match qt return TemplateMonad Ast.term with
      | tRel _
      | tSort _
      | tInt _
      | tFloat _
      | tConst _ _
-       => if head_term_is_bound qt
+       => if head_term_is_bound cur_modpath qt
           then tmMaybeInferQuotation tt
           else ret qt
      | tConstruct ind idx u
-       => if head_term_is_bound qt
+       => if head_term_is_bound cur_modpath qt
           then (ind <- infer_replacement_inductive qt;;
                 match ind with
                 | Some ind => ret (tConstruct ind idx u)
@@ -142,7 +178,7 @@ Proof.
                 end)
           else ret qt
      | tInd ind u
-       => if head_term_is_bound qt
+       => if head_term_is_bound cur_modpath qt
           then if do_top_inference
                then (ind <- infer_replacement_inductive qt;;
                      match ind with
@@ -160,7 +196,7 @@ Proof.
      | tCast c kind ty => c <- replace_quotation_of' c;; ty <- replace_quotation_of' ty;; ret (tCast c kind ty)
      | tLetIn na b ty b' => b <- replace_quotation_of' b;; ty <- replace_quotation_of' ty;; b' <- replace_quotation_of' b';; ret (tLetIn na b ty b')
      | tProj p c
-       => res <- (if head_term_is_bound qt
+       => res <- (if head_term_is_bound cur_modpath qt
                   then (ind <- infer_replacement_inductive qt;;
                         match ind with
                         | Some ind
@@ -183,7 +219,7 @@ Proof.
          mfix' <- monad_map (monad_map_def (TM:=TypeInstance) replace_quotation_of' replace_quotation_of') mfix;;
          ret (tCoFix mfix' idx)
      | tCase ci p c brs
-       => res <- (if head_term_is_bound qt
+       => res <- (if head_term_is_bound cur_modpath qt
                   then (ind <- infer_replacement_inductive qt;;
                         match ind with
                         | Some ind
@@ -223,7 +259,8 @@ Proof.
            | my_Some v => ret v
            | my_None => (if debug then tmPrint (quotation_of t) else ret tt);; tmFail "No typeclass instance"
            end) in
-     if head_term_is_bound qt
+     cur_modpath <- tmCurrentModPath tt;;
+     if head_term_is_bound cur_modpath qt
      then ((if debug then tmPrint qt else ret tt);; tmFail "bound argument is not ground")
      else
        match qt return TemplateMonad Ast.term with

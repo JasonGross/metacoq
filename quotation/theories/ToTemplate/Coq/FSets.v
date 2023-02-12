@@ -40,6 +40,7 @@ Module QuoteWSfun (E : DecidableType) (Import W : WSfun E).
       List.Forall (fun '(k, _) => eq_opt_elt (find k m) (find k m')) (@elements elt m)
       /\ List.Forall (fun '(k, _) => eq_opt_elt (find k m) (find k m')) (@elements elt m').
     Import StrongerInstances.
+    #[export] Instance qEquiv_alt {eq_elt} {m m'} {qeq_elt : quotation_of eq_elt} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} {qm : quotation_of m} {qm' : quotation_of m'} : quotation_of (@Equiv_alt eq_elt m m') := ltac:(cbv [Equiv_alt]; exact _).
     #[export] Instance quote_Equiv_alt {eq_elt} {m m'} {qeq_elt : quotation_of eq_elt} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} {quote_eq_elt : forall x y, ground_quotable (eq_elt x y:Prop)} {qm : quotation_of m} {qm' : quotation_of m'} : ground_quotable (@Equiv_alt eq_elt m m') := _.
     Lemma Equiv_alt_iff {eq_elt m m'} : Equiv_alt eq_elt m m' <-> Equiv eq_elt m m'.
     Proof using Type.
@@ -76,13 +77,12 @@ Module QuoteWSfun (E : DecidableType) (Import W : WSfun E).
                             => progress specialize_under_binders_by exact H
                           end ].
       all: try solve [ repeat destruct ?; try congruence; eauto ].
-    Qed.
+    Defined.
+    #[export] Instance quote_Equiv {eq_elt m m'} {qm : quotation_of m} {qm' : quotation_of m'} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} {qeq_elt : quotation_of eq_elt} {quote_eq_elt : forall x y, ground_quotable (eq_elt x y:Prop)} {qEquiv_alt_iff : quotation_of (@Equiv_alt_iff)} : ground_quotable (@Equiv elt eq_elt m m') := ground_quotable_of_iff Equiv_alt_iff.
 
-    #[export] Instance quote_Equiv {eq_elt m m'} {qm : quotation_of m} {qm' : quotation_of m'} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} {qeq_elt : quotation_of eq_elt} {quote_eq_elt : forall x y, ground_quotable (eq_elt x y:Prop)} : ground_quotable (@Equiv elt eq_elt m m') := ground_quotable_of_iff Equiv_alt_iff.
+    #[export] Instance quote_Equal {m m'} {qm : quotation_of m} {qm' : quotation_of m'} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} {qEquiv_alt_iff : quotation_of (@Equiv_alt_iff)} : ground_quotable (@Equal elt m m') := ground_quotable_of_iff (iff_sym (@Equal_Equiv elt m m')).
 
-    #[export] Instance quote_Equal {m m'} {qm : quotation_of m} {qm' : quotation_of m'} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} : ground_quotable (@Equal elt m m') := ground_quotable_of_iff (iff_sym (@Equal_Equiv elt m m')).
-
-    #[export] Instance quote_Equivb {cmp m m'} {qm : quotation_of m} {qm' : quotation_of m'} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} {qcmp : quotation_of cmp} : ground_quotable (@Equivb elt cmp m m') := _.
+    #[export] Instance quote_Equivb {cmp m m'} {qm : quotation_of m} {qm' : quotation_of m'} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} {qcmp : quotation_of cmp} {qEquiv_alt_iff : quotation_of (@Equiv_alt_iff)} : ground_quotable (@Equivb elt cmp m m') := _.
   End with_quote.
 
   Module Export Instances.
@@ -185,9 +185,9 @@ Module QuoteFMapAVL (T : OrderedType) (M : FMapAVL_MakeSig T).
         try solve [ constructor; assumption
                   | inversion 1; subst; auto ].
     Defined.
-    #[export] Instance quote_Raw_bst t : ground_quotable (M.Raw.bst t)
+    #[export] Instance quote_Raw_bst {qRaw_bst_dec : quotation_of M_Raw_bst_dec} t : ground_quotable (M.Raw.bst t)
       := ground_quotable_of_dec (@M_Raw_bst_dec t).
-    #[export] Instance quote_t : ground_quotable (M.t elt) := (ltac:(induction 1; exact _)).
+    #[export] Instance quote_t {qRaw_bst_dec : quotation_of M_Raw_bst_dec} : ground_quotable (M.t elt) := (ltac:(induction 1; exact _)).
   End with_t.
 
   Module Export Instances.
