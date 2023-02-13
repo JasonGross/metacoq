@@ -1,4 +1,4 @@
-From MetaCoq.Utils Require Import utils.
+From MetaCoq.Utils Require Import utils MCList.
 From MetaCoq.Template Require Import MonadBasicAst MonadAst TemplateMonad Ast Loader.
 Require Import Equations.Prop.Classes.
 Require Import Coq.Lists.List.
@@ -32,23 +32,27 @@ Fixpoint modpath_is_absolute (mp : modpath) : bool
      end.
 Definition kername_is_absolute (kn : kername) : bool
   := modpath_is_absolute (fst kn).
-(* returns None if p is not a prefix or either modpath is bound, otherwise returns the list of idents *)
-Fixpoint remove_prefix_r (f : dirpath) (mp : modpath) : option (list ident)
+(* gives the dirpath and the reversed list of idents, or None if bound *)
+Fixpoint split_modpath (mp : modpath) : option (list ident * dirpath)
   := match mp with
-     | MPfile f' => if f == f' then Some [] else None
+     | MPfile f => Some ([], f)
      | MPbound _ _ _ => None
-     | MPdot mp i => option_map (cons i) (remove_prefix_r f mp)
+     | MPdot mp i => option_map (fun '(l, d) => (i :: l, d)) (split_modpath mp)
      end.
-Fixpoint remove_prefix (p : modpath) (mp : modpath) : option (list ident)
-  := match p with
-     | MPfile f => remove_prefix_r f mp
-     | MPbound _ _ _ => None
-     | MPdot p i
-       => match remove_prefix p mp with
-          | None => None
-          | Some [] => None
-          | Some (i' :: ls) => if i == i' then Some ls else None
-          end
+Fixpoint common_prefix_ls (mp1 mp2 : list ident) :=
+  match mp1, mp2 with
+  | [], _ | _, [] => []
+  | i1 :: mp1, i2 :: mp2
+    => if i1 == i2 then i1 :: common_prefix_ls mp1 mp2 else []
+  end.
+(* returns None if either [mp] shares no prefix with [mp] or either modpath is bound, otherwise returns the list of idents of the common prefix *)
+Definition common_prefix (mp1 mp2 : modpath) : option (dirpath * list ident)
+  := match split_modpath mp1, split_modpath mp2 with
+     | None, _ | _, None => None
+     | Some (mp1, f1), Some (mp2, f2)
+       => if f1 == f2
+          then Some (f1, common_prefix_ls (rev mp1) (rev mp2))
+          else None
      end.
 (* Kludge for not having https://github.com/MetaCoq/metacoq/issues/839 *)
 Definition modpath_is_okay (cur_modpath : modpath) (mp : modpath) : bool
@@ -57,12 +61,10 @@ Definition modpath_is_okay (cur_modpath : modpath) (mp : modpath) : bool
        | MPfile _ => true
        | MPbound _ _ _ => false
        | MPdot _ _
-         => match remove_prefix cur_modpath mp with
+         => match common_prefix cur_modpath mp with
             | None => true (* it's not part of the current module, so it's fine *)
-            | Some _ => match cur_modpath with
-                        | MPfile _ => true (* toplevel, so it can't be a functor *)
-                        | _ => false
-                        end
+            | Some (_, []) => true (* only share the top-level, so it can't be a functor *)
+            | Some _ => false
             end
        end.
 Definition kername_is_okay (cur_modpath : modpath) (kn : kername) : bool
@@ -356,8 +358,8 @@ Module Export Instances.
    Hint Extern 1 (quotation_of _) => replace_quotation_of_goal () : typeclass_instances.
   #[export]
    Hint Extern 2 (quotation_of _) => make_quotation_of_goal () : typeclass_instances.
-  #[export]
-   Hint Extern 100 (quotation_of _) => progress revert_quotable_hyps () : typeclass_instances.
+  (*#[export]
+   Hint Extern 100 (quotation_of _) => progress revert_quotable_hyps () : typeclass_instances.*)
   #[export] Hint Mode cls_is_true + : typeclass_instances.
   #[export] Existing Instances qquotation | 10.
   (* Hack around COQBUG(https://github.com/coq/coq/issues/16760) *)
@@ -440,3 +442,27 @@ Proof.
   change (@quotation_of (~B) (fun b => na (proj2 H b))).
   exact _.
 Defined.
+
+(* unfolding Qed'd definitions for the benefit of quotation *)
+Definition tmUnfoldQed {A} (v : A) : TemplateMonad A
+  := p <- tmQuote v;;
+     v <- match p return TemplateMonad term with
+          | tConst c u
+            => cb <- tmQuoteConstant c true;;
+              match cb with
+               | {| cst_body := Some cb |} => tmReturn (subst_instance_constr u cb)
+               | {| cst_body := None |} => _ <- tmMsg "tmUnfoldQed: failed to find body for";; _ <- tmPrint v;; tmReturn p
+               end
+          | _ => _ <- tmMsg "tmUnfoldQed: not const";; _ <- tmPrint v;; tmReturn p
+          end;;
+     tmUnquoteTyped A v.
+Notation transparentify v := (match tmUnfoldQed v return _ with v' => ltac:(run_template_program v' (fun v' => exact v')) end) (only parsing).
+
+Ltac unfold_quotation_of _ :=
+  lazymatch goal with
+  | [ |- quotation_of ?t ]
+    => first [ progress cbv delta [t]
+             | run_template_program
+                 (tmUnfoldQed t)
+                 (fun t' => change (quotation_of t')) ]
+  end.

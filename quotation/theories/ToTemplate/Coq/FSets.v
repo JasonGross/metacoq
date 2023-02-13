@@ -1,7 +1,8 @@
 From Coq Require Import FMapInterface FMapList FMapAVL FMapFullAVL FMapFacts.
 From MetaCoq.Utils Require Import MCUtils.
 From MetaCoq.Quotation.ToTemplate Require Export Init.
-From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Numbers Coq.Init Coq.Lists.
+From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Numbers Coq.Init Coq.Lists Coq.Structures.
+From MetaCoq.Quotation.ToTemplate Require Import Coq.Structures.
 
 Module QuoteWSfun (E : DecidableType) (Import W : WSfun E).
   Module Import WFacts := WFacts_fun E W.
