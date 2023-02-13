@@ -196,6 +196,7 @@ Module QuoteEnvironment (T : Term) (Import E : EnvironmentSig T) (Import QT : Qu
      qcst_body
      qcst_universes
      quniverses
+     qretroknowledge
      qdeclarations
      qglobal_declarations
      qglobal_env_ext
