@@ -323,60 +323,61 @@ Module ExtraQuotationOfWSetsOn (E : DecidableType) (Import W : WSetsOn E) (qE : 
   End QuotationOfWPropertiesOn.
 End ExtraQuotationOfWSetsOn.
 
-Module Type QuotationOfSetsOn (E : Orders.OrderedType) (Import W : SetsOn E).
-    Parameter compare : t -> t -> comparison.
-  (** Total ordering between sets. Can be used as the ordering function
-  for doing sets of sets. *)
+Module Type QuotationOfHasOrdOps (T : TypElt) (S : HasOrdOps T).
+  #[export] Declare Instance qcompare : quotation_of S.compare.
+  #[export] Declare Instance qmin_elt : quotation_of S.min_elt.
+  #[export] Declare Instance qmax_elt : quotation_of S.max_elt.
+End QuotationOfHasOrdOps.
 
-  Parameter min_elt : t -> option elt.
-  (** Return the smallest element of the given set
-  (with respect to the [E.compare] ordering),
-  or [None] if the set is empty. *)
+Module Type QuotationOfSetsOn (E : Orders.OrderedType) (W : SetsOn E).
+  Include QuotationOfWSetsOn E W <+ QuotationOfHasOrdOps W W <+ QuotationOfHasLt W W <+ QuotationOfIsStrOrder W W.
+  #[export] Declare Instance qcompare_spec : quotation_of W.compare_spec.
+  #[export] Declare Instance qelements_spec2 : quotation_of W.elements_spec2.
+  #[export] Declare Instance qmin_elt_spec1 : quotation_of W.min_elt_spec1.
+  #[export] Declare Instance qmin_elt_spec2 : quotation_of W.min_elt_spec2.
+  #[export] Declare Instance qmin_elt_spec3 : quotation_of W.min_elt_spec3.
+  #[export] Declare Instance qmax_elt_spec1 : quotation_of W.max_elt_spec1.
+  #[export] Declare Instance qmax_elt_spec2 : quotation_of W.max_elt_spec2.
+  #[export] Declare Instance qmax_elt_spec3 : quotation_of W.max_elt_spec3.
+  #[export] Declare Instance qchoose_spec3 : quotation_of W.choose_spec3.
+End QuotationOfSetsOn.
 
-  Parameter max_elt : t -> option elt.
-  (** Same as [min_elt], but returns the largest element of the
-  given set. *)
+Module ExtraQuotationOfSetsOn (M : Sets) (qE : QuotationOfOrderedType M.E) (Import qM : QuotationOfSetsOn M.E M).
+  Include ExtraQuotationOfWSetsOn M.E M qE qM.
+  Import (hints) qE qM.
 
-End HasOrdOps.
-
-Module Type Ops (E : OrderedType) := WOps E <+ HasOrdOps.
-
-
-Module Type SetsOn (E : OrderedType).
-  Include WSetsOn E <+ HasOrdOps <+ HasLt <+ IsStrOrder.
-
-  Section Spec.
-  Variable s s': t.
-  Variable x y : elt.
-
-  Parameter compare_spec : CompSpec eq lt s s' (compare s s').
-
-  (** Additional specification of [elements] *)
-  Parameter elements_spec2 : sort E.lt (elements s).
-
-  (** Remark: since [fold] is specified via [elements], this stronger
-   specification of [elements] has an indirect impact on [fold],
-   which can now be proved to receive elements in increasing order.
-  *)
-
-  Parameter min_elt_spec1 : min_elt s = Some x -> In x s.
-  Parameter min_elt_spec2 : min_elt s = Some x -> In y s -> ~ E.lt y x.
-  Parameter min_elt_spec3 : min_elt s = None -> Empty s.
-
-  Parameter max_elt_spec1 : max_elt s = Some x -> In x s.
-  Parameter max_elt_spec2 : max_elt s = Some x -> In y s -> ~ E.lt x y.
-  Parameter max_elt_spec3 : max_elt s = None -> Empty s.
-
-  (** Additional specification of [choose] *)
-  Parameter choose_spec3 : choose s = Some x -> choose s' = Some y ->
-    Equal s s' -> E.eq x y.
-
-
-
-(* the definitions *)
-Module ExtraQuotationOfSetsOn (E : Orders.OrderedType) (Import W : SetsOn E) (qE : QuotationOfOrderedType E) (Import qW : QuotationOfWSetsOn E W).
-  Import (hints) qE.
-
+  Module QuotationOfOrdProperties (O : OrdPropertiesSig M).
+    Module qME := QuotationOfOrderedTypeFacts M.E O.ME qE.
+    Export (hints) qME.
+    (*Module Import ML:=OrderedTypeLists(M.E).*)
+    Module qP := QuotationOfWPropertiesOn O.P.
+    Export (hints) qP.
+    #[export] Instance qsort_equivlistA_eqlistA : quotation_of O.sort_equivlistA_eqlistA := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qgtb : quotation_of O.gtb := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qleb : quotation_of O.leb := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qelements_lt : quotation_of O.elements_lt := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qelements_ge : quotation_of O.elements_ge := ltac:(unfold_quotation_of (); exact _).
+    (*
+    #[export] Instance qgtb_1 : quotation_of O.gtb_1 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qleb_1 : quotation_of O.leb_1 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qgtb_compat : quotation_of O.gtb_compat := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qleb_compat : quotation_of O.leb_compat := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qelements_split : quotation_of O.elements_split := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qelements_Add : quotation_of O.elements_Add := ltac:(unfold_quotation_of (); exact _).*)
+    #[export] Instance qAbove : quotation_of O.Above := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qBelow : quotation_of O.Below := ltac:(unfold_quotation_of (); exact _).
+    (*#[export] Instance qelements_Add_Above : quotation_of O.elements_Add_Above := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qelements_Add_Below : quotation_of O.elements_Add_Below := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qset_induction_max : quotation_of O.set_induction_max := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qset_induction_min : quotation_of O.set_induction_min := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qfold_3 : quotation_of O.fold_3 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qfold_4 : quotation_of O.fold_4 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qfold_equal : quotation_of O.fold_equal := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qadd_fold : quotation_of O.add_fold := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qremove_fold_2 : quotation_of O.remove_fold_2 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qchoose_equal : quotation_of O.choose_equal := ltac:(unfold_quotation_of (); exact _).*)
+  End QuotationOfOrdProperties.
+End ExtraQuotationOfSetsOn.
 
 Module QuoteWSetsOn (E : DecidableType) (Import W : WSetsOn E) (qE : QuotationOfDecidableType E) (qW : QuotationOfWSetsOn E W).
   Export (hints) qE.
@@ -463,12 +464,14 @@ Module QuoteWSetsOn (E : DecidableType) (Import W : WSetsOn E) (qE : QuotationOf
   => simple notypeclasses refine (@quote_For_all _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) : typeclass_instances.
 End QuoteWSetsOn.
 
-Module QuoteSetsOn (E : OrderedType) (Import M : SetsOn E) (qE : QuotationOfOrderedType E) (qM : QuotationOfWSetsOn E M).
+Module QuoteSetsOn (E : OrderedType) (Import M : SetsOn E) (qE : QuotationOfOrderedType E) (qM : QuotationOfSetsOn E M).
   Module Import QuoteSetsOnInner := QuoteWSetsOn E M qE qM.
   Export (hints) qE.
   Export (hints) QuoteSetsOnInner.
-  Locate Module OrdProperties.
   Module Import MOrdProperties. Module E := E. Include M <+ OrdProperties. End MOrdProperties.
+  Module Import qM := ExtraQuotationOfSetsOn MOrdProperties qE qM.
+  Module qMOrdProperties := qM.QuotationOfOrdProperties MOrdProperties.
+  Export (hints) qMOrdProperties.
 
   Definition above x s : bool := for_all (fun y => if ME.lt_dec y x then true else false) s.
   Definition below x s : bool := for_all (fun y => if ME.lt_dec x y then true else false) s.
@@ -490,36 +493,313 @@ Module QuoteSetsOn (E : OrderedType) (Import M : SetsOn E) (qE : QuotationOfOrde
   Qed.
   #[export] Instance qabove : quotation_of above := ltac:(unfold_quotation_of (); exact _).
   #[export] Instance qAbove : quotation_of Above := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qbelow : quotation_of below := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qBelow : quotation_of Below := ltac:(unfold_quotation_of (); exact _).
   #[export] Instance qabove_spec : quotation_of above_spec := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qbelow_spec : quotation_of below_spec := ltac:(unfold_quotation_of (); exact _).
   #[export] Instance quote_Above {x s} {qx : quotation_of x} {qs : quotation_of s} : ground_quotable (Above x s)
     := ground_quotable_of_iff (above_spec x s).
-    #[export] Instance quote_Below {x s} {qx : quotation_of x} {qs : quotation_of s} : ground_quotable (Below x s)
-      := ground_quotable_of_iff (below_spec x s).
-  End OnlyOrdDefinitions.
-
-  Module OrdDefinitions.
-    Include Definitions.
-    Include OnlyOrdDefinitions.
-  End OrdDefinitions.
-
-  Include OnlyOrdDefinitions.
-
-  Module Export OnlyOrdInstances.
-    #[export] Existing Instances
-     quote_Above
-     quote_Below
-    .
-  End OnlyOrdInstances.
-  Module Export OrdInstances.
-    Export Instances.
-    Export OnlyOrdInstances.
-  End OrdInstances.
+  #[export] Instance quote_Below {x s} {qx : quotation_of x} {qs : quotation_of s} : ground_quotable (Below x s)
+    := ground_quotable_of_iff (below_spec x s).
 End QuoteSetsOn.
 
-Module Type MSetAVL_MakeSig (T : OrderedType). Include MSetAVL.Make T. End MSetAVL_MakeSig.
+Module MSetAVL.
+  Module Type MakeSig (T : OrderedType) := Nop <+ MSetAVL.Make T.
+  Module Type QuotationOfMake (T : OrderedType) (M : MakeSig T) (qT : QuotationOfOrderedType T).
+    #[export] Declare Instance qt_ : inductive_quotation_of M.t_.
+    #[export] Declare Instance qRaw_enumeration : inductive_quotation_of M.Raw.enumeration.
+    #[export] Declare Instance qRaw_tree : inductive_quotation_of M.Raw.tree.
+    #[export] Declare Instance qRaw_bst : inductive_quotation_of M.Raw.bst.
+    #[export] Declare Instance qRaw_InT : inductive_quotation_of M.Raw.InT.
+    #[export] Declare Instance qRaw_R_min_elt : inductive_quotation_of M.Raw.R_min_elt.
+    #[export] Declare Instance qRaw_R_max_elt : inductive_quotation_of M.Raw.R_max_elt.
+    #[export] Declare Instance qRaw_R_bal : inductive_quotation_of M.Raw.R_bal.
+    #[export] Declare Instance qRaw_R_remove_min : inductive_quotation_of M.Raw.R_remove_min.
+    #[export] Declare Instance qRaw_R_merge : inductive_quotation_of M.Raw.R_merge.
+    #[export] Declare Instance qRaw_R_concat : inductive_quotation_of M.Raw.R_concat.
+    #[export] Declare Instance qRaw_R_inter : inductive_quotation_of M.Raw.R_inter.
+    #[export] Declare Instance qRaw_R_diff : inductive_quotation_of M.Raw.R_diff.
+    #[export] Declare Instance qRaw_R_union : inductive_quotation_of M.Raw.R_union.
+    #[export] Declare Instance qRaw_triple : inductive_quotation_of M.Raw.triple.
+  End QuotationOfMake.
 
-Module QuoteMSetAVL (T : OrderedType) (M : MSetAVL_MakeSig T).
-  Module Import QM := QuoteSetsOn T M.
+  Module ExtraQuotationOfMake (T : OrderedType) (M : MakeSig T) (Import qT : QuotationOfOrderedType T) (Import qM : QuotationOfMake T M qT) <: QuotationOfWSetsOn T M.
+    Module Raw.
+      Module qMX := QuotationOfOrderedTypeFacts T M.Raw.MX qT.
+      Export (hints) qMX.
+      #[export] Instance qelt : quotation_of M.Raw.elt := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qtree_ind : quotation_of M.Raw.tree_ind := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qempty : quotation_of M.Raw.empty := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qis_empty : quotation_of M.Raw.is_empty := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qmem : quotation_of M.Raw.mem := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qmin_elt : quotation_of M.Raw.min_elt := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qmax_elt : quotation_of M.Raw.max_elt := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qchoose : quotation_of M.Raw.choose := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qfold : quotation_of (@M.Raw.fold) := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qelements_aux : quotation_of M.Raw.elements_aux := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qelements : quotation_of M.Raw.elements := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qrev_elements_aux : quotation_of M.Raw.rev_elements_aux := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qrev_elements : quotation_of M.Raw.rev_elements := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qcardinal : quotation_of M.Raw.cardinal := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qmaxdepth : quotation_of M.Raw.maxdepth := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qmindepth : quotation_of M.Raw.mindepth := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qfor_all : quotation_of M.Raw.for_all := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qexists_ : quotation_of M.Raw.exists_ := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qcons : quotation_of M.Raw.cons := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qcompare_more : quotation_of M.Raw.compare_more := ltac:(unfold_quotation_of (); exact _).
+      Print M.Raw.
+
+      #[export] Instance qcompare_cont : quotation_of M.Raw.compare_cont := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qcompare_end : quotation_of M.Raw.compare_end := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qcompare : quotation_of M.Raw.compare := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qequal : quotation_of M.Raw.equal := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qsubsetl : quotation_of M.Raw.subsetl := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qsubsetr : quotation_of M.Raw.subsetr := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qsubset : quotation_of M.Raw.subset := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qt : quotation_of M.Raw.t := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qheight : quotation_of M.Raw.height := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qsingleton : quotation_of M.Raw.singleton := ltac:(unfold_quotation_of (); exact _).
+      #[export] Instance qcreate : quotation_of M.Raw.create := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qassert_false : quotation_of M.Raw.assert_false := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qbal : quotation_of M.Raw.bal := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qadd : quotation_of M.Raw.add := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qjoin : quotation_of M.Raw.join := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qremove_min : quotation_of M.Raw.remove_min := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmerge : quotation_of M.Raw.merge := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qremove : quotation_of M.Raw.remove := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qconcat : quotation_of M.Raw.concat := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qt_left : quotation_of M.Raw.t_left := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qt_in : quotation_of M.Raw.t_in := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qt_right : quotation_of M.Raw.t_right := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qsplit : quotation_of M.Raw.split := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qinter : quotation_of M.Raw.inter := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qdiff : quotation_of M.Raw.diff := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qunion : quotation_of M.Raw.union := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qfilter : quotation_of M.Raw.filter := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qpartition : quotation_of M.Raw.partition := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qIn : quotation_of M.Raw.In := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qEqual : quotation_of M.Raw.Equal := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qSubset : quotation_of M.Raw.Subset := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qEmpty : quotation_of M.Raw.Empty := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qFor_all : quotation_of M.Raw.For_all := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qExists : quotation_of M.Raw.Exists := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qlt_tree : quotation_of M.Raw.lt_tree := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qgt_tree : quotation_of M.Raw.gt_tree := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qIsOk : quotation_of M.Raw.IsOk := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qOk : quotation_of M.Raw.Ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qok : quotation_of (@M.Raw.ok) := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qbst_Ok : quotation_of M.Raw.bst_Ok := ltac:(unfold_quotation_of (); exact _).
+     (*
+     #[export] Instance qltb_tree : quotation_of M.Raw.ltb_tree := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qgtb_tree : quotation_of M.Raw.gtb_tree := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qisok : quotation_of M.Raw.isok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qltb_tree_iff : quotation_of M.Raw.ltb_tree_iff := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qgtb_tree_iff : quotation_of M.Raw.gtb_tree_iff := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qisok_iff : quotation_of M.Raw.isok_iff := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qisok_Ok : quotation_of M.Raw.isok_Ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qIn_1 : quotation_of M.Raw.In_1 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qIn_compat : quotation_of M.Raw.In_compat := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qIn_node_iff : quotation_of M.Raw.In_node_iff := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qIn_leaf_iff : quotation_of M.Raw.In_leaf_iff := ltac:(unfold_quotation_of (); exact _).*)
+     #[export] Instance qlt_leaf : quotation_of M.Raw.lt_leaf := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qgt_leaf : quotation_of M.Raw.gt_leaf := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qlt_tree_node : quotation_of M.Raw.lt_tree_node := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qgt_tree_node : quotation_of M.Raw.gt_tree_node := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qlt_tree_not_in : quotation_of M.Raw.lt_tree_not_in := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qlt_tree_trans : quotation_of M.Raw.lt_tree_trans := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qgt_tree_not_in : quotation_of M.Raw.gt_tree_not_in := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qgt_tree_trans : quotation_of M.Raw.gt_tree_trans := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qlt_tree_compat : quotation_of M.Raw.lt_tree_compat := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qgt_tree_compat : quotation_of M.Raw.gt_tree_compat := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qempty_spec : quotation_of M.Raw.empty_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qempty_ok : quotation_of M.Raw.empty_ok := ltac:(unfold_quotation_of (); exact _).
+     (*#[export] Instance qis_empty_spec : quotation_of M.Raw.is_empty_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmem_spec : quotation_of M.Raw.mem_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmin_elt_equation : quotation_of M.Raw.min_elt_equation := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmax_elt_equation : quotation_of M.Raw.max_elt_equation := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmin_elt_spec1 : quotation_of M.Raw.min_elt_spec1 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmin_elt_spec2 : quotation_of M.Raw.min_elt_spec2 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmin_elt_spec3 : quotation_of M.Raw.min_elt_spec3 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmax_elt_spec1 : quotation_of M.Raw.max_elt_spec1 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmax_elt_spec2 : quotation_of M.Raw.max_elt_spec2 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmax_elt_spec3 : quotation_of M.Raw.max_elt_spec3 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qchoose_spec1 : quotation_of M.Raw.choose_spec1 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qchoose_spec2 : quotation_of M.Raw.choose_spec2 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qchoose_spec3 : quotation_of M.Raw.choose_spec3 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qelements_spec1' : quotation_of M.Raw.elements_spec1' := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qelements_spec1 : quotation_of M.Raw.elements_spec1 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qelements_spec2' : quotation_of M.Raw.elements_spec2' := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qelements_spec2 : quotation_of M.Raw.elements_spec2 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qelements_spec2w : quotation_of M.Raw.elements_spec2w := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qelements_aux_cardinal : quotation_of M.Raw.elements_aux_cardinal := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qelements_cardinal : quotation_of M.Raw.elements_cardinal := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qcardinal_spec : quotation_of M.Raw.cardinal_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qelements_app : quotation_of M.Raw.elements_app := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qelements_node : quotation_of M.Raw.elements_node := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qrev_elements_app : quotation_of M.Raw.rev_elements_app := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qrev_elements_node : quotation_of M.Raw.rev_elements_node := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qrev_elements_rev : quotation_of M.Raw.rev_elements_rev := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qsorted_app_inv : quotation_of M.Raw.sorted_app_inv := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qelements_sort_ok : quotation_of M.Raw.elements_sort_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qfor_all_spec : quotation_of M.Raw.for_all_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qexists_spec : quotation_of M.Raw.exists_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qfold_spec' : quotation_of M.Raw.fold_spec' := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qfold_spec : quotation_of M.Raw.fold_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qsubsetl_spec : quotation_of M.Raw.subsetl_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qsubsetr_spec : quotation_of M.Raw.subsetr_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qsubset_spec : quotation_of M.Raw.subset_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qeq : quotation_of M.Raw.eq := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qeq_equiv : quotation_of M.Raw.eq_equiv := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qeq_Leq : quotation_of M.Raw.eq_Leq := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qlt : quotation_of M.Raw.lt := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qlt_strorder : quotation_of M.Raw.lt_strorder := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qlt_compat : quotation_of M.Raw.lt_compat := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qflatten_e : quotation_of M.Raw.flatten_e := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qflatten_e_elements : quotation_of M.Raw.flatten_e_elements := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qcons_1 : quotation_of M.Raw.cons_1 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qCmp : quotation_of M.Raw.Cmp := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qcompare_end_Cmp : quotation_of M.Raw.compare_end_Cmp := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qcompare_more_Cmp : quotation_of M.Raw.compare_more_Cmp := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qcompare_cont_Cmp : quotation_of M.Raw.compare_cont_Cmp := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qcompare_Cmp : quotation_of M.Raw.compare_Cmp := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qcompare_spec : quotation_of M.Raw.compare_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qequal_spec : quotation_of M.Raw.equal_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmindepth_maxdepth : quotation_of M.Raw.mindepth_maxdepth := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmaxdepth_cardinal : quotation_of M.Raw.maxdepth_cardinal := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmindepth_cardinal : quotation_of M.Raw.mindepth_cardinal := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmaxdepth_log_cardinal : quotation_of M.Raw.maxdepth_log_cardinal := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmindepth_log_cardinal : quotation_of M.Raw.mindepth_log_cardinal := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qremove_min_equation : quotation_of M.Raw.remove_min_equation := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qinter_equation : quotation_of M.Raw.inter_equation := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qdiff_equation : quotation_of M.Raw.diff_equation := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qunion_equation : quotation_of M.Raw.union_equation := ltac:(unfold_quotation_of (); exact _).*)
+     #[export] Instance qsingleton_spec : quotation_of M.Raw.singleton_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qsingleton_ok : quotation_of M.Raw.singleton_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qcreate_spec : quotation_of M.Raw.create_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qcreate_ok : quotation_of M.Raw.create_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qbal_spec : quotation_of M.Raw.bal_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qbal_ok : quotation_of M.Raw.bal_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qadd_spec' : quotation_of M.Raw.add_spec' := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qadd_spec : quotation_of M.Raw.add_spec := ltac:(unfold_quotation_of (); exact _).
+     Instance: debug_opt := true.
+     Fail #[export] Instance qadd_ok : quotation_of M.Raw.add_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qjoin_spec : quotation_of M.Raw.join_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qjoin_ok : quotation_of M.Raw.join_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qremove_min_spec : quotation_of M.Raw.remove_min_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qremove_min_ok : quotation_of M.Raw.remove_min_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qremove_min_gt_tree : quotation_of M.Raw.remove_min_gt_tree := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmerge_spec : quotation_of M.Raw.merge_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qmerge_ok : quotation_of M.Raw.merge_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qremove_spec : quotation_of M.Raw.remove_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qremove_ok : quotation_of M.Raw.remove_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qconcat_spec : quotation_of M.Raw.concat_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qconcat_ok : quotation_of M.Raw.concat_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qsplit_spec1 : quotation_of M.Raw.split_spec1 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qsplit_spec2 : quotation_of M.Raw.split_spec2 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qsplit_spec3 : quotation_of M.Raw.split_spec3 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qsplit_ok : quotation_of M.Raw.split_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qsplit_ok1 : quotation_of M.Raw.split_ok1 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qsplit_ok2 : quotation_of M.Raw.split_ok2 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qinter_spec_ok : quotation_of M.Raw.inter_spec_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qinter_spec : quotation_of M.Raw.inter_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qinter_ok : quotation_of M.Raw.inter_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qdiff_spec_ok : quotation_of M.Raw.diff_spec_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qdiff_spec : quotation_of M.Raw.diff_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qdiff_ok : quotation_of M.Raw.diff_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qunion_spec : quotation_of M.Raw.union_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qunion_ok : quotation_of M.Raw.union_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qfilter_spec : quotation_of M.Raw.filter_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qfilter_weak_spec : quotation_of M.Raw.filter_weak_spec := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qfilter_ok : quotation_of M.Raw.filter_ok := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qpartition_spec1' : quotation_of M.Raw.partition_spec1' := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qpartition_spec2' : quotation_of M.Raw.partition_spec2' := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qpartition_spec1 : quotation_of M.Raw.partition_spec1 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qpartition_spec2 : quotation_of M.Raw.partition_spec2 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qpartition_ok1 : quotation_of M.Raw.partition_ok1 := ltac:(unfold_quotation_of (); exact _).
+     #[export] Instance qpartition_ok2 : quotation_of M.Raw.partition_ok2 := ltac:(unfold_quotation_of (); exact _).
+      *)
+    End Raw.
+    Export (hints) Raw.
+    #[export] Instance qt : quotation_of M.t := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qempty : quotation_of M.empty := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qthis : quotation_of M.this := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qis_empty : quotation_of M.is_empty := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qmem : quotation_of M.mem := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qadd : quotation_of M.add := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qsingleton : quotation_of M.singleton := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qremove : quotation_of M.remove := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qunion : quotation_of M.union := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qinter : quotation_of M.inter := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qdiff : quotation_of M.diff := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qequal : quotation_of M.equal := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qsubset : quotation_of M.subset := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qfold : quotation_of M.fold := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qfor_all : quotation_of M.for_all := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qexists_ : quotation_of M.exists_ := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qfilter : quotation_of M.filter := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qpartition : quotation_of M.partition := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qcardinal : quotation_of M.cardinal := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qelements : quotation_of M.elements := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qchoose : quotation_of M.choose := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qIn : quotation_of M.In := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qIn_compat : quotation_of M.In_compat := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qeq_equiv : quotation_of M.eq_equiv := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qeq_dec : quotation_of M.eq_dec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qmem_spec : quotation_of M.mem_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qequal_spec : quotation_of M.equal_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qsubset_spec : quotation_of M.subset_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qempty_spec : quotation_of M.empty_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qis_empty_spec : quotation_of M.is_empty_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qadd_spec : quotation_of M.add_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qremove_spec : quotation_of M.remove_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qsingleton_spec : quotation_of M.singleton_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qunion_spec : quotation_of M.union_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qinter_spec : quotation_of M.inter_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qdiff_spec : quotation_of M.diff_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qfold_spec : quotation_of M.fold_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qcardinal_spec : quotation_of M.cardinal_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qfilter_spec : quotation_of M.filter_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qfor_all_spec : quotation_of M.for_all_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qexists_spec : quotation_of M.exists_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qpartition_spec1 : quotation_of M.partition_spec1 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qpartition_spec2 : quotation_of M.partition_spec2 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qelements_spec1 : quotation_of M.elements_spec1 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qelements_spec2w : quotation_of M.elements_spec2w := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qchoose_spec1 : quotation_of M.choose_spec1 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qchoose_spec2 : quotation_of M.choose_spec2 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qcompare : quotation_of M.compare := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qmin_elt : quotation_of M.min_elt := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qmax_elt : quotation_of M.max_elt := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qlt : quotation_of M.lt := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qlt_strorder : quotation_of M.lt_strorder := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qlt_compat : quotation_of M.lt_compat := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qcompare_spec : quotation_of M.compare_spec := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qelements_spec2 : quotation_of M.elements_spec2 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qmin_elt_spec1 : quotation_of M.min_elt_spec1 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qmin_elt_spec2 : quotation_of M.min_elt_spec2 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qmin_elt_spec3 : quotation_of M.min_elt_spec3 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qmax_elt_spec1 : quotation_of M.max_elt_spec1 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qmax_elt_spec2 : quotation_of M.max_elt_spec2 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qmax_elt_spec3 : quotation_of M.max_elt_spec3 := ltac:(unfold_quotation_of (); exact _).
+    #[export] Instance qchoose_spec3 : quotation_of M.choose_spec3 := ltac:(unfold_quotation_of (); exact _).
+
+  #[export] Declare Instance qcompare_spec : quotation_of W.compare_spec.
+  #[export] Declare Instance qelements_spec2 : quotation_of W.elements_spec2.
+  #[export] Declare Instance qmin_elt_spec1 : quotation_of W.min_elt_spec1.
+  #[export] Declare Instance qmin_elt_spec2 : quotation_of W.min_elt_spec2.
+  #[export] Declare Instance qmin_elt_spec3 : quotation_of W.min_elt_spec3.
+  #[export] Declare Instance qmax_elt_spec1 : quotation_of W.max_elt_spec1.
+  #[export] Declare Instance qmax_elt_spec2 : quotation_of W.max_elt_spec2.
+  #[export] Declare Instance qmax_elt_spec3 : quotation_of W.max_elt_spec3.
+  #[export] Declare Instance qchoose_spec3 : quotation_of W.choose_spec3.
+
+  End ExtraQuotationOfMake.
+
+Print MSetAVL.Make.
+
+Module QuoteMSetAVL (T : OrderedType) (M : MSetAVL_MakeSig T) (Import qT : QuotationOfOrderedType T) (Import qM : QuotationOfSetsOn T M).
+  Module Import QM := QuoteSetsOn T M qT qM.
+  Export (hints) QM.
 
   Module Definitions.
     Include QM.OrdDefinitions.
