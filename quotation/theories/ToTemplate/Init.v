@@ -444,7 +444,7 @@ Proof.
 Defined.
 
 (* unfolding Qed'd definitions for the benefit of quotation *)
-Definition tmUnfoldQed {A} (v : A) : TemplateMonad A
+Polymorphic Definition tmUnfoldQed {A} (v : A) : TemplateMonad A
   := p <- tmQuote v;;
      v <- match p return TemplateMonad term with
           | tConst c u
@@ -466,3 +466,81 @@ Ltac unfold_quotation_of _ :=
                  (tmUnfoldQed t)
                  (fun t' => change (quotation_of t')) ]
   end.
+
+(* a hack for working around https://github.com/MetaCoq/metacoq/issues/842 *)
+Local Polymorphic Definition tmRetype {A} (x : A) : TemplateMonad A
+  := qx <- tmQuote x;;
+     tmUnquoteTyped A qx.
+
+Local Polymorphic Definition tmQuoteToGlobalReference {A} (n : A) : TemplateMonad global_reference
+  := qn <- tmQuote n;;
+     match qn with
+     | tVar id => tmReturn (VarRef id)
+     | tConst c u => tmReturn (ConstRef c)
+     | tInd ind u => tmReturn (IndRef ind)
+     | tConstruct ind idx u => tmReturn (ConstructRef ind idx)
+     | _ => _ <- tmMsg "tmQuoteToGlobalReference: Not a global reference";;
+            _ <- tmPrint n;;
+            _ <- tmPrint qn;;
+            tmFail "tmQuoteToGlobalReference: Not a global reference"
+     end.
+
+(* N.B. existing instance is global *)
+Definition tmMakeQuotationOfModule (do_existing_instance : bool) (m : qualid) : TemplateMonad _
+  := cs <- tmQuoteModule m;;
+     let warn_bad_ctx c ctx :=
+       (_ <- tmMsg "tmMakeQuotationOfModule: cannot handle polymorphism";;
+        _ <- tmPrint c;;
+        _ <- tmPrint ctx;;
+        tmReturn tt) in
+     ps <- monad_map
+             (fun r
+              => match r with
+                 | ConstRef ((mp, name) as c)
+                   => inst <- (cb <- tmQuoteConstant c false;;
+                               match cb.(cst_universes) with
+                               | Monomorphic_ctx => tmReturn []
+                               | (Polymorphic_ctx (univs, constraints)) as ctx
+                                 => _ <- warn_bad_ctx r ctx;;
+                                    tmReturn []
+                               end);;
+                      let c := tConst c inst in
+                      '{| my_projT2 := cv |} <- tmUnquote c;;
+                      let ty := quotation_of cv in
+                      _ <- tmRetype ty;;
+                      n <- @tmDefinition ("q" ++ name) ty c;;
+                      qn <- tmQuoteToGlobalReference n;;
+                      tmReturn (Some qn)
+                 | IndRef ind
+                   => inst <- (mib <- tmQuoteInductive ind.(inductive_mind);;
+                               match mib.(ind_universes) with
+                               | Monomorphic_ctx => tmReturn []
+                               | (Polymorphic_ctx (univs, constraints)) as ctx
+                                 => _ <- warn_bad_ctx r ctx;;
+                                    tmReturn []
+                               end);;
+                      let '(mp, name) := ind.(inductive_mind) in
+                      let c := tInd ind inst in
+                      '{| my_projT2 := cv |} <- tmUnquote c;;
+                      let ty := inductive_quotation_of cv in
+                      let v : ty := {| qinductive := ind ; qinst := inst |} in
+                      _ <- tmRetype ty;;
+                      n <- @tmDefinition ("q" ++ name) ty v;;
+                      qn <- tmQuoteToGlobalReference n;;
+                      tmReturn (Some qn)
+                 | ConstructRef _ _ | VarRef _ => tmReturn None
+                 end)
+             cs;;
+     _ <- (if do_existing_instance
+           then monad_map
+                  (fun v => match v with
+                            | Some gr => tmExistingInstance gr
+                            | None => tmReturn tt
+                            end)
+                  ps
+           else tmReturn []);;
+     tmReturn tt.
+(*
+Require Import MSetPositive.
+MetaCoq Run (tmMakeQuotationOfModule true "Coq.MSets.MSetPositive.PositiveSet"%bs).
+*)
