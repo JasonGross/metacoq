@@ -37,12 +37,8 @@ Definition head_term_is_bound (cur_modpath : modpath) (t : term) : bool
      | _ => false
      end.
 
-Definition replace_inductive_kn (t : inductive) (i : term) : option inductive
-  := match i with
-     | tInd ind _
-       => Some {| inductive_mind := ind.(inductive_mind) ; inductive_ind := t.(inductive_ind) |}
-     | _ => None
-     end.
+Definition replace_inductive_kn (t : inductive) (ind : inductive) : inductive
+  := {| inductive_mind := ind.(inductive_mind) ; inductive_ind := t.(inductive_ind) |}.
 
 Fixpoint head (t : term) : term
   := match t with
@@ -55,23 +51,16 @@ Fixpoint head (t : term) : term
 Definition infer_replacement_inductive {debug : debug_opt} (qt : term) : TemplateMonad (option inductive).
 Proof.
   simple
-    refine (let try_replace_inductive_kn ind v :=
-              (* make sure it's not just a context variable *)
-              (qv <- tmQuote v;;
-               match qv with
-               | tVar _ => ((if debug then tmPrint ("context variable:", v, "for", qt) else ret tt);; ret None)
-               | _ => ret (replace_inductive_kn ind v)
-               end) in
-            match qt with
+    refine (match qt with
             | tInd ind u
             | tConstruct ind _ u
             | tCase {| ci_ind := ind |} {| puinst := u |} _ _
               => (indv <- tmUnquote (tInd ind u);;
                   let '(existT_typed_term _ indv) := indv in
-                  v <- (tmInferInstance None (quotation_of indv));;
+                  v <- (tmInferInstance None (inductive_quotation_of indv));;
                   match v with
-                  | my_Some v => try_replace_inductive_kn ind v
-                  | my_None => (if debug then tmPrint (quotation_of indv) else ret tt);; ret None
+                  | my_Some v => ret (Some (replace_inductive_kn ind v.(qinductive)))
+                  | my_None => (if debug then tmPrint (inductive_quotation_of indv) else ret tt);; ret None
                   end)
             | tProj {| proj_ind := ind |} t
               => (t <- tmUnquote t;;
@@ -81,14 +70,13 @@ Proof.
                   let indv := head ty in
                   indv <- tmUnquote indv;;
                   let '(existT_typed_term _ indv) := indv in
-                  v <- (tmInferInstance None (quotation_of indv));;
+                  v <- (tmInferInstance None (inductive_quotation_of indv));;
                   match v with
-                  | my_Some v => try_replace_inductive_kn ind v
-                  | my_None => (if debug then tmPrint (qt, quotation_of ind) else ret tt);; ret None
+                  | my_Some v => ret (Some (replace_inductive_kn ind v.(qinductive)))
+                  | my_None => (if debug then tmPrint (qt, inductive_quotation_of ind) else ret tt);; ret None
                   end)
             | _ => ret None
-            end);
-    exact _.
+            end).
 Defined.
 
 Fixpoint replace_quotation_of' {debug : debug_opt} (do_top_inference : bool) (qt : term) : TemplateMonad term.
