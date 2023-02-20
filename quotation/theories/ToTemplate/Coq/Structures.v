@@ -446,6 +446,141 @@ Module QuotationOfOT_to_OrderTac (OT : OrderedType) (S : OT_to_OrderTacSig OT) (
   Include !QuotationOfOTF_to_OrderTac S.OTF S qOTF.
 End QuotationOfOT_to_OrderTac.
 
+(** * OrderedType *)
+
+Module Type QuotationOfMiniOrderedType (O : OrderedType.MiniOrderedType).
+  #[export] Declare Instance qt : quotation_of O.t.
+  #[export] Declare Instance qeq : quotation_of O.eq.
+  #[export] Declare Instance qlt : quotation_of O.lt.
+  #[export] Declare Instance qeq_refl : quotation_of O.eq_refl.
+  #[export] Declare Instance qeq_sym : quotation_of O.eq_sym.
+  #[export] Declare Instance qeq_trans : quotation_of O.eq_trans.
+  #[export] Declare Instance qlt_trans : quotation_of O.lt_trans.
+  #[export] Declare Instance qlt_not_eq : quotation_of O.lt_not_eq.
+  #[export] Declare Instance qcompare : quotation_of O.compare.
+End QuotationOfMiniOrderedType.
+
+Module Type MOT_to_OTOrigSig (O : OrderedType.MiniOrderedType) <: OrderedTypeOrig := Nop <+ OrderedType.MOT_to_OT O.
+
+Module QuotationOfMOT_to_OTOrig (O : OrderedType.MiniOrderedType) (O' : MOT_to_OTOrigSig O) (Import qO : QuotationOfMiniOrderedType O) <: QuotationOfOrderedTypeOrig O'.
+  Include qO.
+
+  #[export] Instance qeq_dec : quotation_of O'.eq_dec := ltac:(unfold_quotation_of (); exact _).
+End QuotationOfMOT_to_OTOrig.
+
+Module Type OrderedTypeOrigFactsSig (O : OrderedTypeOrig) := Nop <+ OrderedType.OrderedTypeFacts O.
+
+Module QuotationOfOrderedTypeOrigFacts (O : OrderedTypeOrig) (F : OrderedTypeOrigFactsSig O) (qO : QuotationOfOrderedTypeOrig O).
+  Export (hints) qO.
+
+  #[export] Instance qeq_equiv : quotation_of F.eq_equiv := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qlt_antirefl : quotation_of F.lt_antirefl := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qlt_strorder : quotation_of F.lt_strorder := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qlt_eq : quotation_of F.lt_eq := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeq_lt : quotation_of F.eq_lt := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qlt_compat : quotation_of F.lt_compat := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qlt_total : quotation_of F.lt_total := ltac:(unfold_quotation_of (); exact _).
+
+  Module qTO.
+   #[export] Instance qt : quotation_of F.TO.t := ltac:(unfold_quotation_of (); exact _).
+   #[export] Instance qeq : quotation_of F.TO.eq := ltac:(unfold_quotation_of (); exact _).
+   #[export] Instance qlt : quotation_of F.TO.lt := ltac:(unfold_quotation_of (); exact _).
+   #[export] Instance qle : quotation_of F.TO.le := ltac:(unfold_quotation_of (); exact _).
+  End qTO.
+  Export (hints) qTO.
+  Module qIsTO.
+   #[export] Instance qeq_equiv : quotation_of F.IsTO.eq_equiv := ltac:(unfold_quotation_of (); exact _).
+   #[export] Instance qlt_strorder : quotation_of F.IsTO.lt_strorder := ltac:(unfold_quotation_of (); exact _).
+   #[export] Instance qlt_compat : quotation_of F.IsTO.lt_compat := ltac:(unfold_quotation_of (); exact _).
+   #[export] Instance qlt_total : quotation_of F.IsTO.lt_total := ltac:(unfold_quotation_of (); exact _).
+   #[export] Instance qle_lteq : quotation_of F.IsTO.le_lteq := ltac:(unfold_quotation_of (); exact _).
+  End qIsTO.
+  Export (hints) qIsTO.
+  Module qOrderTac := !QuotationOfMakeOrderTac F.TO F.IsTO F.OrderTac qTO qIsTO.
+  Export (hints) qOrderTac.
+
+  #[export] Instance qle_eq : quotation_of F.le_eq := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeq_le : quotation_of F.eq_le := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qneq_eq : quotation_of F.neq_eq := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeq_neq : quotation_of F.eq_neq := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qle_lt_trans : quotation_of F.le_lt_trans := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qlt_le_trans : quotation_of F.lt_le_trans := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qle_neq : quotation_of F.le_neq := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qle_trans : quotation_of F.le_trans := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qle_antisym : quotation_of F.le_antisym := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qneq_sym : quotation_of F.neq_sym := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qlt_le : quotation_of F.lt_le := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qgt_not_eq : quotation_of F.gt_not_eq := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeq_not_lt : quotation_of F.eq_not_lt := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeq_not_gt : quotation_of F.eq_not_gt := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qlt_not_gt : quotation_of F.lt_not_gt := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qelim_compare_eq : quotation_of F.elim_compare_eq := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qelim_compare_lt : quotation_of F.elim_compare_lt := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qelim_compare_gt : quotation_of F.elim_compare_gt := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeq_dec : quotation_of F.eq_dec := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qlt_dec : quotation_of F.lt_dec := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqb : quotation_of F.eqb := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqb_alt : quotation_of F.eqb_alt := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qIn_eq : quotation_of F.In_eq := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qListIn_In : quotation_of F.ListIn_In := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qInf_lt : quotation_of F.Inf_lt := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qInf_eq : quotation_of F.Inf_eq := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qSort_Inf_In : quotation_of F.Sort_Inf_In := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qListIn_Inf : quotation_of F.ListIn_Inf := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qIn_Inf : quotation_of F.In_Inf := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qInf_alt : quotation_of F.Inf_alt := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qSort_NoDup : quotation_of F.Sort_NoDup := ltac:(unfold_quotation_of (); exact _).
+End QuotationOfOrderedTypeOrigFacts.
+
+Module Type KeyOrderedTypeOrigSig (O : OrderedTypeOrig) := Nop <+ OrderedType.KeyOrderedType O.
+
+Module QuotationOfKeyOrderedTypeOrig (O : OrderedTypeOrig) (K : KeyOrderedTypeOrigSig O) (qO : QuotationOfOrderedTypeOrig O).
+  Module qMO := QuotationOfOrderedTypeOrigFacts O K.MO qO.
+  Export (hints) qMO.
+  Export (hints) qO.
+
+  #[export] Instance qeqk : quotation_of K.eqk := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqke : quotation_of K.eqke := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qltk : quotation_of K.ltk := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqke_eqk : quotation_of K.eqke_eqk := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qltk_right_r : quotation_of K.ltk_right_r := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qltk_right_l : quotation_of K.ltk_right_l := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqk_refl : quotation_of K.eqk_refl := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqke_refl : quotation_of K.eqke_refl := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqk_sym : quotation_of K.eqk_sym := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqke_sym : quotation_of K.eqke_sym := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqk_trans : quotation_of K.eqk_trans := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqke_trans : quotation_of K.eqke_trans := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qltk_trans : quotation_of K.ltk_trans := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qltk_not_eqk : quotation_of K.ltk_not_eqk := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qltk_not_eqke : quotation_of K.ltk_not_eqke := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqk_equiv : quotation_of K.eqk_equiv := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqke_equiv : quotation_of K.eqke_equiv := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qltk_strorder : quotation_of K.ltk_strorder := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qltk_compat : quotation_of K.ltk_compat := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qltk_compat' : quotation_of K.ltk_compat' := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqk_not_ltk : quotation_of K.eqk_not_ltk := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qltk_eqk : quotation_of K.ltk_eqk := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qeqk_ltk : quotation_of K.eqk_ltk := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qInA_eqke_eqk : quotation_of K.InA_eqke_eqk := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qMapsTo : quotation_of K.MapsTo := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qIn : quotation_of K.In := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qIn_alt : quotation_of K.In_alt := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qMapsTo_eq : quotation_of K.MapsTo_eq := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qIn_eq : quotation_of K.In_eq := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qInf_eq : quotation_of K.Inf_eq := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qInf_lt : quotation_of K.Inf_lt := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qSort_Inf_In : quotation_of K.Sort_Inf_In := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qSort_Inf_NotIn : quotation_of K.Sort_Inf_NotIn := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qSort_NoDupA : quotation_of K.Sort_NoDupA := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qSort_In_cons_1 : quotation_of K.Sort_In_cons_1 := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qSort_In_cons_2 : quotation_of K.Sort_In_cons_2 := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qSort_In_cons_3 : quotation_of K.Sort_In_cons_3 := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qIn_inv : quotation_of K.In_inv := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qIn_inv_2 : quotation_of K.In_inv_2 := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qIn_inv_3 : quotation_of K.In_inv_3 := ltac:(unfold_quotation_of (); exact _).
+End QuotationOfKeyOrderedTypeOrig.
+
 (** * OrdersFacts *)
 Import Coq.Structures.OrdersFacts.
 
