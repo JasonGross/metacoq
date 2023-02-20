@@ -1,3 +1,4 @@
+From MetaCoq.Utils Require Export bytestring.
 From MetaCoq.Utils Require Import utils MCList.
 From MetaCoq.Template Require Import MonadBasicAst MonadAst TemplateMonad Ast Loader.
 From MetaCoq.Quotation Require Export CommonUtils.
@@ -453,6 +454,7 @@ Definition tmMakeQuotationOfModule (do_existing_instance : bool) (m : qualid) : 
                   ps
            else tmReturn []);;
      tmReturn tt.
+Global Arguments tmMakeQuotationOfModule _%bool _%bs.
 (*
 Require Import MSetPositive.
 MetaCoq Run (tmMakeQuotationOfModule true "Coq.MSets.MSetPositive.PositiveSet"%bs).
