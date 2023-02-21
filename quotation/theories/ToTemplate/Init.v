@@ -381,11 +381,48 @@ Ltac unfold_quotation_of _ :=
              | change (@quotation_of A (transparentify t)) ]
   end.
 
-(* a hack for working around https://github.com/MetaCoq/metacoq/issues/842 *)
-Local Polymorphic Definition tmRetype {A} (x : A) : TemplateMonad A
-  := qx <- tmQuote x;;
-     tmUnquoteTyped A qx.
+Local Fixpoint tmRelaxSet (U : Universe.t) (t : term) {struct t} : term
+  := match t with
+     | tRel _
+     | tVar _
+     | tInt _
+     | tFloat _
+     | tConst _ _
+     | tInd _ _
+     | tConstruct _ _ _
+       => t
+     | tEvar ev args
+       => tEvar ev (List.map (tmRelaxSet U) args)
+     | tCast t kind v
+       => tCast (tmRelaxSet U t) kind (tmRelaxSet U v)
+     | tProd na ty body
+       => tProd na (tmRelaxSet U ty) (tmRelaxSet U body)
+     | tLambda na ty body
+       => tLambda na (tmRelaxSet U ty) (tmRelaxSet U body)
+     | tLetIn na def def_ty body
+       => tLetIn na (tmRelaxSet U def) (tmRelaxSet U def_ty) (tmRelaxSet U body)
+     | tApp f args
+       => tApp (tmRelaxSet U f) (List.map (tmRelaxSet U) args)
+     | tCase ci type_info discr branches
+       => tCase ci (map_predicate (fun x => x) (tmRelaxSet U) (tmRelaxSet U) type_info) (tmRelaxSet U discr) (map_branches (tmRelaxSet U) branches)
+     | tProj proj t
+       => tProj proj (tmRelaxSet U t)
+     | tFix mfix idx
+       => tFix (List.map (map_def (tmRelaxSet U) (tmRelaxSet U)) mfix) idx
+     | tCoFix mfix idx
+       => tCoFix (List.map (map_def (tmRelaxSet U) (tmRelaxSet U)) mfix) idx
+     | tSort s
+       => match option_map Level.is_set (Universe.get_is_level s) with
+          | Some true => tSort U
+          | _ => t
+          end
+     end.
 
+Local Polymorphic Definition tmRetypeRelaxSet@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+  := qx <- tmQuote x;;
+     qU <- tmQuoteUniverse@{U _ _};;
+     let qx := tmRelaxSet qU qx in
+     tmUnquoteTyped A qx.
 Local Polymorphic Definition tmQuoteToGlobalReference {A} (n : A) : TemplateMonad global_reference
   := qn <- tmQuote n;;
      match qn with
@@ -399,10 +436,12 @@ Local Polymorphic Definition tmQuoteToGlobalReference {A} (n : A) : TemplateMona
             tmFail "tmQuoteToGlobalReference: Not a global reference"
      end.
 
-(* N.B. existing instance is global *)
-Definition tmMakeQuotationOfModule (do_existing_instance : bool) (m : qualid) : TemplateMonad _
-  := cs <- tmQuoteModule m;;
-     let warn_bad_ctx c ctx :=
+Local Polymorphic Definition tmObj_magic {A B} (x : A) : TemplateMonad B
+  := qx <- tmQuote x;;
+     tmUnquoteTyped B qx.
+
+Definition tmMakeQuotationOfConstants (do_existing_instance : bool) (cs : list global_reference) : TemplateMonad _
+  := let warn_bad_ctx c ctx :=
        (_ <- tmMsg "tmMakeQuotationOfModule: cannot handle polymorphism";;
         _ <- tmPrint c;;
         _ <- tmPrint ctx;;
@@ -421,7 +460,8 @@ Definition tmMakeQuotationOfModule (do_existing_instance : bool) (m : qualid) : 
                       let c := tConst c inst in
                       '{| my_projT2 := cv |} <- tmUnquote c;;
                       let ty := quotation_of cv in
-                      _ <- tmRetype ty;;
+                      ty <- tmRetypeRelaxSet ty;;
+                      c <- tmObj_magic c;;
                       n <- @tmDefinition ("q" ++ name) ty c;;
                       qn <- tmQuoteToGlobalReference n;;
                       tmReturn (Some qn)
@@ -438,7 +478,8 @@ Definition tmMakeQuotationOfModule (do_existing_instance : bool) (m : qualid) : 
                       '{| my_projT2 := cv |} <- tmUnquote c;;
                       let ty := inductive_quotation_of cv in
                       let v : ty := {| qinductive := ind ; qinst := inst |} in
-                      _ <- tmRetype ty;;
+                      ty <- tmRetypeRelaxSet ty;;
+                      v <- tmObj_magic v;;
                       n <- @tmDefinition ("q" ++ name) ty v;;
                       qn <- tmQuoteToGlobalReference n;;
                       tmReturn (Some qn)
@@ -454,6 +495,9 @@ Definition tmMakeQuotationOfModule (do_existing_instance : bool) (m : qualid) : 
                   ps
            else tmReturn []);;
      tmReturn tt.
+Definition tmMakeQuotationOfModule (do_existing_instance : bool) (m : qualid) : TemplateMonad _
+  := cs <- tmQuoteModule m;;
+     tmMakeQuotationOfConstants do_existing_instance cs.
 Global Arguments tmMakeQuotationOfModule _%bool _%bs.
 (*
 Require Import MSetPositive.
