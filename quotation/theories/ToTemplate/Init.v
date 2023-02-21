@@ -38,9 +38,6 @@ Definition head_term_is_bound (cur_modpath : modpath) (t : term) : bool
      | _ => false
      end.
 
-Definition replace_inductive_kn (t : inductive) (ind : inductive) : inductive
-  := {| inductive_mind := ind.(inductive_mind) ; inductive_ind := t.(inductive_ind) |}.
-
 Fixpoint head (t : term) : term
   := match t with
      | tCast t _ _
@@ -381,74 +378,26 @@ Ltac unfold_quotation_of _ :=
              | change (@quotation_of A (transparentify t)) ]
   end.
 
-Local Fixpoint tmRelaxSet (U : Universe.t) (t : term) {struct t} : term
-  := match t with
-     | tRel _
-     | tVar _
-     | tInt _
-     | tFloat _
-     | tConst _ _
-     | tInd _ _
-     | tConstruct _ _ _
-       => t
-     | tEvar ev args
-       => tEvar ev (List.map (tmRelaxSet U) args)
-     | tCast t kind v
-       => tCast (tmRelaxSet U t) kind (tmRelaxSet U v)
-     | tProd na ty body
-       => tProd na (tmRelaxSet U ty) (tmRelaxSet U body)
-     | tLambda na ty body
-       => tLambda na (tmRelaxSet U ty) (tmRelaxSet U body)
-     | tLetIn na def def_ty body
-       => tLetIn na (tmRelaxSet U def) (tmRelaxSet U def_ty) (tmRelaxSet U body)
-     | tApp f args
-       => tApp (tmRelaxSet U f) (List.map (tmRelaxSet U) args)
-     | tCase ci type_info discr branches
-       => tCase ci (map_predicate (fun x => x) (tmRelaxSet U) (tmRelaxSet U) type_info) (tmRelaxSet U discr) (map_branches (tmRelaxSet U) branches)
-     | tProj proj t
-       => tProj proj (tmRelaxSet U t)
-     | tFix mfix idx
-       => tFix (List.map (map_def (tmRelaxSet U) (tmRelaxSet U)) mfix) idx
-     | tCoFix mfix idx
-       => tCoFix (List.map (map_def (tmRelaxSet U) (tmRelaxSet U)) mfix) idx
-     | tSort s
-       => match option_map Level.is_set (Universe.get_is_level s) with
-          | Some true => tSort U
-          | _ => t
-          end
-     end.
-
-Local Polymorphic Definition tmRetypeRelaxSet@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
-  := qx <- tmQuote x;;
-     qU <- tmQuoteUniverse@{U _ _};;
-     let qx := tmRelaxSet qU qx in
-     tmUnquoteTyped A qx.
-Local Polymorphic Definition tmQuoteToGlobalReference {A} (n : A) : TemplateMonad global_reference
-  := qn <- tmQuote n;;
-     match qn with
-     | tVar id => tmReturn (VarRef id)
-     | tConst c u => tmReturn (ConstRef c)
-     | tInd ind u => tmReturn (IndRef ind)
-     | tConstruct ind idx u => tmReturn (ConstructRef ind idx)
-     | _ => _ <- tmMsg "tmQuoteToGlobalReference: Not a global reference";;
-            _ <- tmPrint n;;
-            _ <- tmPrint qn;;
-            tmFail "tmQuoteToGlobalReference: Not a global reference"
-     end.
-
-Local Polymorphic Definition tmObj_magic {A B} (x : A) : TemplateMonad B
-  := qx <- tmQuote x;;
-     tmUnquoteTyped B qx.
-
-Definition tmMakeQuotationOfConstants (do_existing_instance : bool) (cs : list global_reference) : TemplateMonad _
+Definition tmMakeQuotationOfConstants {debug:debug_opt} (do_existing_instance : bool) (cs : list global_reference) : TemplateMonad unit
   := let warn_bad_ctx c ctx :=
        (_ <- tmMsg "tmMakeQuotationOfModule: cannot handle polymorphism";;
         _ <- tmPrint c;;
         _ <- tmPrint ctx;;
         tmReturn tt) in
+     let tmDebugMsg s := (if debug
+                          then tmMsg s
+                          else tmReturn tt) in
+     let tmDebugPrint {T} (v : T) := (if debug
+                                      then tmPrint v
+                                      else tmReturn tt) in
+     let cs := dedup_grefs cs in
+     cs <- tmEval cbv cs;;
+     _ <- tmDebugMsg "tmMakeQuotationOfConstants: looking up module constants";;
      ps <- monad_map
              (fun r
-              => match r with
+              => _ <- tmDebugMsg "tmMakeQuotationOfConstants: handling";;
+                 _ <- tmDebugPrint r;;
+                 match r with
                  | ConstRef ((mp, name) as c)
                    => inst <- (cb <- tmQuoteConstant c false;;
                                match cb.(cst_universes) with
@@ -458,13 +407,11 @@ Definition tmMakeQuotationOfConstants (do_existing_instance : bool) (cs : list g
                                     tmReturn []
                                end);;
                       let c := tConst c inst in
-                      '{| my_projT2 := cv |} <- tmUnquote c;;
-                      let ty := quotation_of cv in
-                      ty <- tmRetypeRelaxSet ty;;
-                      c <- tmObj_magic c;;
-                      n <- @tmDefinition ("q" ++ name) ty c;;
-                      qn <- tmQuoteToGlobalReference n;;
-                      tmReturn (Some qn)
+                      _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmUnquote";;
+                      '{| my_projT1 := cty ; my_projT2 := cv |} <- tmUnquote c;;
+                      _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmUnquote done";;
+                      let ty := @quotation_of cty cv in
+                      tmReturn [("q" ++ name, {| my_projT1 := ty ; my_projT2 := c |})]
                  | IndRef ind
                    => inst <- (mib <- tmQuoteInductive ind.(inductive_mind);;
                                match mib.(ind_universes) with
@@ -475,30 +422,60 @@ Definition tmMakeQuotationOfConstants (do_existing_instance : bool) (cs : list g
                                end);;
                       let '(mp, name) := ind.(inductive_mind) in
                       let c := tInd ind inst in
-                      '{| my_projT2 := cv |} <- tmUnquote c;;
+                      _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmUnquote";;
+                      '{| my_projT1 := cty ; my_projT2 := cv |} <- tmUnquote c;;
+                      _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmUnquote done";;
                       let ty := inductive_quotation_of cv in
                       let v : ty := {| qinductive := ind ; qinst := inst |} in
-                      ty <- tmRetypeRelaxSet ty;;
-                      v <- tmObj_magic v;;
-                      n <- @tmDefinition ("q" ++ name) ty v;;
-                      qn <- tmQuoteToGlobalReference n;;
-                      tmReturn (Some qn)
-                 | ConstructRef _ _ | VarRef _ => tmReturn None
+                      tmReturn [("q" ++ name, {| my_projT1 := ty ; my_projT2 := v |})]
+                 | ConstructRef _ _ | VarRef _ => tmReturn []
                  end)
              cs;;
+     let ps := flat_map (fun x => x) ps in
+     _ <- tmDebugMsg "tmMakeQuotationOfConstants: relaxing Set and retyping module constants";;
+     ps <- monad_map
+             (fun '(name, {| my_projT1 := ty ; my_projT2 := v |})
+              => _ <- tmDebugMsg ("tmMakeQuotationOfConstants: relaxing " ++ name);;
+                 _ <- tmDebugPrint ("before"%bs, v, ":"%bs, ty);;
+                 ty <- tmRetypeRelaxType ty;;
+                 (* hack around https://github.com/MetaCoq/metacoq/issues/853 *)
+                 v <- tmRetypeRelaxType v;;
+                 v <- tmObj_magic v;;
+                 _ <- tmDebugPrint ("after"%bs, v, ":"%bs, ty);;
+                 tmReturn (name, {| my_projT1 := ty ; my_projT2 := v |}))
+             ps;;
+     _ <- tmDebugMsg "tmMakeQuotationOfConstants: defining module constants";;
+     ps <- monad_map
+             (fun '(name, {| my_projT1 := ty ; my_projT2 := v |})
+              => (* debugging sanity checks for hack around https://github.com/MetaCoq/metacoq/issues/853 *)
+                _ <- tmDebugPrint (tmRetype ty);;
+                _ <- tmRetype ty;;
+                _ <- tmDebugPrint (tmRetype v);;
+                _ <- tmRetype v;;
+                _ <- tmDebugPrint (@tmDefinition name ty v);;
+                n <- @tmDefinition name ty v;;
+                _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmQuoteToGlobalReference";;
+                qn <- tmQuoteToGlobalReference n;;
+                tmReturn qn)
+             ps;;
      _ <- (if do_existing_instance
-           then monad_map
-                  (fun v => match v with
-                            | Some gr => tmExistingInstance gr
-                            | None => tmReturn tt
-                            end)
-                  ps
+           then
+             _ <- tmDebugMsg "tmMakeQuotationOfConstants: making instances";;
+             monad_map tmExistingInstance ps
            else tmReturn []);;
      tmReturn tt.
-Definition tmMakeQuotationOfModule (do_existing_instance : bool) (m : qualid) : TemplateMonad _
+
+Definition tmMakeQuotationOfModule {debug:debug_opt} (do_existing_instance : bool) (m : qualid) : TemplateMonad _
   := cs <- tmQuoteModule m;;
      tmMakeQuotationOfConstants do_existing_instance cs.
-Global Arguments tmMakeQuotationOfModule _%bool _%bs.
+Global Arguments tmMakeQuotationOfModule {_%bool} _%bool _%bs.
+
+Definition tmMakeQuotationOfModuleAndRebase {debug:debug_opt} (do_existing_instance : bool) (reference_mp : qualid) (new_base_mp : modpath) : TemplateMonad _
+  := cs <- tmQuoteModule reference_mp;;
+     let cs := List.map (rebase_global_reference new_base_mp) cs in
+     tmMakeQuotationOfConstants do_existing_instance cs.
+Global Arguments tmMakeQuotationOfModuleAndRebase {_%bool} _%bool _%bs _.
+
 (*
 Require Import MSetPositive.
 MetaCoq Run (tmMakeQuotationOfModule true "Coq.MSets.MSetPositive.PositiveSet"%bs).
