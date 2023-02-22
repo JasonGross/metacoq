@@ -165,6 +165,37 @@ Module WithTemplate.
        end.
 
   #[local]
+    Fixpoint tmRelaxSortsInCodomain (U : Universe.t -> term) (t : term) {struct t} : term
+    := match t with
+       | tRel _
+       | tVar _
+       | tInt _
+       | tFloat _
+       | tConst _ _
+       | tInd _ _
+       | tConstruct _ _ _
+       | tEvar _ _
+       | tApp _ _
+       | tProj _ _
+         => t
+       | tCast t kind v
+         => tCast (tmRelaxSortsInCodomain U t) kind (tmRelaxSortsInCodomain U v)
+       | tProd na ty body
+         => tProd na ty (tmRelaxSortsInCodomain U body)
+       | tLambda na ty body
+         => tLambda na ty (tmRelaxSortsInCodomain U body)
+       | tLetIn na def def_ty body
+         => tLetIn na def def_ty (tmRelaxSortsInCodomain U body)
+       | tCase ci type_info discr branches
+         => tCase ci (map_predicate (fun x => x) (tmRelaxSortsInCodomain U) (tmRelaxSortsInCodomain U) type_info) discr (map_branches (tmRelaxSortsInCodomain U) branches)
+       | tFix mfix idx
+         => tFix (List.map (map_def (tmRelaxSortsInCodomain U) (tmRelaxSortsInCodomain U)) mfix) idx
+       | tCoFix mfix idx
+         => tCoFix (List.map (map_def (tmRelaxSortsInCodomain U) (tmRelaxSortsInCodomain U)) mfix) idx
+       | tSort s => U s
+       end.
+
+  #[local]
     Definition tmRelaxSet (U : term) (t : term) : term
     := tmRelaxSorts (fun s => match option_map Level.is_set (Universe.get_is_level s) with
                               | Some true => U
@@ -180,6 +211,30 @@ Module WithTemplate.
                               end)
          t.
 
+  #[local]
+    Definition tmRelaxSetInCodomain (U : term) (t : term) : term
+    := tmRelaxSortsInCodomain (fun s => match option_map Level.is_set (Universe.get_is_level s) with
+                              | Some true => U
+                              | _ => tSort s
+                              end)
+         t.
+
+  #[local]
+    Definition tmRelaxTypeInCodomain (U : term) (t : term) : term
+    := tmRelaxSortsInCodomain (fun s => match Universe.get_is_level s with
+                              | Some _ => U
+                              | _ => tSort s
+                              end)
+         t.
+
+  #[local]
+    Definition tmRelaxOnlyType (U : term) (t : term) : term
+    := tmRelaxSortsInCodomain (fun s => match option_map Level.is_set (Universe.get_is_level s) with
+                              | Some false => U
+                              | _ => tSort s
+                              end)
+         t.
+
   Polymorphic Definition tmRetypeRelaxSet@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
     := qx <- tmQuote x;;
        qU <- tmQuoteUniverse@{U _ _};;
@@ -190,6 +245,35 @@ Module WithTemplate.
     := qx <- tmQuote x;;
        qU <- tmQuoteUniverse@{U _ _};;
        let qx := tmRelaxType (tSort qU) qx in
+       tmUnquoteTyped A qx.
+
+  Polymorphic Definition tmRetypeRelaxSetInCodomain@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+    := qx <- tmQuote x;;
+       qU <- tmQuoteUniverse@{U _ _};;
+       let qx := tmRelaxSetInCodomain (tSort qU) qx in
+       tmUnquoteTyped A qx.
+
+  Polymorphic Definition tmRetypeRelaxSetInAppArgsCodomain@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+    := qx <- tmQuote x;;
+       qU <- tmQuoteUniverse@{U _ _};;
+       let transform := tmRelaxSetInCodomain (tSort qU) in
+       let qx := match qx with
+                 | tApp f args => tApp f (List.map transform args)
+                 | tSort _ => transform qx
+                 | _ => qx
+                 end in
+       tmUnquoteTyped A qx.
+
+  Polymorphic Definition tmRetypeRelaxTypeInCodomain@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+    := qx <- tmQuote x;;
+       qU <- tmQuoteUniverse@{U _ _};;
+       let qx := tmRelaxTypeInCodomain (tSort qU) qx in
+       tmUnquoteTyped A qx.
+
+  Polymorphic Definition tmRetypeRelaxOnlyType@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+    := qx <- tmQuote x;;
+       qU <- tmQuoteUniverse@{U _ _};;
+       let qx := tmRelaxOnlyType (tSort qU) qx in
        tmUnquoteTyped A qx.
 
   Polymorphic Definition tmQuoteToGlobalReference {A} (n : A) : TemplateMonad global_reference
@@ -219,4 +303,4 @@ Module WithTemplate.
        | _ => tmFail "tmExtractBaseModPathFromMod: module has no accessible constant with a kername"
        end.
 End WithTemplate.
-Export WithTemplate (transparentify, tmRetypeRelaxSet, tmRetypeRelaxType, tmQuoteToGlobalReference, tmObj_magic, tmRetype, tmExtractBaseModPathFromMod).
+Export WithTemplate (transparentify, tmRetypeRelaxSet, tmRetypeRelaxType, tmQuoteToGlobalReference, tmRetypeRelaxSetInCodomain, tmRetypeRelaxSetInAppArgsCodomain, tmRetypeRelaxTypeInCodomain, tmRetypeRelaxOnlyType, tmObj_magic, tmRetype, tmExtractBaseModPathFromMod).
