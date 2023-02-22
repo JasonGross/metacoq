@@ -229,7 +229,7 @@ Module WithTemplate.
 
   #[local]
     Definition tmRelaxOnlyType (U : term) (t : term) : term
-    := tmRelaxSortsInCodomain (fun s => match option_map Level.is_set (Universe.get_is_level s) with
+    := tmRelaxSorts (fun s => match option_map Level.is_set (Universe.get_is_level s) with
                               | Some false => U
                               | _ => tSort s
                               end)
