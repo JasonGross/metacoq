@@ -446,10 +446,14 @@ Definition tmMakeQuotationOfConstants {debug:debug_opt} (do_existing_instance : 
              (fun '(name, {| my_projT1 := ty ; my_projT2 := v |})
               => _ <- tmDebugMsg ("tmMakeQuotationOfConstants: relaxing " ++ name);;
                  _ <- tmDebugPrint ("before"%bs, v, ":"%bs, ty);;
+                 _ <- tmDebugPrint (tmRetypeRelaxSetInAppArgsCodomain ty);;
                  ty <- tmRetypeRelaxSetInAppArgsCodomain ty;;
+                 _ <- tmDebugPrint (tmRetypeRelaxSetInAppArgsCodomain v);;
                  v <- tmRetypeRelaxSetInAppArgsCodomain v;;
+                 _ <- tmDebugPrint (tmRetypeRelaxOnlyType ty);;
                  ty <- tmRetypeRelaxOnlyType ty;;
                  (* hack around https://github.com/MetaCoq/metacoq/issues/853 *)
+                 _ <- tmDebugPrint (tmRetypeRelaxOnlyType v);;
                  v <- tmRetypeRelaxOnlyType v;;
                  v <- tmObj_magic v;;
                  _ <- tmDebugPrint ("after"%bs, v, ":"%bs, ty);;
