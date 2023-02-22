@@ -390,6 +390,10 @@ Definition tmMakeQuotationOfConstants {debug:debug_opt} (do_existing_instance : 
      let tmDebugPrint {T} (v : T) := (if debug
                                       then tmPrint v
                                       else tmReturn tt) in
+     let on_bad_relevance r :=
+       (_ <- tmDebugMsg "skipping irrelevant constant";;
+        _ <- tmDebugPrint r;;
+        tmReturn []) in
      let cs := dedup_grefs cs in
      cs <- tmEval cbv cs;;
      _ <- tmDebugMsg "tmMakeQuotationOfConstants: looking up module constants";;
@@ -399,19 +403,24 @@ Definition tmMakeQuotationOfConstants {debug:debug_opt} (do_existing_instance : 
                  _ <- tmDebugPrint r;;
                  match r with
                  | ConstRef ((mp, name) as c)
-                   => inst <- (cb <- tmQuoteConstant c false;;
-                               match cb.(cst_universes) with
-                               | Monomorphic_ctx => tmReturn []
-                               | (Polymorphic_ctx (univs, constraints)) as ctx
-                                 => _ <- warn_bad_ctx r ctx;;
-                                    tmReturn []
-                               end);;
-                      let c := tConst c inst in
-                      _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmUnquote";;
-                      '{| my_projT1 := cty ; my_projT2 := cv |} <- tmUnquote c;;
-                      _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmUnquote done";;
-                      let ty := @quotation_of cty cv in
-                      tmReturn [("q" ++ name, {| my_projT1 := ty ; my_projT2 := c |})]
+                   => '(inst, rel) <- (cb <- tmQuoteConstant c false;;
+                                       inst <- match cb.(cst_universes) with
+                                               | Monomorphic_ctx => tmReturn []
+                                               | (Polymorphic_ctx (univs, constraints)) as ctx
+                                                 => _ <- warn_bad_ctx r ctx;;
+                                                    tmReturn []
+                                               end;;
+                                       tmReturn (inst, cb.(cst_relevance)));;
+                      match rel with
+                      | Irrelevant => on_bad_relevance r
+                      | Relevant
+                        => let c := tConst c inst in
+                           _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmUnquote";;
+                           '{| my_projT1 := cty ; my_projT2 := cv |} <- tmUnquote c;;
+                           _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmUnquote done";;
+                           let ty := @quotation_of cty cv in
+                           tmReturn [("q" ++ name, {| my_projT1 := ty ; my_projT2 := c |})]
+                      end
                  | IndRef ind
                    => inst <- (mib <- tmQuoteInductive ind.(inductive_mind);;
                                match mib.(ind_universes) with
