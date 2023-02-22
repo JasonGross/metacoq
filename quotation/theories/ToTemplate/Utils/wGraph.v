@@ -5,19 +5,20 @@ From Coq Require Import MSetDecide MSetInterface.
 Module Nbar.
   #[export] Instance quote_le {x y} : ground_quotable (Nbar.le x y) := ltac:(cbv [Nbar.le]; exact _).
   #[export] Instance quote_lt {x y} : ground_quotable (Nbar.lt x y) := ltac:(cbv [Nbar.lt]; exact _).
-  Module Export Instances.
-    #[export] Existing Instances
-     quote_le
-     quote_lt
-    .
-  End Instances.
 End Nbar.
-Export Nbar.Instances.
+Export (hints) Nbar.
 
+Fail Module Type Foo := WeightedGraphSig.
 Module Type WeightedGraphSig (V : UsualOrderedType) (VSet : MSetInterface.S with Module E := V).
   Include WeightedGraph V VSet.
 End WeightedGraphSig.
+Module Type Foo := WeightedGraphSig.
+HERE (*
+Module QuotationOfWeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module E := V) (qV : QuotationOfUsualOrderedType V) (qVSet : MSets.QuotationOfSets VSet).
 
+  (MProperties : OrdPropertiesSig M) (qE : QuotationOfUsualOrderedType M.E) (qM : QuotationOfSets M) (qMProperties : QuotationOfOrdProperties M MProperties qE).
+
+  *)
 Module QuoteWeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module E := V) (Import W : WeightedGraphSig V VSet).
   Module Import QuoteVSet := QuoteUsualSetsOn V VSet.
   Module Import QuoteEdgeSet := QuoteMSetAVL Edge EdgeSet.
