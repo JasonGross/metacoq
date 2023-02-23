@@ -1,6 +1,7 @@
-From MetaCoq.Quotation.ToTemplate Require Export Coq.Init Coq.Floats Coq.Numbers.
-From MetaCoq.Quotation.ToTemplate.Utils Require Export utils.
-From MetaCoq.Quotation.ToTemplate.Common Require Export Kernames.
+From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Init Coq.Floats Coq.Numbers.
+From MetaCoq.Quotation.ToTemplate.Utils Require Export (hints) utils.
+From MetaCoq.Quotation.ToTemplate.Common Require Export (hints) Kernames.
 From MetaCoq.Common Require Import BasicAst.
 From MetaCoq.Utils Require Import MCUtils.
 From MetaCoq.Template Require Import AstUtils (* for tFixType *).
