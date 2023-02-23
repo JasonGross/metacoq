@@ -235,25 +235,25 @@ Module WithTemplate.
                               end)
          t.
 
-  Polymorphic Definition tmRetypeRelaxSet@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+  Polymorphic Definition tmRetypeMagicRelaxSet@{U a b t u} {A : Type@{a}} (B : Type@{b}) (x : A) : TemplateMonad@{t u} B
     := qx <- tmQuote x;;
        qU <- tmQuoteUniverse@{U _ _};;
        let qx := tmRelaxSet (tSort qU) qx in
-       tmUnquoteTyped A qx.
+       tmUnquoteTyped B qx.
 
-  Polymorphic Definition tmRetypeRelaxType@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+  Polymorphic Definition tmRetypeMagicRelaxType@{U a b t u} {A : Type@{a}} (B : Type@{b}) (x : A) : TemplateMonad@{t u} B
     := qx <- tmQuote x;;
        qU <- tmQuoteUniverse@{U _ _};;
        let qx := tmRelaxType (tSort qU) qx in
-       tmUnquoteTyped A qx.
+       tmUnquoteTyped B qx.
 
-  Polymorphic Definition tmRetypeRelaxSetInCodomain@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+  Polymorphic Definition tmRetypeMagicRelaxSetInCodomain@{U a b t u} {A : Type@{a}} (B : Type@{b}) (x : A) : TemplateMonad@{t u} B
     := qx <- tmQuote x;;
        qU <- tmQuoteUniverse@{U _ _};;
        let qx := tmRelaxSetInCodomain (tSort qU) qx in
-       tmUnquoteTyped A qx.
+       tmUnquoteTyped B qx.
 
-  Polymorphic Definition tmRetypeRelaxSetInAppArgsCodomain@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+  Polymorphic Definition tmRetypeMagicRelaxSetInAppArgsCodomain@{U a b t u} {A : Type@{a}} (B : Type@{b}) (x : A) : TemplateMonad@{t u} B
     := qx <- tmQuote x;;
        qU <- tmQuoteUniverse@{U _ _};;
        let transform := tmRelaxSetInCodomain (tSort qU) in
@@ -262,19 +262,32 @@ Module WithTemplate.
                  | tSort _ => transform qx
                  | _ => qx
                  end in
-       tmUnquoteTyped A qx.
+       tmUnquoteTyped B qx.
 
-  Polymorphic Definition tmRetypeRelaxTypeInCodomain@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+  Polymorphic Definition tmRetypeMagicRelaxTypeInCodomain@{U a b t u} {A : Type@{a}} (B : Type@{b}) (x : A) : TemplateMonad@{t u} B
     := qx <- tmQuote x;;
        qU <- tmQuoteUniverse@{U _ _};;
        let qx := tmRelaxTypeInCodomain (tSort qU) qx in
-       tmUnquoteTyped A qx.
+       tmUnquoteTyped B qx.
 
-  Polymorphic Definition tmRetypeRelaxOnlyType@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+  Polymorphic Definition tmRetypeMagicRelaxOnlyType@{U a b t u} {A : Type@{a}} (B : Type@{b}) (x : A) : TemplateMonad@{t u} B
     := qx <- tmQuote x;;
        qU <- tmQuoteUniverse@{U _ _};;
        let qx := tmRelaxOnlyType (tSort qU) qx in
-       tmUnquoteTyped A qx.
+       tmUnquoteTyped B qx.
+
+  Polymorphic Definition tmRetypeRelaxSet@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+    := tmRetypeMagicRelaxSet@{U a a t u} A x.
+  Polymorphic Definition tmRetypeRelaxType@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+    := tmRetypeMagicRelaxType@{U a a t u} A x.
+  Polymorphic Definition tmRetypeRelaxSetInCodomain@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+    := tmRetypeMagicRelaxSetInCodomain@{U a a t u} A x.
+  Polymorphic Definition tmRetypeRelaxSetInAppArgsCodomain@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+    := tmRetypeMagicRelaxSetInAppArgsCodomain@{U a a t u} A x.
+  Polymorphic Definition tmRetypeRelaxTypeInCodomain@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+    := tmRetypeMagicRelaxTypeInCodomain@{U a a t u} A x.
+  Polymorphic Definition tmRetypeRelaxOnlyType@{U a t u} {A : Type@{a}} (x : A) : TemplateMonad@{t u} A
+    := tmRetypeMagicRelaxOnlyType@{U a a t u} A x.
 
   Polymorphic Definition tmQuoteToGlobalReference {A} (n : A) : TemplateMonad global_reference
     := qn <- tmQuote n;;
@@ -303,4 +316,4 @@ Module WithTemplate.
        | _ => tmFail "tmExtractBaseModPathFromMod: module has no accessible constant with a kername"
        end.
 End WithTemplate.
-Export WithTemplate (transparentify, tmRetypeRelaxSet, tmRetypeRelaxType, tmQuoteToGlobalReference, tmRetypeRelaxSetInCodomain, tmRetypeRelaxSetInAppArgsCodomain, tmRetypeRelaxTypeInCodomain, tmRetypeRelaxOnlyType, tmObj_magic, tmRetype, tmExtractBaseModPathFromMod).
+Export WithTemplate (transparentify, tmQuoteToGlobalReference, tmRetypeRelaxSet, tmRetypeRelaxType, tmRetypeRelaxSetInCodomain, tmRetypeRelaxSetInAppArgsCodomain, tmRetypeRelaxTypeInCodomain, tmRetypeRelaxOnlyType, tmRetypeMagicRelaxSet, tmRetypeMagicRelaxType, tmRetypeMagicRelaxSetInCodomain, tmRetypeMagicRelaxSetInAppArgsCodomain, tmRetypeMagicRelaxTypeInCodomain, tmRetypeMagicRelaxOnlyType, tmObj_magic, tmRetype, tmExtractBaseModPathFromMod).
