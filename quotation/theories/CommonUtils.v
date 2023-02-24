@@ -23,27 +23,33 @@ Fixpoint modpath_is_absolute (mp : modpath) : bool
 Definition kername_is_absolute (kn : kername) : bool
   := modpath_is_absolute (fst kn).
 (* gives the dirpath and the reversed list of idents, or None if bound *)
-Fixpoint split_modpath (mp : modpath) : option (list ident * dirpath)
-  := match mp with
-     | MPfile f => Some ([], f)
-     | MPbound _ _ _ => None
-     | MPdot mp i => option_map (fun '(l, d) => (i :: l, d)) (split_modpath mp)
-     end.
-Fixpoint common_prefix_ls (mp1 mp2 : list ident) :=
+Fixpoint split_common_prefix_ls (mp1 mp2 : list ident) :=
   match mp1, mp2 with
-  | [], _ | _, [] => []
+  | [], _ | _, [] => ([], mp1, mp2)
   | i1 :: mp1, i2 :: mp2
-    => if i1 == i2 then i1 :: common_prefix_ls mp1 mp2 else []
+    => if i1 == i2
+       then let '(common, mp1, mp2) := split_common_prefix_ls mp1 mp2 in
+            (i1 :: common, mp1, mp2)
+       else ([], mp1, mp2)
   end.
+Definition common_prefix_ls (mp1 mp2 : list ident) :=
+  let '(common, _, _) := split_common_prefix_ls mp1 mp2 in common.
+Fixpoint split_modpath (mp : modpath) : (list ident * (dirpath * option (ident * nat)))
+  := match mp with
+     | MPfile f => ([], (f, None))
+     | MPbound f i idx => ([], (f, Some (i, idx)))
+     | MPdot mp i => let '(l, d) := split_modpath mp in (i :: l, d)
+     end.
 (* returns None if either [mp] shares no prefix with [mp] or either modpath is bound, otherwise returns the list of idents of the common prefix *)
-Definition common_prefix (mp1 mp2 : modpath) : option (dirpath * list ident)
+Definition split_common_prefix (mp1 mp2 : modpath) : option ((dirpath * option (ident * nat)) * (list ident * list ident * list ident))
   := match split_modpath mp1, split_modpath mp2 with
-     | None, _ | _, None => None
-     | Some (mp1, f1), Some (mp2, f2)
+     | (mp1, f1), (mp2, f2)
        => if f1 == f2
-          then Some (f1, common_prefix_ls (rev mp1) (rev mp2))
+          then Some (f1, split_common_prefix_ls (rev mp1) (rev mp2))
           else None
      end.
+Definition common_prefix (mp1 mp2 : modpath) : option ((dirpath * option (ident * nat)) * list ident)
+  := option_map (fun '(f, (common, _, _)) => (f, common)) (split_common_prefix mp1 mp2).
 (* Kludge for not having https://github.com/MetaCoq/metacoq/issues/839 *)
 Definition modpath_is_okay (cur_modpath : modpath) (mp : modpath) : bool
   := andb (modpath_is_absolute mp)
