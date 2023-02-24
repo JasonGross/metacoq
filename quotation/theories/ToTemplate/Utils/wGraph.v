@@ -340,7 +340,7 @@ Module Type QuotationOfWeightedGraph (V : UsualOrderedType) (VSet : MSetInterfac
 
   (MProperties : OrdPropertiesSig M) (qE : QuotationOfUsualOrderedType M.E) (qM : QuotationOfSets M) (qMProperties : QuotationOfOrdProperties M MProperties qE).
 
-  *)
+  *)(*
 Module QuoteWeightedGraph (V : UsualOrderedType) (VSet : MSetInterface.S with Module E := V) (Import W : WeightedGraphSig V VSet).
   Module Import QuoteVSet := QuoteUsualSetsOn V VSet.
   Module Import QuoteEdgeSet := QuoteMSetAVL Edge EdgeSet.

@@ -1,5 +1,13 @@
-From MetaCoq.Quotation.ToTemplate Require Export Coq.Init Coq.MSets Utils.MCOption Utils.bytestring BasicAst config.
-From MetaCoq.Common Require Import Universes UniversesDec.
+From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate.Coq Require Export (hints) Init MSets Structures.
+From MetaCoq.Quotation.ToTemplate.Utils Require Export (hints) MCOption bytestring.
+From MetaCoq.Quotation.ToTemplate.Common Require Export (hints) BasicAst config.
+From MetaCoq.Common Require Import Kernames Universes UniversesDec.
+From MetaCoq.Utils Require Import bytestring monad_utils.
+From MetaCoq.Template Require Import Loader TemplateMonad.
+
+Local Open Scope bs.
+Import MCMonadNotation.
 
 (* Grrr, [valuation]s cause so much trouble, because they're not quotable *)
 (*
@@ -8,7 +16,38 @@ Record valuation :=
     valuation_poly : nat -> nat }.
 Class Evaluable (A : Type) := val : valuation -> A -> nat.
  *)
+Module qLevel <: Structures.QuotationOfOrderedType Level.
+  MetaCoq Run (tmMakeQuotationOfModule false "Level").
+End qLevel.
+Module qLevelSet <: MSetAVL.QuotationOfMake Level LevelSet.
+  Module qRaw.
+    Module Raw'. Include LevelSet.Raw. End Raw'.
+    MetaCoq Run (Universes_mp <- tmExtractBaseModPathFromMod "MetaCoq.Common.Universes";; tmMakeQuotationOfModuleAndRebase false "Raw'" (MPdot (MPdot Universes_mp "LevelSet") "Raw")).
+  End qRaw.
+  Module LevelSet'. Include LevelSet. End LevelSet'.
+  MetaCoq Run (Universes_mp <- tmExtractBaseModPathFromMod "MetaCoq.Common.Universes";; tmMakeQuotationOfModuleAndRebase false "LevelSet'" (MPdot Universes_mp "LevelSet")).
+End qLevelSet.
+Module qLevelSetOrdProp <: MSets.QuotationOfOrdProperties LevelSet LevelSetOrdProp qLevel.
+  Module qME := Structures.QuotationOfOrderedTypeFacts LevelSet.E LevelSetOrdProp.ME qLevel.
+  Module qP <: MSets.QuotationOfWProperties LevelSet LevelSetOrdProp.P.
+    Module qDec <: MSets.QuotationOfWDecideOn Level LevelSet LevelSetOrdProp.P.Dec.
+      Module qF <: MSets.QuotationOfWFactsOn Level LevelSet LevelSetOrdProp.P.Dec.F.
+
+  Module qMSetDecideAuxiliary.
+
+    Module qFM <: MSets.QuotationOfWFactsOn Level LevelSet LevelSetOrdProp.P.FM.
+
+
+  Module qRaw.
+    Module Raw'. Include LevelSet.Raw. End Raw'.
+    MetaCoq Run (Universes_mp <- tmExtractBaseModPathFromMod "MetaCoq.Common.Universes";; tmMakeQuotationOfModuleAndRebase false "Raw'" (MPdot (MPdot Universes_mp "LevelSet") "Raw")).
+  End qRaw.
+  Module LevelSet'. Include LevelSet. End LevelSet'.
+  MetaCoq Run (Universes_mp <- tmExtractBaseModPathFromMod "MetaCoq.Common.Universes";; tmMakeQuotationOfModuleAndRebase false "LevelSet'" (MPdot Universes_mp "LevelSet")).
+End qLevelSet.
+
 Module QuoteLevelSet := QuoteMSetAVL Level LevelSet.
+QuoteMSetAVL (T : OrderedType) (M : MSetAVL.MakeSig T) (Import MOrdProperties : OrdPropertiesSig M) (Import qT : QuotationOfOrderedType T) (Import qM : MSetAVL.QuotationOfMake T M) (qMOrdProperties : QuotationOfOrdProperties M MOrdProperties qT).
 Export QuoteLevelSet.Instances.
 Module QuoteLevelExprSet := QuoteMSetListWithLeibniz LevelExpr LevelExprSet.
 Export QuoteLevelExprSet.Instances.
