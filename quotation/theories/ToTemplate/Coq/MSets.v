@@ -5,6 +5,7 @@ From MetaCoq.Quotation.ToTemplate Require Import Coq.Structures.
 
 (* The parameters *)
 Module Type QuotationOfWSetsOn (E : DecidableType) (Import W : WSetsOn E).
+HERE  MetaCoq Run (tmDeclareQuotationOfModule (Some export) "W").
   #[export] Declare Instance qt : quotation_of t.
   #[export] Declare Instance qempty : quotation_of empty.
   #[export] Declare Instance qis_empty : quotation_of is_empty.

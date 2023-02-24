@@ -378,9 +378,9 @@ Ltac unfold_quotation_of _ :=
              | change (@quotation_of A (transparentify t)) ]
   end.
 
-Definition tmMakeQuotationOfConstants {debug:debug_opt} (do_existing_instance : bool) (cs : list global_reference) : TemplateMonad unit
+Definition tmPrepareMakeQuotationOfConstants {debug:debug_opt} (base : modpath) (cs : list global_reference) : TemplateMonad (list (string * typed_term))
   := let warn_bad_ctx c ctx :=
-       (_ <- tmMsg "tmMakeQuotationOfModule: cannot handle polymorphism";;
+       (_ <- tmMsg "tmPrepareMakeQuotationOfModule: cannot handle polymorphism";;
         _ <- tmPrint c;;
         _ <- tmPrint ctx;;
         tmReturn tt) in
@@ -394,16 +394,24 @@ Definition tmMakeQuotationOfConstants {debug:debug_opt} (do_existing_instance : 
        (_ <- tmDebugMsg "skipping irrelevant constant";;
         _ <- tmDebugPrint r;;
         tmReturn []) in
+     let make_qname '(mp, name)
+                    (* ideally we'd replace _ with __ so that there can't be any collision, but the utility functions aren't written and we don't need it in practice *)
+       := "q" ++ (match split_common_prefix base mp with
+                  | None => name
+                  | Some (_, (_common, [], [])) => name
+                  | Some (_, (_common, [], postfix)) => String.concat "__DOT__" postfix ++ "__" ++ name
+                  | Some (_, (_common, base_postfix, postfix)) => "__DOT_DOT__" ++ String.concat "__DOT__" base_postfix ++ "__SLASH__" ++ String.concat "__DOT__" postfix ++ "__" ++ name
+                  end%bs) in
      let cs := dedup_grefs cs in
      cs <- tmEval cbv cs;;
-     _ <- tmDebugMsg "tmMakeQuotationOfConstants: looking up module constants";;
+     _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: looking up module constants";;
      ps <- monad_map
              (fun r
-              => _ <- tmDebugMsg "tmMakeQuotationOfConstants: handling";;
+              => _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: handling";;
                  _ <- tmDebugPrint r;;
                  match r with
-                 | ConstRef ((mp, name) as c)
-                   => '(inst, rel) <- (cb <- tmQuoteConstant c false;;
+                 | ConstRef cr
+                   => '(inst, rel) <- (cb <- tmQuoteConstant cr false;;
                                        inst <- match cb.(cst_universes) with
                                                | Monomorphic_ctx => tmReturn []
                                                | (Polymorphic_ctx (univs, constraints)) as ctx
@@ -414,12 +422,12 @@ Definition tmMakeQuotationOfConstants {debug:debug_opt} (do_existing_instance : 
                       match rel with
                       | Irrelevant => on_bad_relevance r
                       | Relevant
-                        => let c := tConst c inst in
-                           _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmUnquote";;
+                        => let c := tConst cr inst in
+                           _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: tmUnquote";;
                            '{| my_projT1 := cty ; my_projT2 := cv |} <- tmUnquote c;;
-                           _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmUnquote done";;
+                           _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: tmUnquote done";;
                            let ty := @quotation_of cty cv in
-                           tmReturn [("q" ++ name, {| my_projT1 := ty ; my_projT2 := c |})]
+                           tmReturn [(make_qname cr, {| my_projT1 := ty ; my_projT2 := c |})]
                       end
                  | IndRef ind
                    => inst <- (mib <- tmQuoteInductive ind.(inductive_mind);;
@@ -429,22 +437,21 @@ Definition tmMakeQuotationOfConstants {debug:debug_opt} (do_existing_instance : 
                                  => _ <- warn_bad_ctx r ctx;;
                                     tmReturn []
                                end);;
-                      let '(mp, name) := ind.(inductive_mind) in
                       let c := tInd ind inst in
-                      _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmUnquote";;
+                      _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: tmUnquote";;
                       '{| my_projT1 := cty ; my_projT2 := cv |} <- tmUnquote c;;
-                      _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmUnquote done";;
+                      _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: tmUnquote done";;
                       let ty := inductive_quotation_of cv in
                       let v : ty := {| qinductive := ind ; qinst := inst |} in
-                      tmReturn [("q" ++ name, {| my_projT1 := ty ; my_projT2 := v |})]
+                      tmReturn [(make_qname ind.(inductive_mind), {| my_projT1 := ty ; my_projT2 := v |})]
                  | ConstructRef _ _ | VarRef _ => tmReturn []
                  end)
              cs;;
      let ps := flat_map (fun x => x) ps in
-     _ <- tmDebugMsg "tmMakeQuotationOfConstants: relaxing Set and retyping module constants";;
+     _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: relaxing Set and retyping module constants";;
      ps <- monad_map
              (fun '(name, {| my_projT1 := ty ; my_projT2 := v |})
-              => _ <- tmDebugMsg ("tmMakeQuotationOfConstants: relaxing " ++ name);;
+              => _ <- tmDebugMsg ("tmPrepareMakeQuotationOfConstants: relaxing " ++ name);;
                  _ <- tmDebugPrint ("before"%bs, v, ":"%bs, ty);;
                  _ <- tmDebugPrint (tmRetypeRelaxSetInAppArgsCodomain ty);;
                  ty <- tmRetypeRelaxSetInAppArgsCodomain ty;;
@@ -458,7 +465,17 @@ Definition tmMakeQuotationOfConstants {debug:debug_opt} (do_existing_instance : 
                  _ <- tmDebugPrint ("after"%bs, v, ":"%bs, ty);;
                  tmReturn (name, {| my_projT1 := ty ; my_projT2 := v |}))
              ps;;
-     _ <- tmDebugMsg "tmMakeQuotationOfConstants: defining module constants";;
+     ret ps.
+
+Definition tmMakeQuotationOfConstants_gen {debug:debug_opt} (existing_instance : option hint_locality) (base : modpath) (cs : list global_reference) (tmDoWithDefinition : ident -> forall A, A -> TemplateMonad A) : TemplateMonad unit
+  := let tmDebugMsg s := (if debug
+                          then tmMsg s
+                          else tmReturn tt) in
+     let tmDebugPrint {T} (v : T) := (if debug
+                                      then tmPrint v
+                                      else tmReturn tt) in
+     ps <- tmPrepareMakeQuotationOfConstants base cs;;
+     _ <- tmDebugMsg "tmMakeQuotationOfConstants_gen: defining module constants";;
      ps <- monad_map
              (fun '(name, {| my_projT1 := ty ; my_projT2 := v |})
               => (* debugging sanity checks for hack around https://github.com/MetaCoq/metacoq/issues/853 *)
@@ -466,31 +483,41 @@ Definition tmMakeQuotationOfConstants {debug:debug_opt} (do_existing_instance : 
                 _ <- tmRetype ty;;
                 _ <- tmDebugPrint (tmRetype v);;
                 _ <- tmRetype v;;
-                _ <- tmDebugPrint (@tmDefinition name ty v);;
-                n <- @tmDefinition name ty v;;
-                _ <- tmDebugMsg "tmMakeQuotationOfConstants: tmQuoteToGlobalReference";;
+                tmDef <- tmEval cbv (@tmDoWithDefinition name ty v);;
+                _ <- tmDebugPrint tmDef;;
+                n <- tmDef;;
+                _ <- tmDebugMsg "tmMakeQuotationOfConstants_gen: tmQuoteToGlobalReference";;
                 qn <- tmQuoteToGlobalReference n;;
                 tmReturn qn)
              ps;;
-     _ <- (if do_existing_instance
-           then
-             _ <- tmDebugMsg "tmMakeQuotationOfConstants: making instances";;
-             monad_map tmExistingInstance ps
-           else tmReturn []);;
+     _ <- (match existing_instance with
+           | Some locality
+             => _ <- tmDebugMsg "tmMakeQuotationOfConstants_gen: making instances";;
+                monad_map (tmExistingInstance locality) ps
+           | None => tmReturn []
+           end);;
      tmReturn tt.
 
-Definition tmMakeQuotationOfModule {debug:debug_opt} (do_existing_instance : bool) (m : qualid) : TemplateMonad _
-  := cs <- tmQuoteModule m;;
-     tmMakeQuotationOfConstants do_existing_instance cs.
-Global Arguments tmMakeQuotationOfModule {_%bool} _%bool _%bs.
+Definition tmMakeQuotationOfConstants {debug:debug_opt} (existing_instance : option hint_locality) (base : modpath) (cs : list global_reference) : TemplateMonad unit
+  := tmMakeQuotationOfConstants_gen existing_instance base cs (fun name ty body => @tmDefinition name ty body).
 
-Definition tmMakeQuotationOfModuleAndRebase {debug:debug_opt} (do_existing_instance : bool) (reference_mp : qualid) (new_base_mp : modpath) : TemplateMonad _
-  := cs <- tmQuoteModule reference_mp;;
-     let cs := List.map (rebase_global_reference new_base_mp) cs in
-     tmMakeQuotationOfConstants do_existing_instance cs.
-Global Arguments tmMakeQuotationOfModuleAndRebase {_%bool} _%bool _%bs _.
+Definition tmDeclareQuotationOfConstants {debug:debug_opt} (existing_instance : option hint_locality) (base : modpath) (cs : list global_reference) : TemplateMonad unit
+  := tmMakeQuotationOfConstants_gen existing_instance base cs (fun name ty _ => @tmAxiom name ty).
+
+Definition tmMakeQuotationOfModule {debug:debug_opt} (existing_instance : option hint_locality) (m : qualid) : TemplateMonad _
+  := cs <- tmQuoteModule m;;
+     base <- tmLocateModule1 m;;
+     tmMakeQuotationOfConstants existing_instance base cs.
+Global Arguments tmMakeQuotationOfModule {_%bool} _ _%bs.
+
+Definition tmDeclareQuotationOfModule {debug:debug_opt} (existing_instance : option hint_locality) (m : qualid) : TemplateMonad _
+  := cs <- tmQuoteModule m;;
+     base <- tmLocateModule1 m;;
+     tmDeclareQuotationOfConstants existing_instance base cs.
+Global Arguments tmDeclareQuotationOfModule {_%bool} _ _%bs.
 
 (*
 Require Import MSetPositive.
-MetaCoq Run (tmMakeQuotationOfModule true "Coq.MSets.MSetPositive.PositiveSet"%bs).
+Instance: debug_opt := true.
+MetaCoq Run (tmMakeQuotationOfModule None "Coq.MSets.MSetPositive.PositiveSet"%bs).
 *)
