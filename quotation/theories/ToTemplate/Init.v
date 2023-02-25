@@ -4,6 +4,7 @@ From MetaCoq.Template Require Import MonadBasicAst MonadAst TemplateMonad Ast Lo
 From MetaCoq.Quotation Require Export CommonUtils.
 Require Import Equations.Prop.Classes.
 Require Import Coq.Lists.List.
+Export TemplateMonad.Common (export, local, global).
 Import ListNotations.
 
 Local Set Primitive Projections.
@@ -441,30 +442,17 @@ Definition tmPrepareMakeQuotationOfConstants {debug:debug_opt} (base : modpath) 
                       _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: tmUnquote";;
                       '{| my_projT1 := cty ; my_projT2 := cv |} <- tmUnquote c;;
                       _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: tmUnquote done";;
-                      let ty := inductive_quotation_of cv in
+                      _ <- tmDebugPrint (tmRetypeRelaxSetInCodomain cty);;
+                      cty <- tmRetypeRelaxSetInCodomain cty;;
+                      _ <- tmDebugPrint (tmObj_magic (B:=cty) cv);;
+                      cv <- tmObj_magic (B:=cty) cv;;
+                      let ty := @inductive_quotation_of cty cv in
                       let v : ty := {| qinductive := ind ; qinst := inst |} in
                       tmReturn [(make_qname ind.(inductive_mind), {| my_projT1 := ty ; my_projT2 := v |})]
                  | ConstructRef _ _ | VarRef _ => tmReturn []
                  end)
              cs;;
      let ps := flat_map (fun x => x) ps in
-     _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: relaxing Set and retyping module constants";;
-     ps <- monad_map
-             (fun '(name, {| my_projT1 := ty ; my_projT2 := v |})
-              => _ <- tmDebugMsg ("tmPrepareMakeQuotationOfConstants: relaxing " ++ name);;
-                 _ <- tmDebugPrint ("before"%bs, v, ":"%bs, ty);;
-                 _ <- tmDebugPrint (tmRetypeRelaxSetInAppArgsCodomain ty);;
-                 ty <- tmRetypeRelaxSetInAppArgsCodomain ty;;
-                 _ <- tmDebugPrint (tmRetypeMagicRelaxSetInAppArgsCodomain ty v);;
-                 v <- tmRetypeMagicRelaxSetInAppArgsCodomain ty v;;
-                 _ <- tmDebugPrint (tmRetypeRelaxOnlyType ty);;
-                 ty <- tmRetypeRelaxOnlyType ty;;
-                 (* hack around https://github.com/MetaCoq/metacoq/issues/853 *)
-                 _ <- tmDebugPrint (tmRetypeMagicRelaxOnlyType ty v);;
-                 v <- tmRetypeMagicRelaxOnlyType ty v;;
-                 _ <- tmDebugPrint ("after"%bs, v, ":"%bs, ty);;
-                 tmReturn (name, {| my_projT1 := ty ; my_projT2 := v |}))
-             ps;;
      ret ps.
 
 Definition tmMakeQuotationOfConstants_gen {debug:debug_opt} (existing_instance : option hint_locality) (base : modpath) (cs : list global_reference) (tmDoWithDefinition : ident -> forall A, A -> TemplateMonad A) : TemplateMonad unit
@@ -479,13 +467,13 @@ Definition tmMakeQuotationOfConstants_gen {debug:debug_opt} (existing_instance :
      ps <- monad_map
              (fun '(name, {| my_projT1 := ty ; my_projT2 := v |})
               => (* debugging sanity checks for hack around https://github.com/MetaCoq/metacoq/issues/853 *)
-                _ <- tmDebugPrint (tmRetype ty);;
+                (*_ <- tmDebugPrint (tmRetype ty);;
                 _ <- tmRetype ty;;
                 _ <- tmDebugPrint (tmRetype v);;
-                _ <- tmRetype v;;
-                tmDef <- tmEval cbv (@tmDoWithDefinition name ty v);;
-                _ <- tmDebugPrint tmDef;;
-                n <- tmDef;;
+                _ <- tmRetype v;;*)
+                tmDef_name <- tmEval cbv (@tmDoWithDefinition name);;
+                _ <- tmDebugPrint (tmDef_name ty v);;
+                n <- tmDef_name ty v;;
                 _ <- tmDebugMsg "tmMakeQuotationOfConstants_gen: tmQuoteToGlobalReference";;
                 qn <- tmQuoteToGlobalReference n;;
                 tmReturn qn)
@@ -493,7 +481,11 @@ Definition tmMakeQuotationOfConstants_gen {debug:debug_opt} (existing_instance :
      _ <- (match existing_instance with
            | Some locality
              => _ <- tmDebugMsg "tmMakeQuotationOfConstants_gen: making instances";;
-                monad_map (tmExistingInstance locality) ps
+                monad_map
+                  (fun p
+                   => _ <- tmDebugPrint (tmExistingInstance locality p);;
+                      tmExistingInstance locality p)
+                  ps
            | None => tmReturn []
            end);;
      tmReturn tt.
