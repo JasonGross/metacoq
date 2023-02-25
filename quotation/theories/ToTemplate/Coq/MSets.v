@@ -5,57 +5,9 @@ From MetaCoq.Quotation.ToTemplate Require Import Coq.Structures.
 
 (* The parameters *)
 Module Type QuotationOfWSetsOn (E : DecidableType) (Import W : WSetsOn E).
-HERE  MetaCoq Run (tmDeclareQuotationOfModule (Some export) "W").
-  #[export] Declare Instance qt : quotation_of t.
-  #[export] Declare Instance qempty : quotation_of empty.
-  #[export] Declare Instance qis_empty : quotation_of is_empty.
-  #[export] Declare Instance qmem : quotation_of mem.
-  #[export] Declare Instance qadd : quotation_of add.
-  #[export] Declare Instance qsingleton : quotation_of singleton.
-  #[export] Declare Instance qremove : quotation_of remove.
-  #[export] Declare Instance qunion : quotation_of union.
-  #[export] Declare Instance qinter : quotation_of inter.
-  #[export] Declare Instance qdiff : quotation_of diff.
-  #[export] Declare Instance qequal : quotation_of equal.
-  #[export] Declare Instance qsubset : quotation_of subset.
-  #[export] Declare Instance qfold : quotation_of fold.
-  #[export] Declare Instance qfor_all : quotation_of for_all.
-  #[export] Declare Instance qexists_ : quotation_of exists_.
-  #[export] Declare Instance qfilter : quotation_of filter.
-  #[export] Declare Instance qpartition : quotation_of partition.
-  #[export] Declare Instance qcardinal : quotation_of cardinal.
-  #[export] Declare Instance qelements : quotation_of elements.
-  #[export] Declare Instance qchoose : quotation_of choose.
-  #[export] Declare Instance qIn : quotation_of In.
-  #[export] Declare Instance qIn_compat : quotation_of In_compat.
-  #[export] Declare Instance qeq_equiv : quotation_of eq_equiv.
-  #[export] Declare Instance qeq_dec : quotation_of eq_dec.
-  #[export] Declare Instance qmem_spec : quotation_of mem_spec.
-  #[export] Declare Instance qequal_spec : quotation_of equal_spec.
-  #[export] Declare Instance qsubset_spec : quotation_of subset_spec.
-  #[export] Declare Instance qempty_spec : quotation_of empty_spec.
-  #[export] Declare Instance qis_empty_spec : quotation_of is_empty_spec.
-  #[export] Declare Instance qadd_spec : quotation_of add_spec.
-  #[export] Declare Instance qremove_spec : quotation_of remove_spec.
-  #[export] Declare Instance qsingleton_spec : quotation_of singleton_spec.
-  #[export] Declare Instance qunion_spec : quotation_of union_spec.
-  #[export] Declare Instance qinter_spec : quotation_of inter_spec.
-  #[export] Declare Instance qdiff_spec : quotation_of diff_spec.
-  #[export] Declare Instance qfold_spec : quotation_of fold_spec.
-  #[export] Declare Instance qcardinal_spec : quotation_of cardinal_spec.
-  #[export] Declare Instance qfilter_spec : quotation_of filter_spec.
-  #[export] Declare Instance qfor_all_spec : quotation_of for_all_spec.
-  #[export] Declare Instance qexists_spec : quotation_of exists_spec.
-  #[export] Declare Instance qpartition_spec1 : quotation_of partition_spec1.
-  #[export] Declare Instance qpartition_spec2 : quotation_of partition_spec2.
-  #[export] Declare Instance qelements_spec1 : quotation_of elements_spec1.
-  #[export] Declare Instance qelements_spec2w : quotation_of elements_spec2w.
-  #[export] Declare Instance qchoose_spec1 : quotation_of choose_spec1.
-  #[export] Declare Instance qchoose_spec2 : quotation_of choose_spec2.
+  MetaCoq Run (tmDeclareQuotationOfModule (Some export) "W").
 End QuotationOfWSetsOn.
-
 Module Type QuotationOfWSets (W : WSets) := QuotationOfWSetsOn W.E W.
-
 Module Type QuotationOfSetsOn (E : OrderedType) (Import M : SetsOn E).
   Include QuotationOfWSetsOn E M.
   #[export] Declare Instance qcompare : quotation_of M.compare.
@@ -71,7 +23,6 @@ Module Type QuotationOfSetsOn (E : OrderedType) (Import M : SetsOn E).
   #[export] Declare Instance qmax_elt_spec3 : quotation_of M.max_elt_spec3.
   #[export] Declare Instance qchoose_spec3 : quotation_of M.choose_spec3.
 End QuotationOfSetsOn.
-
 Module Type QuotationOfSets (M : Sets) := QuotationOfSetsOn M.E M.
 
 Module Type WFactsOnSig (E : DecidableType) (M : WSetsOn E) := Nop <+ WFactsOn E M.
@@ -86,294 +37,32 @@ Module Type PropertiesSig (M : WSets) := Nop <+ Properties M.
 Module Type OrdPropertiesSig (M : Sets) := Nop <+ OrdProperties M.
 
 Module Type QuotationOfWFactsOn (E : DecidableType) (M : WSetsOn E) (F : WFactsOnSig E M).
-  #[export] Declare Instance qeqb : quotation_of F.eqb.
-  #[export] Declare Instance qIn_1 : quotation_of F.In_1.
-  #[export] Declare Instance qmem_1 : quotation_of F.mem_1.
-  #[export] Declare Instance qmem_2 : quotation_of F.mem_2.
-  #[export] Declare Instance qequal_1 : quotation_of F.equal_1.
-  #[export] Declare Instance qequal_2 : quotation_of F.equal_2.
-  #[export] Declare Instance qsubset_1 : quotation_of F.subset_1.
-  #[export] Declare Instance qsubset_2 : quotation_of F.subset_2.
-  #[export] Declare Instance qis_empty_1 : quotation_of F.is_empty_1.
-  #[export] Declare Instance qis_empty_2 : quotation_of F.is_empty_2.
-  #[export] Declare Instance qadd_1 : quotation_of F.add_1.
-  #[export] Declare Instance qadd_2 : quotation_of F.add_2.
-  #[export] Declare Instance qadd_3 : quotation_of F.add_3.
-  #[export] Declare Instance qremove_1 : quotation_of F.remove_1.
-  #[export] Declare Instance qremove_2 : quotation_of F.remove_2.
-  #[export] Declare Instance qremove_3 : quotation_of F.remove_3.
-  #[export] Declare Instance qsingleton_1 : quotation_of F.singleton_1.
-  #[export] Declare Instance qsingleton_2 : quotation_of F.singleton_2.
-  #[export] Declare Instance qunion_1 : quotation_of F.union_1.
-  #[export] Declare Instance qunion_2 : quotation_of F.union_2.
-  #[export] Declare Instance qunion_3 : quotation_of F.union_3.
-  #[export] Declare Instance qinter_1 : quotation_of F.inter_1.
-  #[export] Declare Instance qinter_2 : quotation_of F.inter_2.
-  #[export] Declare Instance qinter_3 : quotation_of F.inter_3.
-  #[export] Declare Instance qdiff_1 : quotation_of F.diff_1.
-  #[export] Declare Instance qdiff_2 : quotation_of F.diff_2.
-  #[export] Declare Instance qdiff_3 : quotation_of F.diff_3.
-  #[export] Declare Instance qfilter_1 : quotation_of F.filter_1.
-  #[export] Declare Instance qfilter_2 : quotation_of F.filter_2.
-  #[export] Declare Instance qfilter_3 : quotation_of F.filter_3.
-  #[export] Declare Instance qfor_all_1 : quotation_of F.for_all_1.
-  #[export] Declare Instance qfor_all_2 : quotation_of F.for_all_2.
-  #[export] Declare Instance qexists_1 : quotation_of F.exists_1.
-  #[export] Declare Instance qexists_2 : quotation_of F.exists_2.
-  #[export] Declare Instance qelements_1 : quotation_of F.elements_1.
-  #[export] Declare Instance qelements_2 : quotation_of F.elements_2.
-  #[export] Declare Instance qIn_eq_iff : quotation_of F.In_eq_iff.
-  #[export] Declare Instance qmem_iff : quotation_of F.mem_iff.
-  #[export] Declare Instance qnot_mem_iff : quotation_of F.not_mem_iff.
-  #[export] Declare Instance qequal_iff : quotation_of F.equal_iff.
-  #[export] Declare Instance qsubset_iff : quotation_of F.subset_iff.
-  #[export] Declare Instance qempty_iff : quotation_of F.empty_iff.
-  #[export] Declare Instance qis_empty_iff : quotation_of F.is_empty_iff.
-  #[export] Declare Instance qsingleton_iff : quotation_of F.singleton_iff.
-  #[export] Declare Instance qadd_iff : quotation_of F.add_iff.
-  #[export] Declare Instance qadd_neq_iff : quotation_of F.add_neq_iff.
-  #[export] Declare Instance qremove_iff : quotation_of F.remove_iff.
-  #[export] Declare Instance qremove_neq_iff : quotation_of F.remove_neq_iff.
-  #[export] Declare Instance qfor_all_iff : quotation_of F.for_all_iff.
-  #[export] Declare Instance qexists_iff : quotation_of F.exists_iff.
-  #[export] Declare Instance qelements_iff : quotation_of F.elements_iff.
-  #[export] Declare Instance qmem_b : quotation_of F.mem_b.
-  #[export] Declare Instance qempty_b : quotation_of F.empty_b.
-  #[export] Declare Instance qadd_b : quotation_of F.add_b.
-  #[export] Declare Instance qadd_neq_b : quotation_of F.add_neq_b.
-  #[export] Declare Instance qremove_b : quotation_of F.remove_b.
-  #[export] Declare Instance qremove_neq_b : quotation_of F.remove_neq_b.
-  #[export] Declare Instance qsingleton_b : quotation_of F.singleton_b.
-  #[export] Declare Instance qunion_b : quotation_of F.union_b.
-  #[export] Declare Instance qinter_b : quotation_of F.inter_b.
-  #[export] Declare Instance qdiff_b : quotation_of F.diff_b.
-  #[export] Declare Instance qelements_b : quotation_of F.elements_b.
-  #[export] Declare Instance qfilter_b : quotation_of F.filter_b.
-  #[export] Declare Instance qfor_all_b : quotation_of F.for_all_b.
-  #[export] Declare Instance qexists_b : quotation_of F.exists_b.
-  #[export] Declare Instance qIn_m : quotation_of F.In_m.
-  #[export] Declare Instance qEmpty_m : quotation_of F.Empty_m.
-  #[export] Declare Instance qis_empty_m : quotation_of F.is_empty_m.
-  #[export] Declare Instance qmem_m : quotation_of F.mem_m.
-  #[export] Declare Instance qsingleton_m : quotation_of F.singleton_m.
-  #[export] Declare Instance qadd_m : quotation_of F.add_m.
-  #[export] Declare Instance qremove_m : quotation_of F.remove_m.
-  #[export] Declare Instance qunion_m : quotation_of F.union_m.
-  #[export] Declare Instance qinter_m : quotation_of F.inter_m.
-  #[export] Declare Instance qdiff_m : quotation_of F.diff_m.
-  #[export] Declare Instance qSubset_m : quotation_of F.Subset_m.
-  #[export] Declare Instance qsubset_m : quotation_of F.subset_m.
-  #[export] Declare Instance qequal_m : quotation_of F.equal_m.
-  #[export] Declare Instance qSubsetSetoid : quotation_of F.SubsetSetoid.
-  #[export] Declare Instance qSubset_refl : quotation_of F.Subset_refl.
-  #[export] Declare Instance qSubset_trans : quotation_of F.Subset_trans.
-  #[export] Declare Instance qIn_s_m : quotation_of F.In_s_m.
-  #[export] Declare Instance qEmpty_s_m : quotation_of F.Empty_s_m.
-  #[export] Declare Instance qadd_s_m : quotation_of F.add_s_m.
-  #[export] Declare Instance qremove_s_m : quotation_of F.remove_s_m.
-  #[export] Declare Instance qunion_s_m : quotation_of F.union_s_m.
-  #[export] Declare Instance qinter_s_m : quotation_of F.inter_s_m.
-  #[export] Declare Instance qdiff_s_m : quotation_of F.diff_s_m.
-  #[export] Declare Instance qfilter_equal : quotation_of (@F.filter_equal).
-  #[export] Declare Instance qfilter_subset : quotation_of (@F.filter_subset).
-  #[export] Declare Instance qfilter_ext : quotation_of F.filter_ext.
+  MetaCoq Run (tmDeclareQuotationOfModule (Some export) "F").
 End QuotationOfWFactsOn.
 
 Module Type QuotationOfWFacts (M : WSets) (F : WFactsSig M) := QuotationOfWFactsOn M.E M F.
 
 Module Type QuotationOfWDecideOn (E : DecidableType) (M : WSetsOn E) (F : WDecideOnSig E M).
-  Module qF := Nop <+ QuotationOfWFactsOn E M F.F.
-  Module qMSetDecideAuxiliary.
-    #[export] Declare Instance qMSet_elt_Prop : inductive_quotation_of F.MSetDecideAuxiliary.MSet_elt_Prop.
-    #[export] Declare Instance qMSet_Prop : inductive_quotation_of F.MSetDecideAuxiliary.MSet_Prop.
-    #[export] Declare Instance qeq_refl_iff : quotation_of F.MSetDecideAuxiliary.eq_refl_iff.
-    #[export] Declare Instance qdec_In : quotation_of F.MSetDecideAuxiliary.dec_In.
-    #[export] Declare Instance qdec_eq : quotation_of F.MSetDecideAuxiliary.dec_eq.
-  End qMSetDecideAuxiliary.
-  Export (hints) qF qMSetDecideAuxiliary.
+  MetaCoq Run (tmDeclareQuotationOfModule (Some export) "F").
 End QuotationOfWDecideOn.
 
 Module Type QuotationOfWDecide (M : WSets) (F : WDecideSig M) := QuotationOfWDecideOn M.E M F.
 
 Module Type QuotationOfWPropertiesOn (E : DecidableType) (M : WSetsOn E) (F : WPropertiesOnSig E M).
-  Module qDec := Nop <+ QuotationOfWDecideOn E M F.Dec.
-  Module qFM := Nop <+ QuotationOfWFactsOn E M F.FM.
-  Export (hints) qDec qFM.
-  #[export] Declare Instance qIn_dec : quotation_of F.In_dec.
-  #[export] Declare Instance qAdd : quotation_of F.Add.
-  #[export] Declare Instance qAdd_Equal : quotation_of F.Add_Equal.
-  #[export] Declare Instance qequal_refl : quotation_of F.equal_refl.
-  #[export] Declare Instance qequal_sym : quotation_of F.equal_sym.
-  #[export] Declare Instance qequal_trans : quotation_of F.equal_trans.
-  #[export] Declare Instance qsubset_refl : quotation_of F.subset_refl.
-  #[export] Declare Instance qsubset_trans : quotation_of F.subset_trans.
-  #[export] Declare Instance qsubset_antisym : quotation_of F.subset_antisym.
-  #[export] Declare Instance qsubset_equal : quotation_of F.subset_equal.
-  #[export] Declare Instance qsubset_empty : quotation_of F.subset_empty.
-  #[export] Declare Instance qsubset_remove_3 : quotation_of F.subset_remove_3.
-  #[export] Declare Instance qsubset_diff : quotation_of F.subset_diff.
-  #[export] Declare Instance qsubset_add_3 : quotation_of F.subset_add_3.
-  #[export] Declare Instance qsubset_add_2 : quotation_of F.subset_add_2.
-  #[export] Declare Instance qin_subset : quotation_of F.in_subset.
-  #[export] Declare Instance qdouble_inclusion : quotation_of F.double_inclusion.
-  #[export] Declare Instance qempty_is_empty_1 : quotation_of F.empty_is_empty_1.
-  #[export] Declare Instance qempty_is_empty_2 : quotation_of F.empty_is_empty_2.
-  #[export] Declare Instance qadd_equal : quotation_of F.add_equal.
-  #[export] Declare Instance qadd_add : quotation_of F.add_add.
-  #[export] Declare Instance qremove_equal : quotation_of F.remove_equal.
-  #[export] Declare Instance qEqual_remove : quotation_of F.Equal_remove.
-  #[export] Declare Instance qadd_remove : quotation_of F.add_remove.
-  #[export] Declare Instance qremove_add : quotation_of F.remove_add.
-  #[export] Declare Instance qsingleton_equal_add : quotation_of F.singleton_equal_add.
-  #[export] Declare Instance qremove_singleton_empty : quotation_of F.remove_singleton_empty.
-  #[export] Declare Instance qunion_sym : quotation_of F.union_sym.
-  #[export] Declare Instance qunion_subset_equal : quotation_of F.union_subset_equal.
-  #[export] Declare Instance qunion_equal_1 : quotation_of F.union_equal_1.
-  #[export] Declare Instance qunion_equal_2 : quotation_of F.union_equal_2.
-  #[export] Declare Instance qunion_assoc : quotation_of F.union_assoc.
-  #[export] Declare Instance qadd_union_singleton : quotation_of F.add_union_singleton.
-  #[export] Declare Instance qunion_add : quotation_of F.union_add.
-  #[export] Declare Instance qunion_remove_add_1 : quotation_of F.union_remove_add_1.
-  #[export] Declare Instance qunion_remove_add_2 : quotation_of F.union_remove_add_2.
-  #[export] Declare Instance qunion_subset_1 : quotation_of F.union_subset_1.
-  #[export] Declare Instance qunion_subset_2 : quotation_of F.union_subset_2.
-  #[export] Declare Instance qunion_subset_3 : quotation_of F.union_subset_3.
-  #[export] Declare Instance qunion_subset_4 : quotation_of F.union_subset_4.
-  #[export] Declare Instance qunion_subset_5 : quotation_of F.union_subset_5.
-  #[export] Declare Instance qempty_union_1 : quotation_of F.empty_union_1.
-  #[export] Declare Instance qempty_union_2 : quotation_of F.empty_union_2.
-  #[export] Declare Instance qnot_in_union : quotation_of F.not_in_union.
-  #[export] Declare Instance qinter_sym : quotation_of F.inter_sym.
-  #[export] Declare Instance qinter_subset_equal : quotation_of F.inter_subset_equal.
-  #[export] Declare Instance qinter_equal_1 : quotation_of F.inter_equal_1.
-  #[export] Declare Instance qinter_equal_2 : quotation_of F.inter_equal_2.
-  #[export] Declare Instance qinter_assoc : quotation_of F.inter_assoc.
-  #[export] Declare Instance qunion_inter_1 : quotation_of F.union_inter_1.
-  #[export] Declare Instance qunion_inter_2 : quotation_of F.union_inter_2.
-  #[export] Declare Instance qinter_add_1 : quotation_of F.inter_add_1.
-  #[export] Declare Instance qinter_add_2 : quotation_of F.inter_add_2.
-  #[export] Declare Instance qempty_inter_1 : quotation_of F.empty_inter_1.
-  #[export] Declare Instance qempty_inter_2 : quotation_of F.empty_inter_2.
-  #[export] Declare Instance qinter_subset_1 : quotation_of F.inter_subset_1.
-  #[export] Declare Instance qinter_subset_2 : quotation_of F.inter_subset_2.
-  #[export] Declare Instance qinter_subset_3 : quotation_of F.inter_subset_3.
-  #[export] Declare Instance qempty_diff_1 : quotation_of F.empty_diff_1.
-  #[export] Declare Instance qempty_diff_2 : quotation_of F.empty_diff_2.
-  #[export] Declare Instance qdiff_subset : quotation_of F.diff_subset.
-  #[export] Declare Instance qdiff_subset_equal : quotation_of F.diff_subset_equal.
-  #[export] Declare Instance qremove_diff_singleton : quotation_of F.remove_diff_singleton.
-  #[export] Declare Instance qdiff_inter_empty : quotation_of F.diff_inter_empty.
-  #[export] Declare Instance qdiff_inter_all : quotation_of F.diff_inter_all.
-  #[export] Declare Instance qAdd_add : quotation_of F.Add_add.
-  #[export] Declare Instance qAdd_remove : quotation_of F.Add_remove.
-  #[export] Declare Instance qunion_Add : quotation_of F.union_Add.
-  #[export] Declare Instance qinter_Add : quotation_of F.inter_Add.
-  #[export] Declare Instance qunion_Equal : quotation_of F.union_Equal.
-  #[export] Declare Instance qinter_Add_2 : quotation_of F.inter_Add_2.
-  #[export] Declare Instance qelements_Empty : quotation_of F.elements_Empty.
-  #[export] Declare Instance qelements_empty : quotation_of F.elements_empty.
-  #[export] Declare Instance qof_list : quotation_of F.of_list.
-  #[export] Declare Instance qto_list : quotation_of F.to_list.
-  #[export] Declare Instance qof_list_1 : quotation_of F.of_list_1.
-  #[export] Declare Instance qof_list_2 : quotation_of F.of_list_2.
-  #[export] Declare Instance qof_list_3 : quotation_of F.of_list_3.
-  #[export] Declare Instance qfold_spec_right : quotation_of F.fold_spec_right.
-  #[export] Declare Instance qfold_rec : quotation_of F.fold_rec.
-  #[export] Declare Instance qfold_rec_bis : quotation_of F.fold_rec_bis.
-  #[export] Declare Instance qfold_rec_nodep : quotation_of F.fold_rec_nodep.
-  #[export] Declare Instance qfold_rec_weak : quotation_of F.fold_rec_weak.
-  #[export] Declare Instance qfold_rel : quotation_of F.fold_rel.
-  #[export] Declare Instance qset_induction : quotation_of F.set_induction.
-  #[export] Declare Instance qset_induction_bis : quotation_of F.set_induction_bis.
-  #[export] Declare Instance qfold_identity : quotation_of F.fold_identity.
-  #[export] Declare Instance qfold_0 : quotation_of F.fold_0.
-  #[export] Declare Instance qfold_1 : quotation_of F.fold_1.
-  #[export] Declare Instance qfold_2 : quotation_of F.fold_2.
-  #[export] Declare Instance qfold_1b : quotation_of F.fold_1b.
-  #[export] Declare Instance qfold_commutes : quotation_of F.fold_commutes.
-  #[export] Declare Instance qfold_init : quotation_of F.fold_init.
-  #[export] Declare Instance qfold_equal : quotation_of F.fold_equal.
-  #[export] Declare Instance qfold_empty : quotation_of F.fold_empty.
-  #[export] Declare Instance qfold_add : quotation_of F.fold_add.
-  #[export] Declare Instance qadd_fold : quotation_of F.add_fold.
-  #[export] Declare Instance qremove_fold_1 : quotation_of F.remove_fold_1.
-  #[export] Declare Instance qremove_fold_2 : quotation_of F.remove_fold_2.
-  #[export] Declare Instance qfold_union_inter : quotation_of F.fold_union_inter.
-  #[export] Declare Instance qfold_diff_inter : quotation_of F.fold_diff_inter.
-  #[export] Declare Instance qfold_union : quotation_of F.fold_union.
-  #[export] Declare Instance qfold_plus : quotation_of F.fold_plus.
-  #[export] Declare Instance qcardinal_fold : quotation_of F.cardinal_fold.
-  #[export] Declare Instance qcardinal_0 : quotation_of F.cardinal_0.
-  #[export] Declare Instance qcardinal_1 : quotation_of F.cardinal_1.
-  #[export] Declare Instance qcardinal_2 : quotation_of F.cardinal_2.
-  #[export] Declare Instance qcardinal_Empty : quotation_of F.cardinal_Empty.
-  #[export] Declare Instance qcardinal_inv_1 : quotation_of F.cardinal_inv_1.
-  #[export] Declare Instance qcardinal_inv_2 : quotation_of F.cardinal_inv_2.
-  #[export] Declare Instance qcardinal_inv_2b : quotation_of F.cardinal_inv_2b.
-  #[export] Declare Instance qEqual_cardinal : quotation_of F.Equal_cardinal.
-  #[export] Declare Instance qcardinal_m : quotation_of F.cardinal_m.
-  #[export] Declare Instance qempty_cardinal : quotation_of F.empty_cardinal.
-  #[export] Declare Instance qsingleton_cardinal : quotation_of F.singleton_cardinal.
-  #[export] Declare Instance qdiff_inter_cardinal : quotation_of F.diff_inter_cardinal.
-  #[export] Declare Instance qunion_cardinal : quotation_of F.union_cardinal.
-  #[export] Declare Instance qsubset_cardinal : quotation_of F.subset_cardinal.
-  #[export] Declare Instance qsubset_cardinal_lt : quotation_of F.subset_cardinal_lt.
-  #[export] Declare Instance qunion_inter_cardinal : quotation_of F.union_inter_cardinal.
-  #[export] Declare Instance qunion_cardinal_inter : quotation_of F.union_cardinal_inter.
-  #[export] Declare Instance qunion_cardinal_le : quotation_of F.union_cardinal_le.
-  #[export] Declare Instance qadd_cardinal_1 : quotation_of F.add_cardinal_1.
-  #[export] Declare Instance qadd_cardinal_2 : quotation_of F.add_cardinal_2.
-  #[export] Declare Instance qremove_cardinal_1 : quotation_of F.remove_cardinal_1.
-  #[export] Declare Instance qremove_cardinal_2 : quotation_of F.remove_cardinal_2.
+  MetaCoq Run (tmDeclareQuotationOfModule (Some export) "F").
 End QuotationOfWPropertiesOn.
 
 Module Type QuotationOfWProperties (M : WSets) (F : WPropertiesSig M) := QuotationOfWPropertiesOn M.E M F.
 
-Module Type QuotationOfOrdProperties (M : Sets) (F : OrdPropertiesSig M) (qE : QuotationOfOrderedType M.E).
-  Module qME := QuotationOfOrderedTypeFacts M.E F.ME qE.
-  (*Module qML := QuotationOfOrderedTypeLists M.E F.ML.*)
-  Module qP := Nop <+ QuotationOfWProperties M F.P.
-  Export (hints) qME (*qML*) qP.
-  #[export] Declare Instance qsort_equivlistA_eqlistA : quotation_of F.sort_equivlistA_eqlistA.
-  #[export] Declare Instance qgtb : quotation_of F.gtb.
-  #[export] Declare Instance qleb : quotation_of F.leb.
-  #[export] Declare Instance qelements_lt : quotation_of F.elements_lt.
-  #[export] Declare Instance qelements_ge : quotation_of F.elements_ge.
-  #[export] Declare Instance qgtb_1 : quotation_of F.gtb_1.
-  #[export] Declare Instance qleb_1 : quotation_of F.leb_1.
-  #[export] Declare Instance qgtb_compat : quotation_of F.gtb_compat.
-  #[export] Declare Instance qleb_compat : quotation_of F.leb_compat.
-  #[export] Declare Instance qelements_split : quotation_of F.elements_split.
-  #[export] Declare Instance qelements_Add : quotation_of F.elements_Add.
-  #[export] Declare Instance qAbove : quotation_of F.Above.
-  #[export] Declare Instance qBelow : quotation_of F.Below.
-  #[export] Declare Instance qelements_Add_Above : quotation_of F.elements_Add_Above.
-  #[export] Declare Instance qelements_Add_Below : quotation_of F.elements_Add_Below.
-  #[export] Declare Instance qset_induction_max : quotation_of F.set_induction_max.
-  #[export] Declare Instance qset_induction_min : quotation_of F.set_induction_min.
-  #[export] Declare Instance qfold_3 : quotation_of F.fold_3.
-  #[export] Declare Instance qfold_4 : quotation_of F.fold_4.
-  #[export] Declare Instance qfold_equal : quotation_of F.fold_equal.
-  #[export] Declare Instance qadd_fold : quotation_of F.add_fold.
-  #[export] Declare Instance qremove_fold_2 : quotation_of F.remove_fold_2.
-  #[export] Declare Instance qchoose_equal : quotation_of F.choose_equal.
+Module Type QuotationOfOrdProperties (M : Sets) (F : OrdPropertiesSig M).
+  MetaCoq Run (tmDeclareQuotationOfModule (Some export) "F").
 End QuotationOfOrdProperties.
 
 Module QuoteWSetsOn (E : DecidableType) (Import W : WSetsOn E) (WProperties : WPropertiesOnSig E W) (qE : QuotationOfDecidableType E) (qW : QuotationOfWSetsOn E W) (qWProperties : QuotationOfWPropertiesOn E W WProperties).
   Export (hints) qE.
   Export (hints) qW.
   Export (hints) qWProperties.
-  (*
-  Module qW' := ExtraQuotationOfWSetsOn E W qE qW.
-  Export (hints) qW'.
-  Module WFacts := WFactsOn E W.
-  Module WProperties := WPropertiesOn E W.
-  Module WDecide := WDecideOn E W.
-  Module qWFacts := qW'.QuotationOfWFactsOn WFacts.
-  Module qWProperties := qW'.QuotationOfWPropertiesOn WProperties.
-  Module qWDecide := qW'.QuotationOfWDecideOn WDecide.
-  Export (hints) qWFacts qWProperties qWDecide.
-   *)
+
   #[export] Instance qelt : quotation_of W.elt := ltac:(unfold_quotation_of (); exact _).
   #[export] Instance qEqual : quotation_of W.Equal := ltac:(unfold_quotation_of (); exact _).
   #[export] Instance qSubset : quotation_of W.Subset := ltac:(unfold_quotation_of (); exact _).
