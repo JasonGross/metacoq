@@ -17,6 +17,7 @@ theories/ToTemplate/Coq/Numbers.v
 theories/ToTemplate/Coq/Strings.v
 theories/ToTemplate/Coq/ssr.v
 theories/ToTemplate/Init.v
+theories/ToTemplate/QuotationOf/Common/Kernames/Instances.v
 theories/ToTemplate/QuotationOf/Coq/FSets/FMapAVL/Sig.v
 theories/ToTemplate/QuotationOf/Coq/FSets/FMapFacts/Sig.v
 theories/ToTemplate/QuotationOf/Coq/FSets/FMapInterface/Sig.v
