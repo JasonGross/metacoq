@@ -379,7 +379,7 @@ Ltac unfold_quotation_of _ :=
              | change (@quotation_of A (transparentify t)) ]
   end.
 
-Definition tmPrepareMakeQuotationOfConstants {debug:debug_opt} (base : modpath) (cs : list global_reference) : TemplateMonad (list (string * typed_term))
+Polymorphic Definition tmPrepareMakeQuotationOfConstants@{U t u u' _T _above_u _above_u'} {debug:debug_opt} (work_aronud_coq_bug_17303 : bool) (include_submodule : list ident -> bool) (include_supermodule : list ident -> list ident -> bool) (base : modpath) (cs : list global_reference) : TemplateMonad@{t u} (list (string * typed_term@{u'}))
   := let warn_bad_ctx c ctx :=
        (_ <- tmMsg "tmPrepareMakeQuotationOfModule: cannot handle polymorphism";;
         _ <- tmPrint c;;
@@ -388,25 +388,40 @@ Definition tmPrepareMakeQuotationOfConstants {debug:debug_opt} (base : modpath) 
      let tmDebugMsg s := (if debug
                           then tmMsg s
                           else tmReturn tt) in
-     let tmDebugPrint {T} (v : T) := (if debug
-                                      then tmPrint v
-                                      else tmReturn tt) in
+     let tmDebugPrint {T : Type@{_T}} (v : T)
+       := (if debug
+           then tmPrint v
+           else tmReturn tt) in
      let on_bad_relevance r :=
        (_ <- tmDebugMsg "skipping irrelevant constant";;
         _ <- tmDebugPrint r;;
         tmReturn []) in
      let make_qname '(mp, name)
                     (* ideally we'd replace _ with __ so that there can't be any collision, but the utility functions aren't written and we don't need it in practice *)
-       := "q" ++ (match split_common_prefix base mp with
-                  | None => name
-                  | Some (_, (_common, [], [])) => name
-                  | Some (_, (_common, [], postfix)) => String.concat "__DOT__" postfix ++ "__" ++ name
-                  | Some (_, (_common, base_postfix, postfix)) => "__DOT_DOT__" ++ String.concat "__DOT__" base_postfix ++ "__SLASH__" ++ String.concat "__DOT__" postfix ++ "__" ++ name
-                  end%bs) in
+       := option_map
+            (fun n => "q" ++ n)%bs
+            match split_common_prefix base mp with
+            | None => if include_supermodule [] []
+                      then Some name
+                      else None
+            | Some (_, (_common, [], [])) => Some name
+            | Some (_, (_common, [], postfix))
+              => if include_submodule postfix
+                 then Some (String.concat "__DOT__" postfix ++ "__" ++ name)
+                 else None
+            | Some (_, (_common, base_postfix, postfix))
+              => if include_supermodule base_postfix postfix
+                 then Some ("__DOT_DOT__" ++ String.concat "__DOT__" base_postfix ++ "__SLASH__" ++ String.concat "__DOT__" postfix ++ "__" ++ name)
+                 else None
+            end%bs in
+     let tmDebugSkipGR '(mp, name) :=
+       _ <- tmDebugMsg ("tmPrepareMakeQuotationOfConstants: skipping excluded constant " ++ name);;
+       _ <- tmDebugPrint (split_common_prefix base mp);;
+       ret [] in
      let cs := dedup_grefs cs in
      cs <- tmEval cbv cs;;
      _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: looking up module constants";;
-     ps <- monad_map
+     ps <- monad_map@{_ _ _ _above_u'}
              (fun r
               => _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: handling";;
                  _ <- tmDebugPrint r;;
@@ -420,51 +435,61 @@ Definition tmPrepareMakeQuotationOfConstants {debug:debug_opt} (base : modpath) 
                                                     tmReturn []
                                                end;;
                                        tmReturn (inst, cb.(cst_relevance)));;
-                      match rel with
-                      | Irrelevant => on_bad_relevance r
-                      | Relevant
+                      match rel, make_qname cr with
+                      | Irrelevant, _ => on_bad_relevance r
+                      | _, None => tmDebugSkipGR cr
+                      | Relevant, Some qname
                         => let c := tConst cr inst in
                            _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: tmUnquote";;
                            '{| my_projT1 := cty ; my_projT2 := cv |} <- tmUnquote c;;
                            _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: tmUnquote done";;
-                           let ty := @quotation_of cty cv in
-                           tmReturn [(make_qname cr, {| my_projT1 := ty ; my_projT2 := c |})]
+                           tmReturn [(qname, if work_aronud_coq_bug_17303
+                                             then {| my_projT1 := term ; my_projT2 := c |}
+                                             else {| my_projT1 := @quotation_of cty cv ; my_projT2 := c |})]
                       end
                  | IndRef ind
-                   => inst <- (mib <- tmQuoteInductive ind.(inductive_mind);;
-                               match mib.(ind_universes) with
-                               | Monomorphic_ctx => tmReturn []
-                               | (Polymorphic_ctx (univs, constraints)) as ctx
-                                 => _ <- warn_bad_ctx r ctx;;
-                                    tmReturn []
-                               end);;
-                      let c := tInd ind inst in
-                      _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: tmUnquote";;
-                      '{| my_projT1 := cty ; my_projT2 := cv |} <- tmUnquote c;;
-                      _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: tmUnquote done";;
-                      _ <- tmDebugPrint (tmRetypeRelaxSetInCodomain cty);;
-                      cty <- tmRetypeRelaxSetInCodomain cty;;
-                      _ <- tmDebugPrint (tmObj_magic (B:=cty) cv);;
-                      cv <- tmObj_magic (B:=cty) cv;;
-                      let ty := @inductive_quotation_of cty cv in
-                      let v : ty := {| qinductive := ind ; qinst := inst |} in
-                      tmReturn [(make_qname ind.(inductive_mind), {| my_projT1 := ty ; my_projT2 := v |})]
+                   => match make_qname ind.(inductive_mind) with
+                      | None => tmDebugSkipGR ind.(inductive_mind)
+                      | Some qname
+                        => inst <- (mib <- tmQuoteInductive ind.(inductive_mind);;
+                                    match mib.(ind_universes) with
+                                    | Monomorphic_ctx => tmReturn []
+                                    | (Polymorphic_ctx (univs, constraints)) as ctx
+                                      => _ <- warn_bad_ctx r ctx;;
+                                         tmReturn []
+                                    end);;
+                           let c := tInd ind inst in
+                           _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: tmUnquote";;
+                           '{| my_projT1 := cty ; my_projT2 := cv |} <- tmUnquote c;;
+                           _ <- tmDebugMsg "tmPrepareMakeQuotationOfConstants: tmUnquote done";;
+                           let tmcty := tmRetypeRelaxSetInCodomain@{U _above_u _ _} cty in
+                           _ <- tmDebugPrint tmcty;;
+                           cty <- tmcty;;
+                           let tmcv := tmObj_magic (B:=cty) cv in
+                           _ <- tmDebugPrint tmcv;;
+                           cv <- tmcv;;
+                           let ty := @inductive_quotation_of cty cv in
+                           let v : ty := {| qinductive := ind ; qinst := inst |} in
+                           tmReturn [(qname, {| my_projT1 := ty ; my_projT2 := v |})]
+                      end
                  | ConstructRef _ _ | VarRef _ => tmReturn []
                  end)
              cs;;
      let ps := flat_map (fun x => x) ps in
      ret ps.
 
-Definition tmMakeQuotationOfConstants_gen {debug:debug_opt} (existing_instance : option hint_locality) (base : modpath) (cs : list global_reference) (tmDoWithDefinition : ident -> forall A, A -> TemplateMonad A) : TemplateMonad unit
+(* N.B. We need to kludge around COQBUG(https://github.com/coq/coq/issues/17303) in Kernames :-( *)
+Polymorphic Definition tmMakeQuotationOfConstants_gen@{U d t u u' _T _above_u _above_u' _above_gr} {debug:debug_opt} (work_aronud_coq_bug_17303 : bool) (include_submodule : list ident -> bool) (include_supermodule : list ident -> list ident -> bool) (existing_instance : option hint_locality) (base : modpath) (cs : list global_reference) (tmDoWithDefinition : ident -> forall A : Type@{d}, A -> TemplateMonad A) : TemplateMonad unit
   := let tmDebugMsg s := (if debug
                           then tmMsg s
                           else tmReturn tt) in
-     let tmDebugPrint {T} (v : T) := (if debug
-                                      then tmPrint v
-                                      else tmReturn tt) in
-     ps <- tmPrepareMakeQuotationOfConstants base cs;;
+     let tmDebugPrint {T : Type@{_T}} (v : T)
+       := (if debug
+           then tmPrint v
+           else tmReturn tt) in
+     ps <- tmPrepareMakeQuotationOfConstants@{U t u u' _T _above_u _above_u'} work_aronud_coq_bug_17303 include_submodule include_supermodule base cs;;
      _ <- tmDebugMsg "tmMakeQuotationOfConstants_gen: defining module constants";;
-     ps <- monad_map
+     ps <- monad_map@{_ _ _above_gr _above_u'}
              (fun '(name, {| my_projT1 := ty ; my_projT2 := v |})
               => (* debugging sanity checks for hack around https://github.com/MetaCoq/metacoq/issues/853 *)
                 (*_ <- tmDebugPrint (tmRetype ty);;
@@ -472,8 +497,9 @@ Definition tmMakeQuotationOfConstants_gen {debug:debug_opt} (existing_instance :
                 _ <- tmDebugPrint (tmRetype v);;
                 _ <- tmRetype v;;*)
                 tmDef_name <- tmEval cbv (@tmDoWithDefinition name);;
-                _ <- tmDebugPrint (tmDef_name ty v);;
-                n <- tmDef_name ty v;;
+                let tmn := tmDef_name ty v in
+                _ <- tmDebugPrint tmn;;
+                n <- tmn;;
                 _ <- tmDebugMsg "tmMakeQuotationOfConstants_gen: tmQuoteToGlobalReference";;
                 qn <- tmQuoteToGlobalReference n;;
                 tmReturn qn)
@@ -483,30 +509,64 @@ Definition tmMakeQuotationOfConstants_gen {debug:debug_opt} (existing_instance :
              => _ <- tmDebugMsg "tmMakeQuotationOfConstants_gen: making instances";;
                 monad_map
                   (fun p
-                   => _ <- tmDebugPrint (tmExistingInstance locality p);;
-                      tmExistingInstance locality p)
+                   => let tmEx := tmExistingInstance locality p in
+                      _ <- tmDebugPrint tmEx;;
+                      tmEx)
                   ps
            | None => tmReturn []
            end);;
      tmReturn tt.
 
-Definition tmMakeQuotationOfConstants {debug:debug_opt} (existing_instance : option hint_locality) (base : modpath) (cs : list global_reference) : TemplateMonad unit
-  := tmMakeQuotationOfConstants_gen existing_instance base cs (fun name ty body => @tmDefinition name ty body).
+Definition tmMakeQuotationOfConstants {debug:debug_opt} (include_submodule : list ident -> bool) (include_supermodule : list ident -> list ident -> bool) (existing_instance : option hint_locality) (base : modpath) (cs : list global_reference) : TemplateMonad unit
+  := tmMakeQuotationOfConstants_gen false include_submodule include_supermodule existing_instance base cs (fun name ty body => @tmDefinition name ty body).
 
-Definition tmDeclareQuotationOfConstants {debug:debug_opt} (existing_instance : option hint_locality) (base : modpath) (cs : list global_reference) : TemplateMonad unit
-  := tmMakeQuotationOfConstants_gen existing_instance base cs (fun name ty _ => @tmAxiom name ty).
+Definition tmMakeQuotationOfConstantsWorkAroundCoqBug17303 {debug:debug_opt} (include_submodule : list ident -> bool) (include_supermodule : list ident -> list ident -> bool) (base : modpath) (cs : list global_reference) : TemplateMonad unit
+  := tmMakeQuotationOfConstants_gen true include_submodule include_supermodule None base cs (fun name ty body => @tmDefinition name ty body).
 
-Definition tmMakeQuotationOfModule {debug:debug_opt} (existing_instance : option hint_locality) (m : qualid) : TemplateMonad _
+Definition tmDeclareQuotationOfConstants {debug:debug_opt} (include_submodule : list ident -> bool) (include_supermodule : list ident -> list ident -> bool) (existing_instance : option hint_locality) (base : modpath) (cs : list global_reference) : TemplateMonad unit
+  := tmMakeQuotationOfConstants_gen false include_submodule include_supermodule existing_instance base cs (fun name ty _ => @tmAxiom name ty).
+
+Variant submodule_inclusion := only_toplevel | all_submodules_except (_ : list (list ident)) | toplevel_and_submodules (_ : list (list ident)) | everything.
+Definition is_submodule_of (super : list ident) (sub : list ident) : bool
+  := firstn #|super| sub == super.
+Definition is_supermodule_of (sub : list ident) (super : list ident) : bool
+  := is_submodule_of super sub.
+Definition include_submodule_of_submodule_inclusion (si : submodule_inclusion) : list ident -> bool
+  := match si with
+     | only_toplevel => fun _ => false
+     | all_submodules_except ls => fun i => negb (existsb (is_supermodule_of i) ls)
+     | toplevel_and_submodules ls => fun i => existsb (is_supermodule_of i) ls
+     | everything => fun _ => true
+     end.
+Definition include_supermodule_of_submodule_inclusion (si : submodule_inclusion) : list ident -> list ident -> bool
+  := match si with
+     | everything => fun _ _ => true
+     | _ => fun _ _ => false
+     end.
+
+Definition tmMakeQuotationOfModule {debug:debug_opt} (include_submodule : submodule_inclusion) (existing_instance : option hint_locality) (m : qualid) : TemplateMonad _
   := cs <- tmQuoteModule m;;
      base <- tmLocateModule1 m;;
-     tmMakeQuotationOfConstants existing_instance base cs.
-Global Arguments tmMakeQuotationOfModule {_%bool} _ _%bs.
+     let include_supermodule := include_supermodule_of_submodule_inclusion include_submodule in
+     let include_submodule := include_submodule_of_submodule_inclusion include_submodule in
+     tmMakeQuotationOfConstants include_submodule include_supermodule existing_instance base cs.
+Global Arguments tmMakeQuotationOfModule {_%bool} _ _ _%bs.
 
-Definition tmDeclareQuotationOfModule {debug:debug_opt} (existing_instance : option hint_locality) (m : qualid) : TemplateMonad _
+Definition tmMakeQuotationOfModuleWorkAroundCoqBug17303 {debug:debug_opt} (include_submodule : submodule_inclusion) (m : qualid) : TemplateMonad _
   := cs <- tmQuoteModule m;;
      base <- tmLocateModule1 m;;
-     tmDeclareQuotationOfConstants existing_instance base cs.
-Global Arguments tmDeclareQuotationOfModule {_%bool} _ _%bs.
+     let include_supermodule := include_supermodule_of_submodule_inclusion include_submodule in
+     let include_submodule := include_submodule_of_submodule_inclusion include_submodule in
+     tmMakeQuotationOfConstantsWorkAroundCoqBug17303 include_submodule include_supermodule base cs.
+Global Arguments tmMakeQuotationOfModuleWorkAroundCoqBug17303 {_%bool} _ _%bs.
+
+Definition tmDeclareQuotationOfModule {debug:debug_opt} (include_submodule : submodule_inclusion) (existing_instance : option hint_locality) (m : qualid) : TemplateMonad _
+  := cs <- tmQuoteModule m;;
+     base <- tmLocateModule1 m;;
+     let include_supermodule := include_supermodule_of_submodule_inclusion include_submodule in
+     let include_submodule := include_submodule_of_submodule_inclusion include_submodule in
+     tmDeclareQuotationOfConstants include_submodule include_supermodule existing_instance base cs.
+Global Arguments tmDeclareQuotationOfModule {_%bool} _ _ _%bs.
 
 (*
 Require Import MSetPositive.
