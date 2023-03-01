@@ -9,25 +9,20 @@ Module QuoteWSetsOn (E : DecidableType) (Import W : WSetsOn E) (WProperties : WP
   Export (hints) qW.
   Export (hints) qWProperties.
 
-  #[export] Instance qelt : quotation_of W.elt := ltac:(unfold_quotation_of (); exact _).
-  #[export] Instance qEqual : quotation_of W.Equal := ltac:(unfold_quotation_of (); exact _).
-  #[export] Instance qSubset : quotation_of W.Subset := ltac:(unfold_quotation_of (); exact _).
-  #[export] Instance qEmpty : quotation_of W.Empty := ltac:(unfold_quotation_of (); exact _).
-  #[export] Instance qFor_all : quotation_of W.For_all := ltac:(unfold_quotation_of (); exact _).
-  #[export] Instance qExists : quotation_of W.Exists := ltac:(unfold_quotation_of (); exact _).
-  #[export] Instance qeq : quotation_of W.eq := ltac:(unfold_quotation_of (); exact _).
-
   #[export] Instance quote_In {x y} {qx : quotation_of x} {qy : quotation_of y} : ground_quotable (In x y)
     := ground_quotable_of_dec (WProperties.In_dec x y).
   #[export] Instance quote_neg_In {x y} {qx : quotation_of x} {qy : quotation_of y} : ground_quotable (~In x y)
     := ground_quotable_neg_of_dec (WProperties.In_dec x y).
   #[export] Instance quote_Equal {x y} {qx : quotation_of x} {qy : quotation_of y}  : ground_quotable (Equal x y)
     := ground_quotable_of_dec (eq_dec x y).
+  #[export] Typeclasses Opaque Equal.
   #[export] Instance quote_neg_Equal {x y} {qx : quotation_of x} {qy : quotation_of y} : ground_quotable (~Equal x y)
     := ground_quotable_neg_of_dec (eq_dec x y).
   #[export] Instance quote_Subset {x y} {qx : quotation_of x} {qy : quotation_of y} : ground_quotable (Subset x y) := ground_quotable_of_iff (@subset_spec x y).
+  #[export] Typeclasses Opaque Subset.
   #[export] Instance quote_neg_Subset {x y} {qx : quotation_of x} {qy : quotation_of y} : ground_quotable (~Subset x y) := quote_neg_of_iff (@subset_spec x y).
   #[export] Instance quote_Empty {x} {qx : quotation_of x} : ground_quotable (Empty x) := ground_quotable_of_iff (conj (@WProperties.empty_is_empty_2 x) (@WProperties.empty_is_empty_1 x)).
+  #[export] Typeclasses Opaque Empty.
   #[export] Instance quote_neg_Empty {x} {qx : quotation_of x} : ground_quotable (~Empty x) := quote_neg_of_iff (conj (@WProperties.empty_is_empty_2 x) (@WProperties.empty_is_empty_1 x)).
   #[export] Instance quote_Add {x s s'} {qx : quotation_of x} {qs : quotation_of s} {qs' : quotation_of s'} : ground_quotable (WProperties.Add x s s')
     := ground_quotable_of_iff (iff_sym (WProperties.Add_Equal _ _ _)).
@@ -51,6 +46,7 @@ Module QuoteWSetsOn (E : DecidableType) (Import W : WSetsOn E) (WProperties : WP
   #[export] Instance qForall_all_iff : quotation_of (@For_all_alt_iff) := ltac:(unfold_quotation_of (); exact _).
   Definition quote_For_all {P s} {quote_elt : ground_quotable elt} {quote_P : forall x, ground_quotable (P x:Prop)} {qP : quotation_of P} {P_Proper : Proper (E.eq ==> Basics.impl) P} {qP_Proper : quotation_of P_Proper} {qs : quotation_of s} : ground_quotable (For_all P s)
     := ground_quotable_of_iff For_all_alt_iff.
+  #[export] Typeclasses Opaque For_all.
   Lemma For_all_forall_iff {P s} : (For_all P s) <-> (forall v, In v s -> P v).
   Proof using Type. reflexivity. Qed.
   Lemma For_all_forall2_iff {P s} : (For_all (fun v1 => For_all (P v1) s) s) <-> (forall v1 v2, In v1 s -> In v2 s -> P v1 v2).
@@ -84,6 +80,7 @@ Module QuoteWSetsOn (E : DecidableType) (Import W : WSetsOn E) (WProperties : WP
 
   Definition quote_Exists_dec {P} (P_dec : forall x, {P x} + {~P x}) {s} {quote_elt : ground_quotable elt} {qP_dec : quotation_of P_dec} {quote_P : forall x, ground_quotable (P x:Prop)} {qP : quotation_of P} {P_Proper : Proper (E.eq ==> Basics.impl) P} {qP_Proper : quotation_of P_Proper} {qs : quotation_of s} : ground_quotable (Exists P s)
     := ground_quotable_of_dec (Exists_dec P_dec).
+  #[export] Typeclasses Opaque Exists.
 
   #[export] Hint Extern 13 (ground_quotable (For_all _ _))
   => simple notypeclasses refine (@quote_For_all _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) : typeclass_instances.
@@ -119,8 +116,10 @@ Module QuoteSets (Import M : Sets) (Import MOrdProperties : OrdPropertiesSig M) 
   #[export] Instance qbelow_spec : quotation_of below_spec := ltac:(unfold_quotation_of (); exact _).
   #[export] Instance quote_Above {x s} {qx : quotation_of x} {qs : quotation_of s} : ground_quotable (Above x s)
     := ground_quotable_of_iff (above_spec x s).
+  #[export] Typeclasses Opaque Above.
   #[export] Instance quote_Below {x s} {qx : quotation_of x} {qs : quotation_of s} : ground_quotable (Below x s)
     := ground_quotable_of_iff (below_spec x s).
+  #[export] Typeclasses Opaque Below.
 End QuoteSets.
 
 Module QuoteMSetAVL (T : OrderedType) (M : MSetAVL.MakeSig T) (Import MOrdProperties : OrdPropertiesSig M) (Import qT : QuotationOfOrderedType T) (Import qM : MSetAVL.QuotationOfMake T M) (qMOrdProperties : QuotationOfOrdProperties M MOrdProperties).
@@ -218,7 +217,7 @@ Module QuoteMSetAVL (T : OrderedType) (M : MSetAVL.MakeSig T) (Import MOrdProper
   End Raw.
   Export (hints) Raw.
 
-  #[export] Instance quote_t {quote_T_t : ground_quotable T.t} : ground_quotable M.t := ltac:(induction 1; exact _).
+  #[export] Instance quote_t_ {quote_T_t : ground_quotable T.t} : ground_quotable M.t_ := ltac:(induction 1; exact _).
 End QuoteMSetAVL.
 
 Module QuoteUsualWSetsOn (E : UsualDecidableType) (Import M : WSetsOn E) (MProperties : WPropertiesOnSig E M) (qE : QuotationOfUsualDecidableType E) (qM : QuotationOfWSetsOn E M) (qMProperties : QuotationOfWPropertiesOn E M MProperties).
