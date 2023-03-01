@@ -6,7 +6,7 @@ From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.Structures Require Import Orde
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.FSets Require Import FMapInterface.Sig FMapFacts.Sig FMapAVL.Sig FMapList.Sig.
 
 Module QuoteWSfun (E : DecidableTypeOrig) (Import W : WSfun E) (Import WFacts : WFacts_funSig E W) (qE : QuotationOfDecidableTypeOrig E) (qW : QuotationOfWSfun E W) (qWFacts : QuotationOfWFacts_fun E W WFacts).
-  Export (hints) qE qW qWFacts.
+  Import (hints) qE qW qWFacts.
 
   Section with_quote.
     Context {elt : Type}
@@ -71,9 +71,9 @@ Module QuoteWSfun (E : DecidableTypeOrig) (Import W : WSfun E) (Import WFacts : 
     Qed.
 
     #[export] Instance quote_Equiv_alt {eq_elt} {m m'} {qeq_elt : quotation_of eq_elt} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} {quote_eq_elt : forall x y, ground_quotable (eq_elt x y:Prop)} {qm : quotation_of m} {qm' : quotation_of m'} : ground_quotable (@Equiv_alt eq_elt m m') := _.
-    #[export] Instance qEquiv_alt : quotation_of (@Equiv_alt) := ltac:(unfold_quotation_of (); exact _).
+    #[local] Instance qEquiv_alt : quotation_of (@Equiv_alt) := ltac:(unfold_quotation_of (); exact _).
     (* too slow :-( *)
-    (*#[export] Instance qEquiv_alt_iff : quotation_of (@Equiv_alt_iff) := ltac:(unfold_quotation_of (); exact _).*)
+    (*#[local] Instance qEquiv_alt_iff : quotation_of (@Equiv_alt_iff) := ltac:(unfold_quotation_of (); exact _).*)
 
     #[export] Instance quote_Equiv {qEquiv_alt_iff : quotation_of (@Equiv_alt_iff)} {qEquiv_alt_iff : quotation_of (@Equiv_alt_iff)} {eq_elt m m'} {qm : quotation_of m} {qm' : quotation_of m'} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} {qeq_elt : quotation_of eq_elt} {quote_eq_elt : forall x y, ground_quotable (eq_elt x y:Prop)} : ground_quotable (@Equiv elt eq_elt m m') := ground_quotable_of_iff Equiv_alt_iff.
 
@@ -83,7 +83,6 @@ Module QuoteWSfun (E : DecidableTypeOrig) (Import W : WSfun E) (Import WFacts : 
   End with_quote.
 
   #[export] Existing Instances
-    qEquiv_alt
     quote_MapsTo
     quote_In
     quote_neg_In
@@ -105,7 +104,7 @@ Module QuoteWSfun (E : DecidableTypeOrig) (Import W : WSfun E) (Import WFacts : 
 End QuoteWSfun.
 
 Module QuoteFMapAVL (T : OrderedTypeOrig) (M : FMapAVL.MakeSig T) (Import WFacts : WFacts_funSig T M) (qT : QuotationOfOrderedTypeOrig T) (qM : FMapAVL.QuotationOfMake T M) (qWFacts : QuotationOfWFacts_fun T M WFacts).
-  Export (hints) qT qM qWFacts.
+  Import (hints) qT qM qWFacts.
   Include QuoteWSfun T M WFacts qT qM qWFacts.
 
   Module Raw.
@@ -183,30 +182,21 @@ Module QuoteFMapAVL (T : OrderedTypeOrig) (M : FMapAVL.MakeSig T) (Import WFacts
       Defined.
       #[export] Instance quote_tree : ground_quotable (M.Raw.tree elt) := (ltac:(induction 1; exact _)).
       (* very slow :-( *)
-      #[export] Instance qlt_tree_dec : quotation_of (@lt_tree_dec) := ltac:(unfold_quotation_of (); exact _).
-      #[export] Instance qgt_tree_dec : quotation_of (@gt_tree_dec) := ltac:(unfold_quotation_of (); exact _).
-      #[export] Instance qbst_dec : quotation_of (@bst_dec) := ltac:(unfold_quotation_of (); exact _).
+      #[local] Instance qlt_tree_dec : quotation_of (@lt_tree_dec) := ltac:(unfold_quotation_of (); exact _).
+      #[local] Instance qgt_tree_dec : quotation_of (@gt_tree_dec) := ltac:(unfold_quotation_of (); exact _).
+      #[local] Instance qbst_dec : quotation_of (@bst_dec) := ltac:(unfold_quotation_of (); exact _).
       #[export] Instance quote_bst t : ground_quotable (M.Raw.bst t)
         := ground_quotable_of_dec (@bst_dec t).
     End with_t.
     #[export] Existing Instances
-      qlt_tree_dec
-      qgt_tree_dec
-      qbst_dec
       quote_bst
     .
   End Raw.
   Export (hints) Raw.
 
-  #[export] Instance quote_bst
-    {elt : Type}
-    {qelt : quotation_of elt}
-    {quote_elt : ground_quotable elt} {quote_T_t : ground_quotable T.t}
-    : ground_quotable (M.bst elt) := (ltac:(induction 1; exact _)).
   #[export] Instance quote_t
     {elt : Type}
     {qelt : quotation_of elt}
     {quote_elt : ground_quotable elt} {quote_T_t : ground_quotable T.t}
-    : ground_quotable (M.t elt) := _.
-  #[export] Typeclasses Opaque M.t.
+    : ground_quotable (M.t elt) := (ltac:(induction 1; exact _)).
 End QuoteFMapAVL.
