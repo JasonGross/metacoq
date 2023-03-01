@@ -1,4 +1,18 @@
 From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate.QuotationOf.Common.Universes Require Export
+  Level.Instances
+  LevelSet.Instances
+  LevelSetOrdProp.Instances
+  LevelExpr.Instances
+  LevelExprSet.Instances
+  LevelExprSetOrdProp.Instances
+  UnivConstraint.Instances
+  ConstraintSet.Instances
+  ConstraintSetOrdProp.Instances
+.
+
+(*
+From MetaCoq.Quotation.ToTemplate Require Export Init.
 From MetaCoq.Quotation.ToTemplate.Coq Require Export (hints) Init MSets Structures.
 From MetaCoq.Quotation.ToTemplate.Utils Require Export (hints) MCOption bytestring.
 From MetaCoq.Quotation.ToTemplate.Common Require Export (hints) BasicAst config.
@@ -204,3 +218,4 @@ Export QuoteUniverses2.Variance.Instances.
   := ground_quotable_of_dec (@is_allowed_elimination_dec cf ϕ allowed u).
 
 #[export] Instance quote_universes_entry : ground_quotable universes_entry := ltac:(destruct 1; exact _).
+*)

@@ -119,6 +119,7 @@ Definition dedup_grefs (g : list global_reference) : list global_reference
 Module WithTemplate.
   Import MetaCoq.Template.Loader.
   Import MetaCoq.Template.Ast.
+  Import MetaCoq.Template.TemplateMonad.Common.
   Import MetaCoq.Template.TemplateMonad.Core.
 
   (* unfolding Qed'd definitions for the benefit of quotation *)
@@ -321,5 +322,12 @@ Module WithTemplate.
        | Some (Some (mp, _)) => ret mp
        | _ => tmFail "tmExtractBaseModPathFromMod: module has no accessible constant with a kername"
        end.
+
+  (* Hack around https://github.com/MetaCoq/metacoq/issues/853 *)
+  Definition tmRetypeAroundMetaCoqBug853 (t : typed_term) : TemplateMonad typed_term
+    := let '{| my_projT1 := ty ; my_projT2 := v |} := t in
+       ty <- tmRetypeRelaxOnlyType ty;;
+       v <- tmRetypeMagicRelaxOnlyType ty v;;
+       ret {| my_projT1 := ty ; my_projT2 := v |}.
 End WithTemplate.
-Export WithTemplate (transparentify, tmQuoteToGlobalReference, tmRetypeRelaxSet, tmRetypeRelaxType, tmRetypeRelaxSetInCodomain, tmRetypeRelaxSetInAppArgsCodomain, tmRetypeRelaxTypeInCodomain, tmRetypeRelaxOnlyType, tmRetypeMagicRelaxSet, tmRetypeMagicRelaxType, tmRetypeMagicRelaxSetInCodomain, tmRetypeMagicRelaxSetInAppArgsCodomain, tmRetypeMagicRelaxTypeInCodomain, tmRetypeMagicRelaxOnlyType, tmObj_magic, tmRetype, tmExtractBaseModPathFromMod).
+Export WithTemplate (transparentify, tmQuoteToGlobalReference, tmRetypeRelaxSet, tmRetypeRelaxType, tmRetypeRelaxSetInCodomain, tmRetypeRelaxSetInAppArgsCodomain, tmRetypeRelaxTypeInCodomain, tmRetypeRelaxOnlyType, tmRetypeMagicRelaxSet, tmRetypeMagicRelaxType, tmRetypeMagicRelaxSetInCodomain, tmRetypeMagicRelaxSetInAppArgsCodomain, tmRetypeMagicRelaxTypeInCodomain, tmRetypeMagicRelaxOnlyType, tmObj_magic, tmRetype, tmExtractBaseModPathFromMod, tmRetypeAroundMetaCoqBug853).
