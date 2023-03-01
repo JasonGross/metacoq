@@ -49,8 +49,10 @@ Module QuoteUniverses1.
   Export (hints) PropLevel.
 
   Module Import LevelExpr.
+    #[export] Instance quote_t : ground_quotable LevelExpr.t := _.
+    #[export] Typeclasses Opaque LevelExpr.t.
     #[export] Instance quote_lt_ {x y} : ground_quotable (LevelExpr.lt_ x y)
-    := ground_quotable_of_dec (@LevelExprSet.Raw.MX.lt_dec x y).
+      := ground_quotable_of_dec (@LevelExprSet.Raw.MX.lt_dec x y).
   End LevelExpr.
   Export (hints) LevelExpr.
 End QuoteUniverses1.
@@ -61,20 +63,27 @@ Export (hints) QuoteUniverses1.
 #[export] Instance quote_concreteUniverses : ground_quotable concreteUniverses := ltac:(destruct 1; exact _).
 Import StrongerInstances.
 #[export] Instance quote_leq_cuniverse_n {cf n u u'} : ground_quotable (@leq_cuniverse_n cf n u u') := ltac:(cbv [leq_cuniverse_n]; exact _).
+#[export] Typeclasses Opaque leq_cuniverse_n.
 #[export] Instance quote_is_uprop {u} : ground_quotable (@is_uprop u) := ltac:(cbv [is_uprop]; exact _).
+#[export] Typeclasses Opaque is_uprop.
 #[export] Instance quote_is_usprop {u} : ground_quotable (@is_usprop u) := ltac:(cbv [is_usprop]; exact _).
 #[export] Instance quote_is_uproplevel {u} : ground_quotable (@is_uproplevel u) := ltac:(cbv [is_uproplevel]; exact _).
+#[export] Typeclasses Opaque is_uproplevel.
 #[export] Instance quote_is_uproplevel_or_set {u} : ground_quotable (@is_uproplevel_or_set u) := ltac:(cbv [is_uproplevel_or_set]; exact _).
+#[export] Typeclasses Opaque is_uproplevel_or_set.
 #[export] Instance quote_is_utype {u} : ground_quotable (@is_utype u) := ltac:(cbv [is_utype]; exact _).
+#[export] Typeclasses Opaque is_utype.
 
 #[export] Instance quote_allowed_eliminations : ground_quotable allowed_eliminations := ltac:(destruct 1; exact _).
 #[export] Instance quote_is_allowed_elimination_cuniv {allowed u} : ground_quotable (is_allowed_elimination_cuniv allowed u) := ltac:(destruct allowed; exact _).
+#[export] Typeclasses Opaque is_allowed_elimination_cuniv.
 
 Module QuoteUniverses2.
   Module Import Universe.
     #[export] Instance quote_t_ : ground_quotable Universe.t_ := ltac:(destruct 1; exact _).
     #[local] Hint Constructors or eq : typeclass_instances.
     #[export] Instance quote_on_sort {P def s} {quoteP : forall l, s = Universe.lType l -> ground_quotable (P l:Prop)} {quote_def : s = Universe.lProp \/ s = Universe.lSProp -> ground_quotable (def:Prop)} : ground_quotable (@Universe.on_sort P def s) := ltac:(cbv [Universe.on_sort]; exact _).
+    #[export] Typeclasses Opaque Universe.on_sort.
   End Universe.
   Export (hints) Universe.
 
@@ -91,6 +100,8 @@ Module QuoteUniverses2.
   Export (hints) ConstraintType.
 
   Module Import UnivConstraint.
+    #[export] Instance quote_t : ground_quotable UnivConstraint.t := _.
+    #[export] Typeclasses Opaque UnivConstraint.t.
     #[export] Instance quote_lt_ {x y} : ground_quotable (UnivConstraint.lt_ x y)
     := ground_quotable_of_dec (@ConstraintSet.Raw.MX.lt_dec x y).
   End UnivConstraint.
@@ -100,17 +111,43 @@ Module QuoteUniverses2.
     #[export] Instance quote_t : ground_quotable Variance.t := ltac:(destruct 1; exact _).
   End Variance.
   Export (hints) Variance.
+
+  Module Instance.
+    #[export] Instance quote_t : ground_quotable Instance.t := _.
+    #[export] Typeclasses Opaque Instance.t.
+  End Instance.
+  Export (hints) Instance.
+
+  Module UContext.
+    #[export] Instance quote_t : ground_quotable UContext.t := _.
+    #[export] Typeclasses Opaque UContext.t.
+  End UContext.
+  Export (hints) UContext.
+
+  Module AUContext.
+    #[export] Instance quote_t : ground_quotable AUContext.t := _.
+    #[export] Typeclasses Opaque AUContext.t.
+  End AUContext.
+  Export (hints) AUContext.
+
+  Module ContextSet.
+    #[export] Instance quote_t : ground_quotable ContextSet.t := _.
+    #[export] Typeclasses Opaque ContextSet.t.
+  End ContextSet.
+  Export (hints) ContextSet.
 End QuoteUniverses2.
 Export (hints) QuoteUniverses2.
 
-#[export] Instance quote_declared_cstr_levels {levels cstr} : ground_quotable (declared_cstr_levels levels cstr) := ltac:(cbv [declared_cstr_levels]; exact _).
+#[export] Instance quote_declared_cstr_levels {levels cstr} : ground_quotable (declared_cstr_levels levels cstr)
+  := ltac:(cbv [declared_cstr_levels]; exact _).
+#[export] Typeclasses Opaque declared_cstr_levels.
 #[export] Instance quote_universes_decl : ground_quotable universes_decl := ltac:(destruct 1; exact _).
-
 #[export] Instance quote_satisfies0 {v s} {qv : quotation_of v} : ground_quotable (@satisfies0 v s)
   := ground_quotable_of_iff (iff_sym (@uGraph.gc_of_constraint_spec config.default_checker_flags v s)).
 #[export] Instance quote_satisfies {v s} {qv : quotation_of v} : ground_quotable (@satisfies v s)
   := ground_quotable_of_iff (iff_sym (@uGraph.gc_of_constraints_spec config.default_checker_flags v s)).
-
+#[export] Typeclasses Opaque satisfies.
+HERE
 #[export] Instance quote_consistent {ctrs} : ground_quotable (@consistent ctrs)
   := ground_quotable_of_dec (@consistent_dec ctrs).
 #[export] Instance quote_consistent_extension_on {cs cstr} : ground_quotable (@consistent_extension_on cs cstr)

@@ -94,6 +94,14 @@ Module QuoteWSfun (E : DecidableTypeOrig) (Import W : WSfun E) (Import WFacts : 
     quote_Equal
     quote_Equivb
   .
+  #[export] Typeclasses Opaque
+    In
+    Empty
+    Equiv_alt
+    Equiv
+    Equal
+    Equivb
+  .
 End QuoteWSfun.
 
 Module QuoteFMapAVL (T : OrderedTypeOrig) (M : FMapAVL.MakeSig T) (Import WFacts : WFacts_funSig T M) (qT : QuotationOfOrderedTypeOrig T) (qM : FMapAVL.QuotationOfMake T M) (qWFacts : QuotationOfWFacts_fun T M WFacts).
@@ -190,9 +198,15 @@ Module QuoteFMapAVL (T : OrderedTypeOrig) (M : FMapAVL.MakeSig T) (Import WFacts
   End Raw.
   Export (hints) Raw.
 
+  #[export] Instance quote_bst
+    {elt : Type}
+    {qelt : quotation_of elt}
+    {quote_elt : ground_quotable elt} {quote_T_t : ground_quotable T.t}
+    : ground_quotable (M.bst elt) := (ltac:(induction 1; exact _)).
   #[export] Instance quote_t
     {elt : Type}
     {qelt : quotation_of elt}
     {quote_elt : ground_quotable elt} {quote_T_t : ground_quotable T.t}
-    : ground_quotable (M.t elt) := (ltac:(induction 1; exact _)).
+    : ground_quotable (M.t elt) := _.
+  #[export] Typeclasses Opaque M.t.
 End QuoteFMapAVL.

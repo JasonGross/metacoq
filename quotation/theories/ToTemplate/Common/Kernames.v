@@ -4,6 +4,8 @@ From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Init Coq.MSets Coq.
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Common Require Import Kernames.Instances.
 
 #[export] Instance quote_modpath : ground_quotable modpath := ltac:(induction 1; exact _).
+#[export] Instance quote_kername : ground_quotable kername := _.
+#[export] Typeclasses Opaque kername.
 
 Module QuoteKernameSet := MSets.QuoteMSetAVL Kername KernameSet KernameSetOrdProp qKername qKernameSet qKernameSetOrdProp.
 Export (hints) QuoteKernameSet.
