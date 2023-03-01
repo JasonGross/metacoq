@@ -1,55 +1,21 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Lists.ListDec.
-From MetaCoq.Quotation.ToTemplate Require Export Coq.Init Coq.ssr utils BasicAst Primitive Universes.
 From MetaCoq.Utils Require Import MCProd All_Forall MCRelations MCReflect.
 From MetaCoq.Common Require Import Environment Universes.
+From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Init Coq.ssr utils BasicAst Primitive Universes.
+From MetaCoq.Quotation.ToTemplate.QuotationOf.Common Require Export Environment.Sig.
 
 Module Retroknowledge.
   #[export] Instance quote_t : ground_quotable Retroknowledge.t := ltac:(destruct 1; exact _).
+  Typeclasses eauto := debug.
+  Set Typeclasses Debug Verbosity 3.
   #[export] Instance quote_extends {x y} : ground_quotable (@Retroknowledge.extends x y) := ltac:(cbv [Retroknowledge.extends]; exact _).
-
-  Module Instances.
-    #[export] Existing Instances
-     quote_t
-     quote_extends
-    .
-  End Instances.
+HERE
 End Retroknowledge.
-Export Retroknowledge.Instances.
+Export (hints) Retroknowledge.
 
-Module Type QuoteTerm (T : Term).
-  #[export] Declare Instance qterm : quotation_of T.term.
-  #[export] Declare Instance quote_term : ground_quotable T.term.
-
-  #[export] Declare Instance qtRel : quotation_of T.tRel.
-  #[export] Declare Instance qtSort : quotation_of T.tSort.
-  #[export] Declare Instance qtProd : quotation_of T.tProd.
-  #[export] Declare Instance qtLambda : quotation_of T.tLambda.
-  #[export] Declare Instance qtLetIn : quotation_of T.tLetIn.
-  #[export] Declare Instance qtInd : quotation_of T.tInd.
-  #[export] Declare Instance qtProj : quotation_of T.tProj.
-  #[export] Declare Instance qmkApps : quotation_of T.mkApps.
-
-  #[export] Declare Instance qlift : quotation_of T.lift.
-  #[export] Declare Instance qsubst : quotation_of T.subst.
-  #[export] Declare Instance qclosedn : quotation_of T.closedn.
-  #[export] Declare Instance qnoccur_between : quotation_of T.noccur_between.
-  #[export] Declare Instance qsubst_instance_constr : quotation_of T.subst_instance_constr.
-End QuoteTerm.
-
-Module Type QuotationOfEnvironment (T : Term) (Import E : EnvironmentSig T).
-  #[export] Declare Instance qconstructor_body : inductive_quotation_of constructor_body.
-  #[export] Declare Instance qprojection_body : inductive_quotation_of projection_body.
-  #[export] Declare Instance qone_inductive_body : inductive_quotation_of one_inductive_body.
-  #[export] Declare Instance qmutual_inductive_body : inductive_quotation_of mutual_inductive_body.
-  #[export] Declare Instance qconstant_body : inductive_quotation_of constant_body.
-  #[export] Declare Instance qglobal_decl : inductive_quotation_of global_decl.
-  #[export] Declare Instance qglobal_env : inductive_quotation_of global_env.
-  #[export] Declare Instance qAll_decls : inductive_quotation_of All_decls.
-  #[export] Declare Instance qAll_decls_alpha : inductive_quotation_of All_decls_alpha.
-End QuotationOfEnvironment.
-
-Module QuoteEnvironment (T : Term) (Import E : EnvironmentSig T) (Import QT : QuoteTerm T) (Import QoE : QuotationOfEnvironment T E).
+Module QuoteEnvironment (T : Term) (Import E : EnvironmentSig T) (Import qT : QuotationOfTerm T) (Import QuoteT : QuoteTerm T) (Import qE : QuotationOfEnvironment T E).
 
   #[export] Instance quote_constructor_body : ground_quotable constructor_body := ltac:(destruct 1; exact _).
   #[export] Instance quote_projection_body : ground_quotable projection_body := ltac:(destruct 1; exact _).

@@ -1,5 +1,5 @@
 From MetaCoq.Quotation.ToTemplate Require Export Init.
-From MetaCoq.Quotation.ToTemplate.Coq Require Export (hints) Init MSets Structures.
+From MetaCoq.Quotation.ToTemplate.Coq Require Export (hints) Init MSets.
 From MetaCoq.Quotation.ToTemplate.Utils Require Export (hints) MCOption bytestring.
 From MetaCoq.Quotation.ToTemplate.Common Require Export (hints) BasicAst config.
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Common Require Import Universes.Instances.
