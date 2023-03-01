@@ -3,14 +3,105 @@ Require Import Coq.Lists.ListDec.
 From MetaCoq.Utils Require Import MCProd All_Forall MCRelations MCReflect.
 From MetaCoq.Common Require Import Environment Universes.
 From MetaCoq.Quotation.ToTemplate Require Export Init.
-From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Init Coq.ssr utils BasicAst Primitive Universes.
+From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Init Coq.ssr utils BasicAst Primitive Universes Kernames.
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Common Require Export Environment.Sig.
 
 Module Retroknowledge.
-  #[export] Instance quote_t : ground_quotable Retroknowledge.t := ltac:(destruct 1; exact _).
+  #[export] Instance quote_t : ground_quotable Retroknowledge.t.
+  destruct 1.
+  Set Typeclasses Debug Verbosity 2.
+  Typeclasses Opaque ground_quotable Kernames.kername is_allowed_elimination is_lSet valid_constraints valid_constraints0
+  ConstraintSet.Empty
+ConstraintSet.In
+ConstraintSet.Subset
+ConstraintSetOrdProp.Above
+ConstraintSetOrdProp.Below
+Kernames.KernameMap.Empty
+Kernames.KernameSet.Empty
+Kernames.KernameSet.Equal
+Kernames.KernameSet.In
+Kernames.KernameSet.Subset
+Kernames.KernameSetOrdProp.Above
+Kernames.KernameSetOrdProp.Below
+LevelExprSet.Empty
+LevelExprSet.Equal
+LevelExprSet.In
+LevelExprSet.Subset
+LevelExprSetOrdProp.Above
+LevelExprSetOrdProp.Below
+LevelSet.Empty
+LevelSet.In
+LevelSet.Subset
+LevelSetOrdProp.Above
+LevelSetOrdProp.Below
+MCOption.on_Some
+MCOption.on_Some_or_None
+MCOption.option_default
+Universe.on_sort
+compare_universe
+consistent
+consistent_extension_on
+declared_cstr_levels
+eq_levelalg
+eq_universe
+eq_universe_
+is_allowed_elimination_cuniv
+is_uprop
+is_uproplevel
+is_uproplevel_or_set
+is_usprop
+is_utype
+leq_cuniverse_n
+leq_universe
+leq_universe_n_
+satisfies
+leq_universe_n
+leq_levelalg_n
+ConstraintSet.t
+LevelSet.t
+Kernames.KernameSet.t
+  .
+  Time pose (_ : ground_quotable (option Kernames.kername)).
+  Debug:
+Calling typeclass resolution with flags: depth = ∞,unique = false,do_split = true,fail = false
+Debug:
+1: looking for (ground_quotable (option Kernames.kername)) without backtracking
+Debug: 1.1: simple apply @Init.quote_option on
+(ground_quotable (option Kernames.kername)), 2 subgoal(s)
+Debug: 1.1-1 : (quotation_of Kernames.kername)
+Debug: 1.1-1: looking for (quotation_of Kernames.kername) without backtracking
+Debug: 1.1-1.1: exact qkername on (quotation_of Kernames.kername), 0 subgoal(s)
+Debug: 1.1-2 : (ground_quotable Kernames.kername)
+Debug: 1.1-2: looking for (ground_quotable Kernames.kername) without backtracking
+Debug: 1.1-2.1: exact Kernames.quote_kername on
+(ground_quotable Kernames.kername), 0 subgoal(s)
+
+Finished transaction in 3.407 secs (3.407u,0.s) (successful)
+
+  exact _.
+    := ltac:(destruct 1; exact _).
   Typeclasses eauto := debug.
-  Set Typeclasses Debug Verbosity 3.
-  #[export] Instance quote_extends {x y} : ground_quotable (@Retroknowledge.extends x y) := ltac:(cbv [Retroknowledge.extends]; exact _).
+  #[export] Instance quote_extends {x y} : ground_quotable (@Retroknowledge.extends x y).
+  cbv [Retroknowledge.extends].
+  simple apply @Init.quote_and.
+  Time exact _.
+  Time exact _.
+  all: simple apply @MCOption.quote_option_extends.
+  Time exact _.
+  Time exact _.
+  Time exact _.
+  Time intros.
+  Search ground_quotable kername.
+  Typeclasses Opaque Kernames.kername.
+  Time exact _.
+  Time exact _.
+  Time pose proof (_ : quotation_of x).
+  Time pose proof (_ : quotation_of y).
+  Time replace_quotation_of_goal ().
+  Time exact _.
+  simple apply
+  cbv [
+    := ltac:(cbv [Retroknowledge.extends]; exact _).
 HERE
 End Retroknowledge.
 Export (hints) Retroknowledge.
