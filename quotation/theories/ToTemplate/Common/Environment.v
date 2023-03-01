@@ -7,60 +7,9 @@ From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Init Coq.ssr utils 
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Common Require Export Environment.Sig.
 
 Module Retroknowledge.
-  #[export] Instance quote_t : ground_quotable Retroknowledge.t.
+  #[export] Instance quote_t : ground_quotable Retroknowledge.t := ltac:(destruct 1; exact _).
   destruct 1.
   Set Typeclasses Debug Verbosity 2.
-  Typeclasses Opaque ground_quotable Kernames.kername is_allowed_elimination is_lSet valid_constraints valid_constraints0
-  ConstraintSet.Empty
-ConstraintSet.In
-ConstraintSet.Subset
-ConstraintSetOrdProp.Above
-ConstraintSetOrdProp.Below
-Kernames.KernameMap.Empty
-Kernames.KernameSet.Empty
-Kernames.KernameSet.Equal
-Kernames.KernameSet.In
-Kernames.KernameSet.Subset
-Kernames.KernameSetOrdProp.Above
-Kernames.KernameSetOrdProp.Below
-LevelExprSet.Empty
-LevelExprSet.Equal
-LevelExprSet.In
-LevelExprSet.Subset
-LevelExprSetOrdProp.Above
-LevelExprSetOrdProp.Below
-LevelSet.Empty
-LevelSet.In
-LevelSet.Subset
-LevelSetOrdProp.Above
-LevelSetOrdProp.Below
-MCOption.on_Some
-MCOption.on_Some_or_None
-MCOption.option_default
-Universe.on_sort
-compare_universe
-consistent
-consistent_extension_on
-declared_cstr_levels
-eq_levelalg
-eq_universe
-eq_universe_
-is_allowed_elimination_cuniv
-is_uprop
-is_uproplevel
-is_uproplevel_or_set
-is_usprop
-is_utype
-leq_cuniverse_n
-leq_universe
-leq_universe_n_
-satisfies
-leq_universe_n
-leq_levelalg_n
-ConstraintSet.t
-LevelSet.t
-Kernames.KernameSet.t
-  .
   Time pose (_ : ground_quotable (option Kernames.kername)).
   Debug:
 Calling typeclass resolution with flags: depth = ∞,unique = false,do_split = true,fail = false

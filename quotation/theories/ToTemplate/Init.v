@@ -283,12 +283,17 @@ Ltac revert_quotable_hyp _ :=
 Ltac revert_quotable_hyps _ :=
   repeat revert_quotable_hyp ().
 
+Create HintDb quotation discriminated.
+
 Module Export Instances.
   (* some performance settings *)
   #[export] Set Typeclasses Unique Instances.
   #[export] Instance default_debug : debug_opt | 1000 := false.
   #[export] Existing Instance quote_ground.
   #[export] Typeclasses Opaque quotation_of.
+  #[export] Hint Constants Opaque : typeclass_instances.
+  #[export] Hint Extern 0 (quotation_of _) => progress autounfold with quotation : typeclass_instances.
+  #[export] Hint Extern 0 (ground_quotable _) => progress autounfold with quotation : typeclass_instances.
   #[export]
    Hint Extern 1 (quotation_of match ?t with _ => _ end) => is_var t; destruct t : typeclass_instances.
   #[export]
