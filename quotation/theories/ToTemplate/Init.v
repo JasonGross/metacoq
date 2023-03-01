@@ -384,8 +384,10 @@ Ltac unfold_quotation_of _ :=
              | change (@quotation_of A (transparentify t)) ]
   end.
 
-Polymorphic Definition tmPrepareMakeQuotationOfConstants@{U t u u' _T _above_u _above_u'} {debug:debug_opt} (work_aronud_coq_bug_17303 : bool) (include_submodule : list ident -> bool) (include_supermodule : list ident -> list ident -> bool) (base : modpath) (cs : list global_reference) : TemplateMonad@{t u} (list (string * typed_term@{u'}))
-  := let warn_bad_ctx c ctx :=
+Set Printing All.
+Set Typeclasses Debug Verbosity 2.
+Polymorphic Definition tmPrepareMakeQuotationOfConstants@{U t u u' _T _above_u _above_u'} {debug:debug_opt} (work_aronud_coq_bug_17303 : bool) (include_submodule : list ident -> bool) (include_supermodule : list ident -> list ident -> bool) (base : modpath) (cs : list global_reference) : TemplateMonad@{t u} (list (string * typed_term@{u'})).
+let tac := unshelve refine (let warn_bad_ctx c ctx :=
        (_ <- tmMsg "tmPrepareMakeQuotationOfModule: cannot handle polymorphism";;
         _ <- tmPrint c;;
         _ <- tmPrint ctx;;
@@ -481,7 +483,13 @@ Polymorphic Definition tmPrepareMakeQuotationOfConstants@{U t u u' _T _above_u _
                  end)
              cs;;
      let ps := flat_map (fun x => x) ps in
-     ret ps.
+     ret ps) in
+first [ assert_succeeds solve [ tac; exact _ ] | fail 2 " too early" ];
+solve [ tac ].
+  all: try solve [ unshelve exact _ ].
+  Unshelve.
+  all: try solve [ unshelve exact _ ].
+  all: unshelve.
 
 (* N.B. We need to kludge around COQBUG(https://github.com/coq/coq/issues/17303) in Kernames :-( *)
 Polymorphic Definition tmMakeQuotationOfConstants_gen@{U d t u u' _T _above_u _above_u' _above_gr} {debug:debug_opt} (work_aronud_coq_bug_17303 : bool) (include_submodule : list ident -> bool) (include_supermodule : list ident -> list ident -> bool) (existing_instance : option hint_locality) (base : modpath) (cs : list global_reference) (tmDoWithDefinition : ident -> forall A : Type@{d}, A -> TemplateMonad A) : TemplateMonad unit
