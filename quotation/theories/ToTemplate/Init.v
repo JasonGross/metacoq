@@ -490,19 +490,17 @@ Polymorphic Definition tmMakeQuotationOfConstants_gen@{U d t u u' _T _above_u _a
      ps <- tmPrepareMakeQuotationOfConstants@{U t u u' _T _above_u _above_u'} work_aronud_coq_bug_17303 include_submodule include_supermodule base cs;;
      _ <- tmDebugMsg "tmMakeQuotationOfConstants_gen: defining module constants";;
      ps <- monad_map@{_ _ _above_gr _above_u'}
-             (fun '(name, {| my_projT1 := ty ; my_projT2 := v |})
-              => (* debugging sanity checks for hack around https://github.com/MetaCoq/metacoq/issues/853 *)
-                (*_ <- tmDebugPrint (tmRetype ty);;
-                _ <- tmRetype ty;;
-                _ <- tmDebugPrint (tmRetype v);;
-                _ <- tmRetype v;;*)
-                tmDef_name <- tmEval cbv (@tmDoWithDefinition name);;
-                let tmn := tmDef_name ty v in
-                _ <- tmDebugPrint tmn;;
-                n <- tmn;;
-                _ <- tmDebugMsg "tmMakeQuotationOfConstants_gen: tmQuoteToGlobalReference";;
-                qn <- tmQuoteToGlobalReference n;;
-                tmReturn qn)
+             (fun '(name, tyv)
+              => let tmTyv := tmRetypeAroundMetaCoqBug853 tyv in
+                 _ <- tmDebugPrint tmTyv;;
+                 '{| my_projT1 := ty ; my_projT2 := v |} <- tmTyv;;
+                 tmDef_name <- tmEval cbv (@tmDoWithDefinition name);;
+                 let tmn := tmDef_name ty v in
+                 _ <- tmDebugPrint tmn;;
+                 n <- tmn;;
+                 _ <- tmDebugMsg "tmMakeQuotationOfConstants_gen: tmQuoteToGlobalReference";;
+                 qn <- tmQuoteToGlobalReference n;;
+                 tmReturn qn)
              ps;;
      _ <- (match existing_instance with
            | Some locality
