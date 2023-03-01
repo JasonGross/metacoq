@@ -2,6 +2,7 @@ From MetaCoq.Quotation.ToTemplate Require Export Init.
 From MetaCoq.Quotation.ToTemplate.Coq Require Export (hints) Init MSets Structures.
 From MetaCoq.Quotation.ToTemplate.Utils Require Export (hints) MCOption bytestring.
 From MetaCoq.Quotation.ToTemplate.Common Require Export (hints) BasicAst config.
+From MetaCoq.Quotation.ToTemplate.QuotationOf.Common Require Import Universes.Instances.
 From MetaCoq.Common Require Import Kernames Universes UniversesDec.
 From MetaCoq.Utils Require Import bytestring monad_utils.
 From MetaCoq.Template Require Import Loader TemplateMonad.
@@ -16,40 +17,13 @@ Record valuation :=
     valuation_poly : nat -> nat }.
 Class Evaluable (A : Type) := val : valuation -> A -> nat.
  *)
-Module qLevelSet <: MSetAVL.QuotationOfMake Level LevelSet.
-  Module qRaw.
-    Module Raw'. Include LevelSet.Raw. End Raw'.
-    MetaCoq Run (Universes_mp <- tmExtractBaseModPathFromMod "MetaCoq.Common.Universes";; tmMakeQuotationOfModuleAndRebase false "Raw'" (MPdot (MPdot Universes_mp "LevelSet") "Raw")).
-  End qRaw.
-  Module LevelSet'. Include LevelSet. End LevelSet'.
-  MetaCoq Run (Universes_mp <- tmExtractBaseModPathFromMod "MetaCoq.Common.Universes";; tmMakeQuotationOfModuleAndRebase false "LevelSet'" (MPdot Universes_mp "LevelSet")).
-End qLevelSet.
-Module qLevelSetOrdProp <: MSets.QuotationOfOrdProperties LevelSet LevelSetOrdProp qLevel.
-  Module qME := Structures.QuotationOfOrderedTypeFacts LevelSet.E LevelSetOrdProp.ME qLevel.
-  Module qP <: MSets.QuotationOfWProperties LevelSet LevelSetOrdProp.P.
-    Module qDec <: MSets.QuotationOfWDecideOn Level LevelSet LevelSetOrdProp.P.Dec.
-      Module qF <: MSets.QuotationOfWFactsOn Level LevelSet LevelSetOrdProp.P.Dec.F.
 
-  Module qMSetDecideAuxiliary.
-
-    Module qFM <: MSets.QuotationOfWFactsOn Level LevelSet LevelSetOrdProp.P.FM.
-
-
-  Module qRaw.
-    Module Raw'. Include LevelSet.Raw. End Raw'.
-    MetaCoq Run (Universes_mp <- tmExtractBaseModPathFromMod "MetaCoq.Common.Universes";; tmMakeQuotationOfModuleAndRebase false "Raw'" (MPdot (MPdot Universes_mp "LevelSet") "Raw")).
-  End qRaw.
-  Module LevelSet'. Include LevelSet. End LevelSet'.
-  MetaCoq Run (Universes_mp <- tmExtractBaseModPathFromMod "MetaCoq.Common.Universes";; tmMakeQuotationOfModuleAndRebase false "LevelSet'" (MPdot Universes_mp "LevelSet")).
-End qLevelSet.
-
-Module QuoteLevelSet := QuoteMSetAVL Level LevelSet.
-QuoteMSetAVL (T : OrderedType) (M : MSetAVL.MakeSig T) (Import MOrdProperties : OrdPropertiesSig M) (Import qT : QuotationOfOrderedType T) (Import qM : MSetAVL.QuotationOfMake T M) (qMOrdProperties : QuotationOfOrdProperties M MOrdProperties qT).
-Export QuoteLevelSet.Instances.
-Module QuoteLevelExprSet := QuoteMSetListWithLeibniz LevelExpr LevelExprSet.
-Export QuoteLevelExprSet.Instances.
-Module QuoteConstraintSet := QuoteMSetAVL UnivConstraint ConstraintSet.
-Export QuoteConstraintSet.Instances.
+Module QuoteLevelSet := MSets.QuoteMSetAVL Level LevelSet LevelSetOrdProp qLevel qLevelSet qLevelSetOrdProp.
+Export (hints) QuoteLevelSet.
+Module QuoteLevelExprSet := MSets.QuoteMSetListWithLeibniz LevelExpr LevelExprSet LevelExprSetOrdProp qLevelExpr qLevelExprSet qLevelExprSetOrdProp.
+Export (hints) QuoteLevelExprSet.
+Module QuoteConstraintSet := MSets.QuoteMSetAVL UnivConstraint ConstraintSet ConstraintSetOrdProp qUnivConstraint qConstraintSet qConstraintSetOrdProp.
+Export (hints) QuoteConstraintSet.
 
 Module QuoteUniverses1.
   Module Import Level.
@@ -60,14 +34,8 @@ Module QuoteUniverses1.
         solve [ intro pf; exfalso; inversion pf
               | adjust_ground_quotable_by_econstructor_inversion () ].
     Defined.
-
-    Module Export Instances.
-      #[export] Existing Instances
-       quote_t_
-       quote_lt_
-      .
-    End Instances.
   End Level.
+  Export (hints) Level.
 
   Module Import PropLevel.
     #[export] Instance quote_t : ground_quotable PropLevel.t := ltac:(destruct 1; exact _).
@@ -77,29 +45,16 @@ Module QuoteUniverses1.
         solve [ intro pf; exfalso; inversion pf
               | adjust_ground_quotable_by_econstructor_inversion () ].
     Defined.
-
-    Module Export Instances.
-      #[export] Existing Instances
-       quote_t
-       quote_lt_
-      .
-    End Instances.
   End PropLevel.
+  Export (hints) PropLevel.
 
   Module Import LevelExpr.
     #[export] Instance quote_lt_ {x y} : ground_quotable (LevelExpr.lt_ x y)
     := ground_quotable_of_dec (@LevelExprSet.Raw.MX.lt_dec x y).
-
-    Module Export Instances.
-      #[export] Existing Instances
-       quote_lt_
-      .
-    End Instances.
   End LevelExpr.
+  Export (hints) LevelExpr.
 End QuoteUniverses1.
-Export QuoteUniverses1.Level.Instances.
-Export QuoteUniverses1.PropLevel.Instances.
-Export QuoteUniverses1.LevelExpr.Instances.
+Export (hints) QuoteUniverses1.
 
 #[export] Instance quote_nonEmptyLevelExprSet : ground_quotable nonEmptyLevelExprSet := ltac:(destruct 1; exact _).
 
@@ -120,14 +75,8 @@ Module QuoteUniverses2.
     #[export] Instance quote_t_ : ground_quotable Universe.t_ := ltac:(destruct 1; exact _).
     #[local] Hint Constructors or eq : typeclass_instances.
     #[export] Instance quote_on_sort {P def s} {quoteP : forall l, s = Universe.lType l -> ground_quotable (P l:Prop)} {quote_def : s = Universe.lProp \/ s = Universe.lSProp -> ground_quotable (def:Prop)} : ground_quotable (@Universe.on_sort P def s) := ltac:(cbv [Universe.on_sort]; exact _).
-
-    Module Instances.
-      #[export] Existing Instances
-       quote_t_
-       quote_on_sort
-      .
-    End Instances.
   End Universe.
+  Export (hints) Universe.
 
   Module Import ConstraintType.
     #[export] Instance quote_t_ : ground_quotable ConstraintType.t_ := ltac:(destruct 1; exact _).
@@ -138,40 +87,21 @@ Module QuoteUniverses2.
         solve [ intro pf; exfalso; inversion pf
               | adjust_ground_quotable_by_econstructor_inversion () ].
     Defined.
-
-    Module Export Instances.
-      #[export] Existing Instances
-       quote_t_
-       quote_lt_
-      .
-    End Instances.
   End ConstraintType.
+  Export (hints) ConstraintType.
 
   Module Import UnivConstraint.
     #[export] Instance quote_lt_ {x y} : ground_quotable (UnivConstraint.lt_ x y)
     := ground_quotable_of_dec (@ConstraintSet.Raw.MX.lt_dec x y).
-
-    Module Export Instances.
-      #[export] Existing Instances
-       quote_lt_
-      .
-    End Instances.
   End UnivConstraint.
+  Export (hints) UnivConstraint.
 
   Module Import Variance.
     #[export] Instance quote_t : ground_quotable Variance.t := ltac:(destruct 1; exact _).
-
-    Module Export Instances.
-      #[export] Existing Instances
-       quote_t
-      .
-    End Instances.
   End Variance.
+  Export (hints) Variance.
 End QuoteUniverses2.
-Export QuoteUniverses2.Universe.Instances.
-Export QuoteUniverses2.ConstraintType.Instances.
-Export QuoteUniverses2.UnivConstraint.Instances.
-Export QuoteUniverses2.Variance.Instances.
+Export (hints) QuoteUniverses2.
 
 #[export] Instance quote_declared_cstr_levels {levels cstr} : ground_quotable (declared_cstr_levels levels cstr) := ltac:(cbv [declared_cstr_levels]; exact _).
 #[export] Instance quote_universes_decl : ground_quotable universes_decl := ltac:(destruct 1; exact _).

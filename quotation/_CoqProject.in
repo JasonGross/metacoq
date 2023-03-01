@@ -23,6 +23,16 @@ theories/ToTemplate/QuotationOf/Common/Kernames/KernameMap/Instances.v
 theories/ToTemplate/QuotationOf/Common/Kernames/KernameMapFact/Instances.v
 theories/ToTemplate/QuotationOf/Common/Kernames/KernameSet/Instances.v
 theories/ToTemplate/QuotationOf/Common/Kernames/KernameSetOrdProp/Instances.v
+theories/ToTemplate/QuotationOf/Common/Universes/ConstraintSet/Instances.v
+theories/ToTemplate/QuotationOf/Common/Universes/ConstraintSetOrdProp/Instances.v
+theories/ToTemplate/QuotationOf/Common/Universes/Instances.v
+theories/ToTemplate/QuotationOf/Common/Universes/Level/Instances.v
+theories/ToTemplate/QuotationOf/Common/Universes/LevelExpr/Instances.v
+theories/ToTemplate/QuotationOf/Common/Universes/LevelExprSet/Instances.v
+theories/ToTemplate/QuotationOf/Common/Universes/LevelExprSetOrdProp/Instances.v
+theories/ToTemplate/QuotationOf/Common/Universes/LevelSet/Instances.v
+theories/ToTemplate/QuotationOf/Common/Universes/LevelSetOrdProp/Instances.v
+theories/ToTemplate/QuotationOf/Common/Universes/UnivConstraint/Instances.v
 theories/ToTemplate/QuotationOf/Coq/FSets/FMapAVL/Sig.v
 theories/ToTemplate/QuotationOf/Coq/FSets/FMapFacts/Sig.v
 theories/ToTemplate/QuotationOf/Coq/FSets/FMapInterface/Sig.v
