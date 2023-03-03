@@ -19,9 +19,9 @@ Proof.
   all: adjust_ground_quotable_by_econstructor_inversion ().
 Defined.
 
-#[export] Polymorphic Instance quote_option_default {A P o b} {quoteP : forall x, o = Some x -> ground_quotable (P x)} {quoteP' : o = None -> ground_quotable b} : ground_quotable (@option_default A Type P o b) := ltac:(destruct o; exact _).
+#[export] Polymorphic Instance quote_option_default {A P o b} {quoteP : forall x, o = Some x -> ground_quotable (P x)} {quoteP' : o = None -> ground_quotable b} : ground_quotable (@option_default A Type P o b) := ltac:(destruct o; cbv [option_default]; exact _).
 
-#[export] Instance quote_on_Some {A P o} {quoteP : forall x, o = Some x -> ground_quotable (P x:Prop)} : ground_quotable (@on_Some A P o) := ltac:(destruct o; exact _).
+#[export] Instance quote_on_Some {A P o} {quoteP : forall x, o = Some x -> ground_quotable (P x:Prop)} : ground_quotable (@on_Some A P o) := ltac:(destruct o; cbv [on_Some]; exact _).
 #[export] Typeclasses Opaque on_Some.
-#[export] Instance quote_on_Some_or_None {A P o} {quoteP : forall x, o = Some x -> ground_quotable (P x:Prop)} : ground_quotable (@on_Some_or_None A P o) := ltac:(destruct o; exact _).
+#[export] Instance quote_on_Some_or_None {A P o} {quoteP : forall x, o = Some x -> ground_quotable (P x:Prop)} : ground_quotable (@on_Some_or_None A P o) := ltac:(destruct o; cbv [on_Some_or_None]; exact _).
 #[export] Typeclasses Opaque on_Some_or_None.

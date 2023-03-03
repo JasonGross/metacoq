@@ -22,6 +22,7 @@ Export Quotation.ToTemplate.Init.Instances.
 #[export] Typeclasses Opaque not.
 
 #[export] Hint Unfold is_true : quotation.
+#[export] Hint Unfold lt : quotation.
 
 #[export] Instance quote_eq_true {b} : ground_quotable (eq_true b) := ltac:(destruct 1; exact _).
 #[export] Instance quote_BoolSpec {P Q : Prop} {b} {qP : quotation_of P} {qQ : quotation_of Q} {quoteP : ground_quotable P} {quoteQ : ground_quotable Q} : ground_quotable (BoolSpec P Q b).
