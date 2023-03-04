@@ -4,8 +4,12 @@ From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Numbers Coq.Init Co
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.Structures Require Import Orders.Sig.
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.MSets Require Import MSetInterface.Sig MSetProperties.Sig MSetAVL.Sig MSetList.Sig.
 
+#[export] Hint Unfold Int.Z_as_Int.t : quotation.
+
 Module QuoteWSetsOn (E : DecidableType) (Import W : WSetsOn E) (WProperties : WPropertiesOnSig E W) (qE : QuotationOfDecidableType E) (qW : QuotationOfWSetsOn E W) (qWProperties : QuotationOfWPropertiesOn E W WProperties).
   Import (hints) qE qW qWProperties.
+
+  #[export] Hint Unfold Int.Z_as_Int.t : quotation.
 
   #[export] Instance quote_In {x y} {qx : quotation_of x} {qy : quotation_of y} : ground_quotable (In x y)
     := ground_quotable_of_dec (WProperties.In_dec x y).
@@ -42,6 +46,8 @@ Module QuoteWSetsOn (E : DecidableType) (Import W : WSetsOn E) (WProperties : WP
   Qed.
   #[local] Instance qFor_all_alt : quotation_of For_all_alt := ltac:(cbv [For_all_alt]; exact _).
   #[local] Instance qForall_all_iff : quotation_of (@For_all_alt_iff) := ltac:(unfold_quotation_of (); exact _).
+  #[export] Typeclasses Transparent elt.
+  #[export] Hint Unfold For_all_alt : quotation.
   Definition quote_For_all {P s} {quote_elt : ground_quotable elt} {quote_P : forall x, ground_quotable (P x:Prop)} {qP : quotation_of P} {P_Proper : Proper (E.eq ==> Basics.impl) P} {qP_Proper : quotation_of P_Proper} {qs : quotation_of s} : ground_quotable (For_all P s)
     := ground_quotable_of_iff For_all_alt_iff.
   #[export] Typeclasses Opaque For_all.
@@ -205,11 +211,13 @@ Module QuoteMSetAVL (T : OrderedType) (M : MSetAVL.MakeSig T) (Import MOrdProper
       #[local] Instance qlt_tree_dec : quotation_of (@lt_tree_dec) := ltac:(unfold_quotation_of (); exact _).
       #[local] Instance qgt_tree_dec : quotation_of (@gt_tree_dec) := ltac:(unfold_quotation_of (); exact _).
       #[local] Instance qbst_dec : quotation_of (@bst_dec) := ltac:(unfold_quotation_of (); exact _).
+      #[local] Hint Unfold Int.Z_as_Int.t : quotation.
       #[export] Instance quote_tree : ground_quotable M.Raw.tree := (ltac:(induction 1; exact _)).
       #[export] Instance quote_bst t : ground_quotable (M.Raw.bst t)
         := ground_quotable_of_dec (@bst_dec t).
       #[export] Instance quote_Ok s : ground_quotable (M.Raw.Ok s) := (ltac:(cbv [M.Raw.Ok]; exact _)).
     End with_t.
+    #[export] Hint Unfold M.Raw.t : quotation.
     #[export] Existing Instances
       quote_tree
       quote_bst
@@ -218,7 +226,8 @@ Module QuoteMSetAVL (T : OrderedType) (M : MSetAVL.MakeSig T) (Import MOrdProper
   End Raw.
   Export (hints) Raw.
 
-  #[export] Instance quote_t {quote_T_t : ground_quotable T.t} : ground_quotable M.t := ltac:(induction 1; exact _).
+  #[export] Instance quote_t_ {quote_T_t : ground_quotable T.t} : ground_quotable M.t_ := ltac:(induction 1; exact _).
+  #[export] Hint Unfold M.t : quotation.
 End QuoteMSetAVL.
 
 Module QuoteWSetsOnIsUsual (E : UsualDecidableType) (Import M : WSetsOn E) (MProperties : WPropertiesOnSig E M) (qE : QuotationOfUsualDecidableType E) (qM : QuotationOfWSetsOn E M) (qMProperties : QuotationOfWPropertiesOn E M MProperties) (Import QuoteM : QuoteWSetsOnSig E M MProperties qE qM qMProperties).
@@ -262,9 +271,11 @@ Module QuoteMSetIsList (T : OrderedType) (Import M : MSetList.MakeSig T) (Import
 
   Module Raw.
     #[export] Instance quote_Ok {v} : ground_quotable (M.Raw.Ok v) := ltac:(cbv [M.Raw.Ok]; exact _).
+    #[export] Hint Unfold M.Raw.t M.Raw.elt : quotation.
   End Raw.
   Export (hints) Raw.
-  #[export] Instance quote_t {quoteE_t : ground_quotable E.t} : ground_quotable t := ltac:(destruct 1; exact _).
+  #[export] Instance quote_t_ {quoteE_t : ground_quotable E.t} : ground_quotable t_ := ltac:(destruct 1; exact _).
+  #[export] Hint Unfold M.t M.elt : quotation.
 End QuoteMSetIsList.
 
 Module QuoteMSetList (T : OrderedType) (M : MSetList.MakeSig T) (MOrdProperties : OrdPropertiesSig M) (qT : QuotationOfOrderedType T) (qM : MSetList.QuotationOfMake T M) (qMOrdProperties : QuotationOfOrdProperties M MOrdProperties)

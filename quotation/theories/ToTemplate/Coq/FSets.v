@@ -5,8 +5,11 @@ From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Numbers Coq.Init Co
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.Structures Require Import OrdersAlt.Sig.
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.FSets Require Import FMapInterface.Sig FMapFacts.Sig FMapAVL.Sig FMapList.Sig.
 
+#[export] Hint Unfold Int.Z_as_Int.t : quotation.
+
 Module QuoteWSfun (E : DecidableTypeOrig) (Import W : WSfun E) (Import WFacts : WFacts_funSig E W) (qE : QuotationOfDecidableTypeOrig E) (qW : QuotationOfWSfun E W) (qWFacts : QuotationOfWFacts_fun E W WFacts).
   Import (hints) qE qW qWFacts.
+  #[export] Hint Unfold Int.Z_as_Int.t : quotation.
 
   Section with_quote.
     Context {elt : Type}
@@ -70,7 +73,7 @@ Module QuoteWSfun (E : DecidableTypeOrig) (Import W : WSfun E) (Import WFacts : 
       all: try solve [ repeat destruct ?; subst; try congruence; eauto ].
     Qed.
 
-    #[export] Instance quote_Equiv_alt {eq_elt} {m m'} {qeq_elt : quotation_of eq_elt} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} {quote_eq_elt : forall x y, ground_quotable (eq_elt x y:Prop)} {qm : quotation_of m} {qm' : quotation_of m'} : ground_quotable (@Equiv_alt eq_elt m m') := _.
+    #[export] Instance quote_Equiv_alt {eq_elt} {m m'} {qeq_elt : quotation_of eq_elt} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} {quote_eq_elt : forall x y, ground_quotable (eq_elt x y:Prop)} {qm : quotation_of m} {qm' : quotation_of m'} : ground_quotable (@Equiv_alt eq_elt m m') := ltac:(cbv [Equiv_alt]; exact _).
     #[local] Instance qEquiv_alt : quotation_of (@Equiv_alt) := ltac:(unfold_quotation_of (); exact _).
     (* too slow :-( *)
     (*#[local] Instance qEquiv_alt_iff : quotation_of (@Equiv_alt_iff) := ltac:(unfold_quotation_of (); exact _).*)
@@ -79,7 +82,7 @@ Module QuoteWSfun (E : DecidableTypeOrig) (Import W : WSfun E) (Import WFacts : 
 
     #[export] Instance quote_Equal {qEquiv_alt_iff : quotation_of (@Equiv_alt_iff)} {m m'} {qm : quotation_of m} {qm' : quotation_of m'} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} : ground_quotable (@Equal elt m m') := ground_quotable_of_iff (iff_sym (@Equal_Equiv elt m m')).
 
-    #[export] Instance quote_Equivb {qEquiv_alt_iff : quotation_of (@Equiv_alt_iff)} {cmp m m'} {qm : quotation_of m} {qm' : quotation_of m'} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} {qcmp : quotation_of cmp} : ground_quotable (@Equivb elt cmp m m') := _.
+    #[export] Instance quote_Equivb {qEquiv_alt_iff : quotation_of (@Equiv_alt_iff)} {cmp m m'} {qm : quotation_of m} {qm' : quotation_of m'} {quote_elt : ground_quotable elt} {quote_key : ground_quotable key} {qcmp : quotation_of cmp} : ground_quotable (@Equivb elt cmp m m') := ltac:(cbv [Equivb Cmp]; exact _).
   End with_quote.
 
   #[export] Existing Instances
@@ -180,6 +183,7 @@ Module QuoteFMapAVL (T : OrderedTypeOrig) (M : FMapAVL.MakeSig T) (Import WFacts
           try solve [ constructor; assumption
                     | inversion 1; subst; auto ].
       Defined.
+      #[local] Hint Unfold M.Raw.key : quotation.
       #[export] Instance quote_tree : ground_quotable (M.Raw.tree elt) := (ltac:(induction 1; exact _)).
       (* very slow :-( *)
       #[local] Instance qlt_tree_dec : quotation_of (@lt_tree_dec) := ltac:(unfold_quotation_of (); exact _).
@@ -188,15 +192,17 @@ Module QuoteFMapAVL (T : OrderedTypeOrig) (M : FMapAVL.MakeSig T) (Import WFacts
       #[export] Instance quote_bst t : ground_quotable (M.Raw.bst t)
         := ground_quotable_of_dec (@bst_dec t).
     End with_t.
+    #[export] Hint Unfold M.Raw.key : quotation.
     #[export] Existing Instances
       quote_bst
     .
   End Raw.
   Export (hints) Raw.
 
-  #[export] Instance quote_t
+  #[export] Hint Unfold M.t : quotation.
+  #[export] Instance quote_bst
     {elt : Type}
     {qelt : quotation_of elt}
     {quote_elt : ground_quotable elt} {quote_T_t : ground_quotable T.t}
-    : ground_quotable (M.t elt) := (ltac:(induction 1; exact _)).
+    : ground_quotable (M.bst elt) := (ltac:(induction 1; exact _)).
 End QuoteFMapAVL.

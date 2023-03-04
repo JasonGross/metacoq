@@ -292,8 +292,9 @@ Module Export Instances.
   #[export] Existing Instance quote_ground.
   #[export] Typeclasses Opaque quotation_of.
   #[export] Hint Constants Opaque : typeclass_instances.
-  #[export] Hint Extern 0 (quotation_of _) => progress autounfold with quotation : typeclass_instances.
-  #[export] Hint Extern 0 (ground_quotable _) => progress autounfold with quotation : typeclass_instances.
+  #[export] Typeclasses Transparent Relation_Definitions.relation. (* for setoid_rewrite *)
+  #[export] Hint Extern 0 (quotation_of _) => progress repeat autounfold with quotation in * : typeclass_instances.
+  #[export] Hint Extern 0 (ground_quotable _) => progress repeat autounfold with quotation in * : typeclass_instances.
   #[export]
    Hint Extern 1 (quotation_of match ?t with _ => _ end) => is_var t; destruct t : typeclass_instances.
   #[export]
