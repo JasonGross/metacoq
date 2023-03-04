@@ -88,6 +88,8 @@ Module QuoteWSetsOn (E : DecidableType) (Import W : WSetsOn E) (WProperties : WP
 
   #[export] Hint Extern 13 (ground_quotable (For_all _ _))
   => simple notypeclasses refine (@quote_For_all _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) : typeclass_instances.
+
+  #[export] Typeclasses Transparent W.elt.
 End QuoteWSetsOn.
 
 Module Type QuoteWSetsOnSig (E : DecidableType) (W : WSetsOn E) (WProperties : WPropertiesOnSig E W) (qE : QuotationOfDecidableType E) (qW : QuotationOfWSetsOn E W) (qWProperties : QuotationOfWPropertiesOn E W WProperties) := Nop <+ QuoteWSetsOn E W WProperties qE qW qWProperties.
@@ -228,6 +230,7 @@ Module QuoteMSetAVL (T : OrderedType) (M : MSetAVL.MakeSig T) (Import MOrdProper
 
   #[export] Instance quote_t_ {quote_T_t : ground_quotable T.t} : ground_quotable M.t_ := ltac:(induction 1; exact _).
   #[export] Hint Unfold M.t : quotation.
+  #[export] Typeclasses Transparent M.t.
 End QuoteMSetAVL.
 
 Module QuoteWSetsOnIsUsual (E : UsualDecidableType) (Import M : WSetsOn E) (MProperties : WPropertiesOnSig E M) (qE : QuotationOfUsualDecidableType E) (qM : QuotationOfWSetsOn E M) (qMProperties : QuotationOfWPropertiesOn E M MProperties) (Import QuoteM : QuoteWSetsOnSig E M MProperties qE qM qMProperties).
@@ -276,6 +279,7 @@ Module QuoteMSetIsList (T : OrderedType) (Import M : MSetList.MakeSig T) (Import
   Export (hints) Raw.
   #[export] Instance quote_t_ {quoteE_t : ground_quotable E.t} : ground_quotable t_ := ltac:(destruct 1; exact _).
   #[export] Hint Unfold M.t M.elt : quotation.
+  #[export] Typeclasses Transparent M.t M.elt.
 End QuoteMSetIsList.
 
 Module QuoteMSetList (T : OrderedType) (M : MSetList.MakeSig T) (MOrdProperties : OrdPropertiesSig M) (qT : QuotationOfOrderedType T) (qM : MSetList.QuotationOfMake T M) (qMOrdProperties : QuotationOfOrdProperties M MOrdProperties)

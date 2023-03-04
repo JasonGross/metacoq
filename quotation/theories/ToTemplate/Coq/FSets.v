@@ -200,6 +200,7 @@ Module QuoteFMapAVL (T : OrderedTypeOrig) (M : FMapAVL.MakeSig T) (Import WFacts
   Export (hints) Raw.
 
   #[export] Hint Unfold M.t : quotation.
+  #[export] Typeclasses Transparent M.t.
   #[export] Instance quote_bst
     {elt : Type}
     {qelt : quotation_of elt}

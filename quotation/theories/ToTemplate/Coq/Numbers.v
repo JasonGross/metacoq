@@ -10,6 +10,12 @@ From MetaCoq.Quotation.ToTemplate Require Export Coq.Init.
 #[export] Instance quote_N : ground_quotable N := ltac:(induction 1; exact _).
 #[export] Instance quote_Z : ground_quotable Z := ltac:(induction 1; exact _).
 
+#[export] Hint Unfold
+  Pos.le Pos.lt Pos.ge Pos.gt
+  N.le N.lt N.ge N.gt
+  Z.le Z.lt Z.ge Z.gt
+  : quotation.
+
 (* Work around masking-absolute-name warning *)
 Module Export Numbers.
   Module Export DecimalFacts.

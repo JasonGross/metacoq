@@ -13,7 +13,10 @@ From MetaCoq.Template Require Import AstUtils (* for tFixType *).
 #[export] Instance quote_case_info : ground_quotable case_info := ltac:(destruct 1; exact _).
 #[export] Instance quote_recursivity_kind : ground_quotable recursivity_kind := ltac:(destruct 1; exact _).
 #[export] Instance quote_conv_pb : ground_quotable conv_pb := ltac:(destruct 1; exact _).
+#[export] Hint Unfold aname : quotation.
 #[export] Instance quote_def {term} {qterm : quotation_of term} {quote_term : ground_quotable term} : ground_quotable (def term) := ltac:(destruct 1; exact _).
 #[export] Instance quote_typ_or_sort_ {term} {qterm : quotation_of term} {quote_term : ground_quotable term} : ground_quotable (typ_or_sort_ term) := ltac:(destruct 1; exact _).
 #[export] Instance quote_context_decl {term} {qterm : quotation_of term} {quote_term : ground_quotable term} : ground_quotable (context_decl term) := ltac:(destruct 1; exact _).
+#[export] Hint Unfold mfixpoint : quotation.
+#[local] Hint Unfold BasicAst.dtype BasicAst.dbody : quotation.
 #[export] Instance quotation_of_mfixpoint {term} {m : mfixpoint term} {qterm : quotation_of term} {qm : tFixType quotation_of quotation_of m} : quotation_of m := ltac:(induction qm; destruct_head'_prod; destruct_head' def; exact _).
