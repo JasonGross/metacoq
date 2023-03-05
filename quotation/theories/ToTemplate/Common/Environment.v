@@ -88,12 +88,17 @@ Module QuoteEnvironment (T : Term) (Import E : EnvironmentSig T) (Import qT : Qu
     split; intros []; split; auto with nocore.
   Defined.
 
-   #[export] Instance quote_extends {Σ Σ'} : ground_quotable (@extends Σ Σ') := ground_quotable_of_iffT extends_alt_iff.
-   #[export] Instance quote_extends_decls {Σ Σ'} : ground_quotable (@extends_decls Σ Σ') := ground_quotable_of_iffT (@extends_alt_iff Σ Σ').
+  (* Too slow :-( 82 s *)
+  (*
+  #[export] Instance qforall_all_helper_iff : quotation_of (@forall_all_helper_iff) := ltac:(unfold_quotation_of (); exact _).
+  #[export] Instance qextends_alt_iff : quotation_of (@extends_alt_iff) := ltac:(unfold_quotation_of (); exact _).
+   *)
+   #[export] Instance quote_extends {qextends_alt_iff : quotation_of (@extends_alt_iff)} {Σ Σ'} : ground_quotable (@extends Σ Σ') := ground_quotable_of_iffT extends_alt_iff.
+   #[export] Instance quote_extends_decls {qextends_decls_alt_iff : quotation_of (@extends_decls_alt_iff)} {Σ Σ'} : ground_quotable (@extends_decls Σ Σ') := ground_quotable_of_iffT (@extends_decls_alt_iff Σ Σ').
   #[export] Instance quote_extends_strictly_on_decls {Σ Σ'} : ground_quotable (@extends_strictly_on_decls Σ Σ') := ltac:(cbv [extends_strictly_on_decls]; exact _).
   #[export] Instance quote_strictly_extends_decls {Σ Σ'} : ground_quotable (@strictly_extends_decls Σ Σ') := ltac:(cbv [strictly_extends_decls]; exact _).
 
-  #[export] Instance quote_primitive_invariants {cdecl} : ground_quotable (primitive_invariants cdecl) := _.
+  #[export] Instance quote_primitive_invariants {cdecl} : ground_quotable (primitive_invariants cdecl) := ltac:(cbv [primitive_invariants]; exact _).
 
   #[export] Instance quote_All_decls {P t t'} {qP : quotation_of P} {quoteP : forall t t', ground_quotable (P t t')} : ground_quotable (All_decls P t t') := ltac:(induction 1; exact _).
   #[export] Instance quote_All_decls_alpha {P t t'} {qP : quotation_of P} {quoteP : forall t t', ground_quotable (P t t')} : ground_quotable (All_decls_alpha P t t') := ltac:(induction 1; exact _).

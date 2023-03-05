@@ -20,3 +20,4 @@ From MetaCoq.Template Require Import AstUtils (* for tFixType *).
 #[export] Hint Unfold mfixpoint : quotation.
 #[local] Hint Unfold BasicAst.dtype BasicAst.dbody : quotation.
 #[export] Instance quotation_of_mfixpoint {term} {m : mfixpoint term} {qterm : quotation_of term} {qm : tFixType quotation_of quotation_of m} : quotation_of m := ltac:(induction qm; destruct_head'_prod; destruct_head' def; exact _).
+#[export] Hint Unfold BasicAst.eq_binder_annot : quotation.
