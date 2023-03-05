@@ -39,7 +39,7 @@ Module QuoteEnvironment (T : Term) (Import E : EnvironmentSig T) (Import qT : Qu
       generalize (fun n k H' => @nth_error_all _ _ _ n (c, k) H' H).
       destruct (In_dec Kernames.KernameSet.E.eq_dec c (List.map fst (declarations Σ))) as [H'|H'].
       { induction (declarations Σ) as [|[k ?] xs IH]; cbn in *.
-        { exfalso; assumption. }.
+        { exfalso; assumption. }
         { destruct (eqb_specT k c); subst.
           { intro H''; specialize (H'' 0 _ eq_refl); cbn in H''.
             exact H''. }
