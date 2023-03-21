@@ -297,9 +297,9 @@ Module Export Instances.
   #[export] Hint Extern 0 (quotation_of _) => progress repeat autounfold with quotation in * : typeclass_instances.
   #[export] Hint Extern 0 (ground_quotable _) => progress repeat autounfold with quotation in * : typeclass_instances.
   #[export]
-   Hint Extern 1 (quotation_of match ?t with _ => _ end) => is_var t; destruct t : typeclass_instances.
+   Hint Extern 0 (quotation_of match ?t with _ => _ end) => is_var t; destruct t : typeclass_instances.
   #[export]
-   Hint Extern 1 (ground_quotable match ?t with _ => _ end) => is_var t; destruct t : typeclass_instances.
+   Hint Extern 0 (ground_quotable match ?t with _ => _ end) => is_var t; destruct t : typeclass_instances.
   #[export]
    Hint Extern 1 (quotation_of _) => replace_quotation_of_goal () : typeclass_instances.
   #[export]
