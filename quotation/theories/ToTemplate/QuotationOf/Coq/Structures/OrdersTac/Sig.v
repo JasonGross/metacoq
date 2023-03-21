@@ -1,6 +1,6 @@
 From Coq.Structures Require Import Equalities Orders OrdersTac.
 From MetaCoq.Quotation.ToTemplate Require Import Init.
-From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq Require Import Structures.Orders.Sig.
+From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq Require Export Structures.Orders.Sig.
 
 Module Type QuotationOfIsTotalOrder (O : EqLtLe) (S : IsTotalOrder O) :=
  QuotationOfIsEq O S <+ QuotationOfIsStrOrder O S <+ QuotationOfLeIsLtEq O S <+ QuotationOfLtIsTotal O S.

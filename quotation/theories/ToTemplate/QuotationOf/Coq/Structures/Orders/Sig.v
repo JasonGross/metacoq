@@ -1,6 +1,6 @@
 From Coq.Structures Require Import Orders.
 From MetaCoq.Quotation.ToTemplate Require Import Init.
-From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq Require Import Structures.Equalities.Sig.
+From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq Require Export Structures.Equalities.Sig.
 
 Module Type QuotationOfHasLt (Import T : Typ) (Import E : HasLt T).
   MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "E").

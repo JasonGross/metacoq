@@ -1,5 +1,5 @@
 Require Import Coq.Lists.List.
-From MetaCoq.Quotation.ToTemplate Require Import Init.
+From MetaCoq.Quotation.ToTemplate Require Export Init.
 From MetaCoq.Utils Require Export bytestring. (* for display of quoted objects *)
 From MetaCoq.Utils Require Export ReflectEq.
 From MetaCoq.Utils Require Import All_Forall.
