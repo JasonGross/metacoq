@@ -1,6 +1,6 @@
 From Coq.Structures Require Import Orders.
 From Coq.MSets Require Import MSetAVL.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
 
 Module MSetAVL.
   Module Type MakeSig (T : OrderedType) := Nop <+ MSetAVL.Make T.

@@ -1,5 +1,5 @@
 From Coq.MSets Require Import MSetProperties.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.Structures Require Import OrdersFacts.Sig.
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.MSets Require Import MSetFacts.Sig MSetDecide.Sig.
 Import List.ListNotations.

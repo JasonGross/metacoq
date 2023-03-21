@@ -1,6 +1,6 @@
 From Coq Require Import MSetInterface MSetList MSetAVL MSetFacts MSetProperties MSetDecide.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
-From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Numbers Coq.Init Coq.Lists.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
+From MetaCoq.Quotation.ToTemplate Require Import (hints) Coq.Numbers Coq.Init Coq.Lists.
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.Structures Require Import Orders.Sig.
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.MSets Require Import MSetInterface.Sig MSetProperties.Sig MSetAVL.Sig MSetList.Sig.
 

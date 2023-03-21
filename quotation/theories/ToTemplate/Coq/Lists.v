@@ -1,7 +1,7 @@
 Require Import Coq.Lists.List.
 Require Import Coq.Lists.ListDec.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
-From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Init.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
+From MetaCoq.Quotation.ToTemplate Require Import (hints) Coq.Init.
 Import ListNotations.
 Local Open Scope list_scope.
 

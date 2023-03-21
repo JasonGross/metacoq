@@ -1,6 +1,6 @@
 From Coq.Structures Require Import Equalities Orders OrdersFacts.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
-From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq Require Export Structures.Orders.Sig.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
+From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq Require Import Structures.Orders.Sig.
 
 Module Type QuotationOfCompareFacts (O : DecStrOrder) (F : CompareFacts O).
   MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "F").

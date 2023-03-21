@@ -1,5 +1,5 @@
 From MetaCoq.Common Require Import Environment.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
 
 Module Type QuotationOfTerm (T : Term).
   MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "T").

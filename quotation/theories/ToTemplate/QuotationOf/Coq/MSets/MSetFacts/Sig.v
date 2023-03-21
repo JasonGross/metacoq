@@ -1,5 +1,5 @@
 From Coq.MSets Require Import MSetFacts.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
 
 Module Export MSets.
   Module Type WFactsOnSig (E : DecidableType) (M : WSetsOn E) := Nop <+ WFactsOn E M.

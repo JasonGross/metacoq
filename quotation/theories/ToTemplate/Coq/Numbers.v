@@ -4,7 +4,7 @@ From Coq.Numbers Require Import BinNums DecimalFacts HexadecimalFacts
      Cyclic.Abstract.DoubleType
      Cyclic.Abstract.CarryType
 .
-From MetaCoq.Quotation.ToTemplate Require Export Coq.Init.
+From MetaCoq.Quotation.ToTemplate Require Import Coq.Init.
 
 #[export] Instance quote_positive : ground_quotable positive := ltac:(induction 1; exact _).
 #[export] Instance quote_N : ground_quotable N := ltac:(induction 1; exact _).

@@ -1,5 +1,5 @@
 From MetaCoq.Common Require Import Kernames.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.FSets Require Import FMapFacts.Sig.
 
 Module qKernameMapFact.

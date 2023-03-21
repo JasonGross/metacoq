@@ -1,6 +1,6 @@
 From Coq.FSets Require Import FMapFacts.
 From Coq.Structures Require Import Orders.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
 
 Module Export FSets.
   Module Type WFacts_funSig (E : DecidableTypeOrig) (M : WSfun E) := Nop <+ WFacts_fun E M.

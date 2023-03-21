@@ -1,5 +1,5 @@
-(*From MetaCoq.Quotation.ToTemplate Require Export Init.
-From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Init Coq.Structures Coq.MSets Coq.Numbers.
+(*From MetaCoq.Quotation.ToTemplate Require Import Init.
+From MetaCoq.Quotation.ToTemplate Require Import (hints) Coq.Init Coq.Structures Coq.MSets Coq.Numbers.
 From MetaCoq.Utils Require Import wGraph.
 From Coq Require Import MSetDecide MSetInterface.
 

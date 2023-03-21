@@ -1,6 +1,6 @@
 From Coq.Structures Require Import Equalities Orders.
 From Coq.MSets Require Import MSetList.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.MSets Require Import MSetInterface.Sig.
 
 Module Type QuotationOfOrderedTypeWithLeibniz (O : OrderedTypeWithLeibniz).

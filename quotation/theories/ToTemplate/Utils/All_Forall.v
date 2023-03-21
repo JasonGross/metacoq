@@ -1,4 +1,4 @@
-From MetaCoq.Quotation.ToTemplate Require Export Coq.Init.
+From MetaCoq.Quotation.ToTemplate Require Import Coq.Init.
 From MetaCoq.Utils Require Import All_Forall.
 
 #[export] Instance quote_All {A R ls} {qA : quotation_of A} {qR : quotation_of R} {quoteA : ground_quotable A} {quoteR : forall x, ground_quotable (R x)} : ground_quotable (@All A R ls) := ltac:(induction 1; exact _).

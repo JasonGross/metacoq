@@ -1,5 +1,5 @@
 From Coq.Structures Require Import Equalities.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
 
 Module Type QuotationOfTyp (Import T : Typ).
   MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "T").

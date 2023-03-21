@@ -1,5 +1,5 @@
 From Coq.MSets Require Import MSetInterface.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
 
 Module Type QuotationOfWSetsOn (E : DecidableType) (Import W : WSetsOn E).
   MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "W").

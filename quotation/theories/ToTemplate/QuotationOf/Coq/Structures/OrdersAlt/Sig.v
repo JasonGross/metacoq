@@ -1,7 +1,7 @@
 From Coq.Structures Require Import Equalities OrdersAlt.
 From Coq.Structures Require OrderedType.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
-From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq Require Export Structures.Orders.Sig.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
+From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq Require Import Structures.Orders.Sig.
 Import List.ListNotations.
 Local Open Scope list_scope.
 

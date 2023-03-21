@@ -1,4 +1,4 @@
-From MetaCoq.Quotation.ToTemplate.Utils Require Export
+From MetaCoq.Quotation.ToTemplate.Utils Require Import
      MCPrelude
      MCReflect
      All_Forall

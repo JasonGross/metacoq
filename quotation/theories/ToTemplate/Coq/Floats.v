@@ -1,6 +1,6 @@
 From Coq.Floats Require Import FloatClass Floats PrimFloat SpecFloat.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
-From MetaCoq.Quotation.ToTemplate Require Export (hints) Coq.Init Coq.Numbers.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
+From MetaCoq.Quotation.ToTemplate Require Import (hints) Coq.Init Coq.Numbers.
 
 #[export] Instance quote_float : ground_quotable float := Ast.tFloat.
 #[export] Instance quote_float_class : ground_quotable float_class := ltac:(destruct 1; exact _).

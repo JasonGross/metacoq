@@ -1,5 +1,5 @@
 From Coq.MSets Require Import MSetInterface MSetDecide.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
 
 Module Export MSets.
   Module Type WDecideOnSig (E : DecidableType) (M : WSetsOn E) := Nop <+ WDecideOn E M.

@@ -1,6 +1,6 @@
 From Coq.FSets Require Import FMapAVL.
 From Coq.Structures Require Import Equalities OrdersAlt.
-From MetaCoq.Quotation.ToTemplate Require Export Init.
+From MetaCoq.Quotation.ToTemplate Require Import Init.
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.Structures Require Import OrdersAlt.Sig.
 From MetaCoq.Quotation.ToTemplate.QuotationOf.Coq.FSets Require Import FMapList.Sig.
 Import List.ListNotations.
