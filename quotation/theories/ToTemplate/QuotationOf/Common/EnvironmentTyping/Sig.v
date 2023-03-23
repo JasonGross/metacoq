@@ -35,13 +35,15 @@ Module Type QuotationOfEnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUti
     end.
     vm_compute List.flat_map in v.
     vm_compute List.app in v.
+    cbn in v.
     let v' := (eval cbv [v] in v) in exact v'.
   Defined.
   Definition bar := Eval cbv [foo] in foo.
   Print bar.
   Print bar.
-  FIXME HERE
+  Print bar.
   MetaCoq Run bar.
+  FIXME HERE
     lazymatch (eval cbv [v] in v) with
     | monad_utils.bind ?p ?q
       => clear v;
