@@ -78,49 +78,8 @@ Module Type QuotationOfGlobalMaps (T : Term) (E : EnvironmentSig T) (TU : TermUt
   Set Printing All. Set Printing Universes.
   MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "GM").
 End QuotationOfGlobalMaps.
-*)
-Module Type QuotationOfConversionPar (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E) (ET : EnvTypingSig T E TU) (CS : ConversionParSig T E TU ET).
-  MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "CS").
-End QuotationOfConversionPar.
 
-Module Type QuotationOfTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E) (ET : EnvTypingSig T E TU)
-  (CT : ConversionSig T E TU ET) (CS : ConversionParSig T E TU ET) (Ty : Typing T E TU ET CT CS).
-  MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "Ty").
-End QuotationOfTyping.
-
-Fail Module Type DeclarationTypingSig := DeclarationTypingSig.
-Module Type DeclarationTypingSig (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E)
-       (ET : EnvTypingSig T E TU) (CT : ConversionSig T E TU ET)
-       (CS : ConversionParSig T E TU ET) (Ty : Typing T E TU ET CT CS)
-       (L : LookupSig T E) (GM : GlobalMapsSig T E TU ET CT L).
-  Include DeclarationTyping T E TU ET CT CS Ty L GM.
-End DeclarationTypingSig.
-
-Module Type QuotationOfDeclarationTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E)
-  (ET : EnvTypingSig T E TU) (CT : ConversionSig T E TU ET)
-  (CS : ConversionParSig T E TU ET) (Ty : Typing T E TU ET CT CS)
-  (L : LookupSig T E) (GM : GlobalMapsSig T E TU ET CT L) (DT : DeclarationTypingSig T E TU ET CT CS Ty L GM).
-  MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "DT").
-End QuotationOfDeclarationTyping.
-
-END
-Module Type QuotationOfGlobalMaps (Import T: Term) (Import E: EnvironmentSig T) (Import TU : TermUtils T E) (Import ET: EnvTypingSig T E TU) (Import C: ConversionSig T E TU ET) (Import L: LookupSig T E) (Import GM : GlobalMapsSig T E TU ET C L).
-  #[export] Declare Instance qpositive_cstr_arg : inductive_quotation_of positive_cstr_arg.
-  #[export] Declare Instance qpositive_cstr : inductive_quotation_of positive_cstr.
-  #[export] Declare Instance qon_constructor : inductive_quotation_of (@on_constructor).
-  #[export] Declare Instance qon_proj : inductive_quotation_of on_proj.
-  #[export] Declare Instance qon_projections : inductive_quotation_of on_projections.
-  #[export] Declare Instance qon_ind_body : inductive_quotation_of (@on_ind_body).
-  #[export] Declare Instance qon_inductive : inductive_quotation_of (@on_inductive).
-  #[export] Declare Instance qon_global_decls_data : inductive_quotation_of (@on_global_decls_data).
-  #[export] Declare Instance qon_global_decls : inductive_quotation_of (@on_global_decls).
-End QuotationOfGlobalMaps.
-
-Module QuoteGlobalMaps (Import T: Term) (Import E: EnvironmentSig T) (Import TU : TermUtils T E) (Import ET: EnvTypingSig T E TU) (Import C: ConversionSig T E TU ET) (Import L: LookupSig T E) (Import GM : GlobalMapsSig T E TU ET C L) (Import QT : QuoteTerm T) (Import QoE : QuotationOfEnvironment T E) (Import QoET : QuotationOfEnvTyping T E TU ET) (Import QoC : QuotationOfConversion T E TU ET C) (Import QoGM :  QuotationOfGlobalMaps T E TU ET C L GM).
-  Module Import QE := QuoteEnvironment T E QT QoE.
-  Module Import QET := QuoteEnvTyping T E TU ET QT QoE QoET.
-  Module Import QC := QuoteConversion T E TU ET C QT QoE QoC.
-  Module Import QL := QuoteLookup T E L QT QoE.
+Module QuoteGlobalMapsSig (Import T: Term) (Import E: EnvironmentSig T) (Import TU : TermUtils T E) (Import ET: EnvTypingSig T E TU) (Import C: ConversionSig T E TU ET) (Import L: LookupSig T E) (Import GM : GlobalMapsSig T E TU ET C L).
 
   Section GlobalMaps.
     Context {cf : config.checker_flags}
@@ -129,8 +88,8 @@ Module QuoteGlobalMaps (Import T: Term) (Import E: EnvironmentSig T) (Import TU 
             {qPcmp : quotation_of Pcmp} {qP : quotation_of P}
             {quotePcmp : forall Σ Γ pb t T, ground_quotable (Pcmp Σ Γ pb t T)}
             {quoteP : forall Σ Γ t T, ground_quotable (P Σ Γ t T)}.
-
-    #[export] Instance quote_on_context {Σ ctx} : ground_quotable (@on_context P Σ ctx)
+FIXME
+    #[export] Instance quote_on_context {P Σ ctx} {qP : quotation_of P} {quoteP :  : ground_quotable (@on_context P Σ ctx)
       := _.
 
     #[export] Instance qtype_local_ctx : quotation_of type_local_ctx := ltac:(cbv [type_local_ctx]; exact _).
@@ -245,17 +204,24 @@ Module QuoteGlobalMaps (Import T: Term) (Import E: EnvironmentSig T) (Import TU 
      quote_on_global_env_ext
     .
   End Instances.
-End QuoteGlobalMaps.
+End QuoteGlobalMapsSig.
+
+Module Type QuotationOfConversionPar (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E) (ET : EnvTypingSig T E TU) (CS : ConversionParSig T E TU ET).
+  MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "CS").
+End QuotationOfConversionPar.
 
 Module Type QuoteConversionPar (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E) (ET : EnvTypingSig T E TU) (Import CS : ConversionParSig T E TU ET).
-  #[export] Declare Instance qcumul_gen : quotation_of (@cumul_gen).
   #[export] Declare Instance quote_cumul_gen {cf Σ Γ pb t t'} : ground_quotable (@cumul_gen cf Σ Γ pb t t').
 End QuoteConversionPar.
+
+Module Type QuotationOfTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E) (ET : EnvTypingSig T E TU)
+  (CT : ConversionSig T E TU ET) (CS : ConversionParSig T E TU ET) (Ty : Typing T E TU ET CT CS).
+  MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "Ty").
+End QuotationOfTyping.
 
 Module Type QuoteTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E) (ET : EnvTypingSig T E TU)
        (CT : ConversionSig T E TU ET) (CS : ConversionParSig T E TU ET) (Import Ty : Typing T E TU ET CT CS).
 
-  #[export] Declare Instance qtyping : quotation_of (@typing).
   #[export] Declare Instance quote_typing {cf Σ Γ t T} : ground_quotable (@typing cf Σ Γ t T).
 End QuoteTyping.
 
@@ -267,25 +233,18 @@ Module Type DeclarationTypingSig (T : Term) (E : EnvironmentSig T) (TU : TermUti
   Include DeclarationTyping T E TU ET CT CS Ty L GM.
 End DeclarationTypingSig.
 
-Module QuoteDeclarationTyping (Import T : Term) (Import E : EnvironmentSig T) (Import TU : TermUtils T E)
+Module Type QuotationOfDeclarationTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E)
+  (ET : EnvTypingSig T E TU) (CT : ConversionSig T E TU ET)
+  (CS : ConversionParSig T E TU ET) (Ty : Typing T E TU ET CT CS)
+  (L : LookupSig T E) (GM : GlobalMapsSig T E TU ET CT L) (DT : DeclarationTypingSig T E TU ET CT CS Ty L GM).
+  MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "DT").
+End QuotationOfDeclarationTyping.
+
+Module Type QuoteDeclarationTypingSig (Import T : Term) (Import E : EnvironmentSig T) (Import TU : TermUtils T E)
        (Import ET : EnvTypingSig T E TU) (Import CT : ConversionSig T E TU ET)
        (Import CS : ConversionParSig T E TU ET) (Import Ty : Typing T E TU ET CT CS)
        (Import L : LookupSig T E) (Import GM : GlobalMapsSig T E TU ET CT L)
-       (Import DT : DeclarationTypingSig T E TU ET CT CS Ty L GM)
-       (Import QT : QuoteTerm T) (Import QoE : QuotationOfEnvironment T E) (Import QoET : QuotationOfEnvTyping T E TU ET) (Import QoC : QuotationOfConversion T E TU ET CT) (Import QoGM :  QuotationOfGlobalMaps T E TU ET CT L GM) (Import QTy : QuoteTyping T E TU ET CT CS Ty).
-  Module Import QE := QuoteEnvironment T E QT QoE.
-  Module Import QET := QuoteEnvTyping T E TU ET QT QoE QoET.
-  Module Import QC := QuoteConversion T E TU ET CT QT QoE QoC.
-  Module Import QL := QuoteLookup T E L QT QoE.
-  Module Import QGM := QuoteGlobalMaps T E TU ET CT L GM QT QoE QoET QoC QoGM.
-
-  Import StrongerInstances.
-  #[export] Instance quote_type_local_decl {cf Σ Γ d} : ground_quotable (@type_local_decl cf Σ Γ d) := ltac:(cbv [type_local_decl isType]; exact _).
-  #[export] Instance quote_wf_local_rel {cf Σ Γ Γ'} : ground_quotable (@wf_local_rel cf Σ Γ Γ') := _.
-  Module Instances.
-    #[export] Existing Instances
-     quote_type_local_decl
-     quote_wf_local_rel
-    .
-  End Instances.
+       (Import DT : DeclarationTypingSig T E TU ET CT CS Ty L GM).
+  #[export] Declare Instance quote_type_local_decl {cf Σ Γ d} : ground_quotable (@type_local_decl cf Σ Γ d).
+  #[export] Declare Instance quote_wf_local_rel {cf Σ Γ Γ'} : ground_quotable (@wf_local_rel cf Σ Γ Γ').
 End QuoteDeclarationTyping.
