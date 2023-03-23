@@ -23,7 +23,27 @@ Module Type QuotationOfEnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUti
   Import MetaCoq.Utils.bytestring MetaCoq.Utils.ReflectEq.
   Print bytestring.String.contains.
   Print bytestring.String.index.
+  From MetaCoq.Utils Require Export bytestring.
+From MetaCoq.Utils Require Import utils MCList.
+From MetaCoq.Template Require Import MonadBasicAst MonadAst TemplateMonad Ast Loader.
+Import MCMonadNotation.
   Compute String.index 0 "ctx_inst"%bs "ctx_inst_impl_gen"%bs.
+  Axiom admit : forall {T}, T.
+  Unset Universe Minimization ToSet.
+  Polymorphic Definition tmRetypeMagicRelaxOnlyType'@{U a b t u} {A : Type@{a}} (B : Type@{b}) (x : A) : TemplateMonad@{t u} B
+    := tmPrint x;;
+       qx <- tmQuote x;;
+       tmPrint qx;;
+       qU <- tmQuoteUniverse@{U _ _};;
+       tmPrint qU;;
+       let qx := CommonUtils.WithTemplate.tmRelaxOnlyType (tSort qU) qx in
+       qxe <- tmEval cbv qx;;
+       let v := tmUnquoteTyped B qxe in
+       tmPrint v;;
+       tmMsg "unquoting";;
+       v.
+  Definition tmRetypeRelaxOnlyType' {A} x := @tmRetypeMagicRelaxOnlyType' A A x.
+
   Definition foo : Core.TemplateMonad unit.
     pose (tmDeclareQuotationOfModule everything (Some export) "ET") as v.
     cbv [tmDeclareQuotationOfModule] in v.
@@ -53,14 +73,1511 @@ Module Type QuotationOfEnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUti
     | context P[@monad_utils.bind ?m ?M ?t ?u (@monad_utils.bind ?m ?M ?t' ?u' ?x ?y)]
       => let P' := context P[fun z => @monad_utils.bind m M t' u x (fun x' => @monad_utils.bind m M u' u (y x') z)] in
          clear v; pose P' as v; cbv beta in v
+           end.
+    repeat match (eval cbv [v] in v) with
+    | context P[tmPrint _]
+      => let P' := context P[tmReturn tt] in
+         clear v; pose P' as v; cbv beta in v
+           end.
+    repeat match (eval cbv [v] in v) with
+    | context P[tmMsg _]
+      => let P' := context P[tmReturn tt] in
+         clear v; pose P' as v; cbv beta in v
+           end.
+    repeat match (eval cbv [v] in v) with
+    | context P[@tmEval cbv ?A]
+      => let P' := context P[@tmReturn A] in
+         clear v; pose P' as v; cbv beta in v
+           end.
+    repeat match (eval cbv [v] in v) with
+    | context P[tmExistingInstance _ _]
+      => let P' := context P[tmReturn tt] in
+         clear v; pose P' as v; cbv beta in v
+           end.
+    repeat match (eval cbv [v] in v) with
+    | context P[tmQuoteToGlobalReference _]
+      => let P' := context P[tmReturn (VarRef "")] in
+         clear v; pose P' as v; cbv beta in v
+           end.
+    repeat match (eval cbv [v] in v) with
+    | context P[@tmRetypeMagicRelaxOnlyType ?A]
+      => let P' := context P[fun B (_ : A) => tmReturn (@admit B)] in
+         clear v; pose P' as v; cbv beta in v
+           end.
+    cbv beta iota zeta in v.
+    Ltac assoc v rest :=
+      lazymatch (eval cbv beta iota zeta in v) with
+      | @monad_utils.bind ?m ?M ?t ?u (tmReturn ?k) ?c
+        => assoc (c k) rest
+      | @monad_utils.bind ?m ?M ?t ?u (ret ?k) ?c
+        => assoc (c k) rest
+      | @monad_utils.bind ?m ?M ?t ?u ?k ?c
+        => assoc k ltac:(fun kv => let kvn := fresh in idtac "binding" kv; refine (@monad_utils.bind m M t _ kv (fun kvn => ltac:(assoc (c kvn) rest))))
+      | ?v => rest v
       end.
+    do 5 (idtac; let v' := (eval cbv [v] in v) in
+    let v' := constr:(ltac:(assoc v' ltac:(fun cv => refine cv)) : TemplateMonad unit) in
+    clear v; pose v' as v; cbn [monad_map] in v).
+    lazymatch (eval cbv [v] in v) with
+    | v1 <- ?x1;; @?a1 v1;; v2 <- ?x2;; @?a2 v2;; v3 <- ?x3;; @?a3 v3;; tmReturn tt
+      => clear v; pose (v1 <- x1;; v2 <- x2;; tmReturn tt) as v
+    end.
+    do 2 lazymatch (eval cbv [v] in v) with
+           | context P[@tmRetypeRelaxOnlyType]
+             => let P' := context P[@tmRetypeRelaxOnlyType'] in
+                clear v; pose P' as v
+           end.
     let v' := (eval cbv [v] in v) in exact v'.
   Defined.
   Definition bar := Eval cbv [foo] in foo.
   Print bar.
   Print bar.
+  Set Printing Implicit. Set Printing Universes.
   Print bar.
-  MetaCoq Run bar.
+  Set Printing Depth 10000000.
+  Print Options.
+  Unset MetaCoq Strict Unquote Universe Mode.
+  MetaCoq Run (tmUnquoteTyped@{option_instance.u0 tmRetypeRelaxOnlyType'.u2}
+   Type@{WithTemplate.tmRetypeAroundMetaCoqBug853.u3}
+   (tApp (tConst (MPfile ["Init"; "ToTemplate"; "Quotation"; "MetaCoq"], "quotation_of") [])
+      [tProd {| binder_name := nNamed "typing"; binder_relevance := Relevant |}
+         (tProd {| binder_name := nNamed "Σ"; binder_relevance := Relevant |}
+            (tConst
+               (MPbound
+                  ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate"; "Quotation";
+                   "MetaCoq"] "E" 150, "global_env_ext") [])
+            (tProd {| binder_name := nNamed "Γ"; binder_relevance := Relevant |}
+               (tConst
+                  (MPbound
+                     ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate"; "Quotation";
+                      "MetaCoq"] "E" 150, "context") [])
+               (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                  (tConst
+                     (MPbound
+                        ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate";
+                         "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                  (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                     (tConst
+                        (MPbound
+                           ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate";
+                            "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                     (tSort
+                        (Universe.lType
+                           {|
+                             t_set :=
+                               {|
+                                 LevelExprSet.this :=
+                                   [(Level.Level
+                                       "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                     0)];
+                                 LevelExprSet.is_ok :=
+                                   LevelExprSet.Raw.singleton_ok
+                                     (Level.Level
+                                        "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                      0)
+                               |};
+                             t_ne := @eq_refl bool false
+                           |}))))))
+         (tProd {| binder_name := nNamed "Σ"; binder_relevance := Relevant |}
+            (tConst
+               (MPbound
+                  ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate"; "Quotation";
+                   "MetaCoq"] "E" 150, "global_env_ext") [])
+            (tProd {| binder_name := nNamed "Γ"; binder_relevance := Relevant |}
+               (tConst
+                  (MPbound
+                     ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate"; "Quotation";
+                      "MetaCoq"] "E" 150, "context") [])
+               (tProd {| binder_name := nNamed "P"; binder_relevance := Relevant |}
+                  (tProd {| binder_name := nNamed "l"; binder_relevance := Relevant |}
+                     (tApp
+                        (tInd
+                           {|
+                             inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "list");
+                             inductive_ind := 0
+                           |} [])
+                        [tConst
+                           (MPbound
+                              ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate";
+                               "Quotation"; "MetaCoq"] "T" 149, "term") []])
+                     (tProd {| binder_name := nNamed "c"; binder_relevance := Relevant |}
+                        (tConst
+                           (MPbound
+                              ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate";
+                               "Quotation"; "MetaCoq"] "E" 150, "context") [])
+                        (tProd {| binder_name := nNamed "c"; binder_relevance := Relevant |}
+                           (tApp
+                              (tInd
+                                 {|
+                                   inductive_mind :=
+                                     (MPbound
+                                        ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                         "ToTemplate"; "Quotation"; "MetaCoq"] "ET" 152, "ctx_inst");
+                                   inductive_ind := 0
+                                 |} []) [tRel 4; tRel 3; tRel 2; tRel 1; tRel 0])
+                           (tSort
+                              (Universe.lType
+                                 {|
+                                   t_set :=
+                                     {|
+                                       LevelExprSet.this :=
+                                         [(Level.Level
+                                             "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                           0)];
+                                       LevelExprSet.is_ok :=
+                                         LevelExprSet.Raw.singleton_ok
+                                           (Level.Level
+                                              "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                            0)
+                                     |};
+                                   t_ne := @eq_refl bool false
+                                 |})))))
+                  (tProd {| binder_name := nNamed "f"; binder_relevance := Relevant |}
+                     (tApp (tRel 0)
+                        [tApp
+                           (tConstruct
+                              {|
+                                inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "list");
+                                inductive_ind := 0
+                              |} 0 [])
+                           [tConst
+                              (MPbound
+                                 ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate";
+                                  "Quotation"; "MetaCoq"] "T" 149, "term") []];
+                         tApp
+                           (tConstruct
+                              {|
+                                inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "list");
+                                inductive_ind := 0
+                              |} 0 [])
+                           [tApp
+                              (tInd
+                                 {|
+                                   inductive_mind :=
+                                     (MPfile ["BasicAst"; "Common"; "MetaCoq"], "context_decl");
+                                   inductive_ind := 0
+                                 |} [])
+                              [tConst
+                                 (MPbound
+                                    ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                     "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") []]];
+                         tApp
+                           (tConstruct
+                              {|
+                                inductive_mind :=
+                                  (MPbound
+                                     ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                      "ToTemplate"; "Quotation"; "MetaCoq"] "ET" 152, "ctx_inst");
+                                inductive_ind := 0
+                              |} 0 []) [tRel 3; tRel 2; tRel 1]])
+                     (tProd {| binder_name := nNamed "f0"; binder_relevance := Relevant |}
+                        (tProd {| binder_name := nNamed "na"; binder_relevance := Relevant |}
+                           (tConst (MPfile ["BasicAst"; "Common"; "MetaCoq"], "aname") [])
+                           (tProd {| binder_name := nNamed "t"; binder_relevance := Relevant |}
+                              (tConst
+                                 (MPbound
+                                    ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                     "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                              (tProd {| binder_name := nNamed "i"; binder_relevance := Relevant |}
+                                 (tConst
+                                    (MPbound
+                                       ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                        "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                                 (tProd
+                                    {| binder_name := nNamed "inst"; binder_relevance := Relevant |}
+                                    (tApp
+                                       (tInd
+                                          {|
+                                            inductive_mind :=
+                                              (MPfile ["Datatypes"; "Init"; "Coq"], "list");
+                                            inductive_ind := 0
+                                          |} [])
+                                       [tConst
+                                          (MPbound
+                                             ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                              "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term")
+                                          []])
+                                    (tProd
+                                       {| binder_name := nNamed "Δ"; binder_relevance := Relevant |}
+                                       (tConst
+                                          (MPbound
+                                             ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                              "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150, "context")
+                                          [])
+                                       (tProd
+                                          {|
+                                            binder_name := nNamed "t"; binder_relevance := Relevant
+                                          |} (tApp (tRel 9) [tRel 8; tRel 7; tRel 2; tRel 3])
+                                          (tProd
+                                             {|
+                                               binder_name := nNamed "c"; binder_relevance := Relevant
+                                             |}
+                                             (tApp
+                                                (tInd
+                                                   {|
+                                                     inductive_mind :=
+                                                       (MPbound
+                                                          ["Sig"; "EnvironmentTyping"; "Common";
+                                                           "QuotationOf"; "ToTemplate"; "Quotation";
+                                                           "MetaCoq"] "ET" 152, "ctx_inst");
+                                                     inductive_ind := 0
+                                                   |} [])
+                                                [tRel 10; tRel 9; tRel 8;
+                                                 tRel 2;
+                                                 tApp
+                                                   (tConst
+                                                      (MPbound
+                                                         ["Sig"; "EnvironmentTyping"; "Common";
+                                                          "QuotationOf"; "ToTemplate"; "Quotation";
+                                                          "MetaCoq"] "E" 150, "subst_telescope") [])
+                                                   [tApp
+                                                      (tConstruct
+                                                         {|
+                                                           inductive_mind :=
+                                                             (MPfile ["Datatypes"; "Init"; "Coq"],
+                                                              "list");
+                                                           inductive_ind := 0
+                                                         |} 1 [])
+                                                      [tConst
+                                                         (MPbound
+                                                            ["Sig"; "EnvironmentTyping"; "Common";
+                                                             "QuotationOf"; "ToTemplate"; "Quotation";
+                                                             "MetaCoq"] "T" 149, "term") [];
+                                                       tRel 3;
+                                                       tApp
+                                                         (tConstruct
+                                                            {|
+                                                              inductive_mind :=
+                                                                (MPfile ["Datatypes"; "Init"; "Coq"],
+                                                                 "list");
+                                                              inductive_ind := 0
+                                                            |} 0 [])
+                                                         [tConst
+                                                            (MPbound
+                                                               ["Sig"; "EnvironmentTyping"; "Common";
+                                                                "QuotationOf"; "ToTemplate";
+                                                                "Quotation"; "MetaCoq"] "T" 149,
+                                                             "term") []]];
+                                                    tConstruct
+                                                      {|
+                                                        inductive_mind :=
+                                                          (MPfile ["Datatypes"; "Init"; "Coq"], "nat");
+                                                        inductive_ind := 0
+                                                      |} 0 []; tRel 1]])
+                                             (tProd
+                                                {|
+                                                  binder_name := nAnon; binder_relevance := Relevant
+                                                |}
+                                                (tApp (tRel 8)
+                                                   [tRel 3;
+                                                    tApp
+                                                      (tConst
+                                                         (MPbound
+                                                            ["Sig"; "EnvironmentTyping"; "Common";
+                                                             "QuotationOf"; "ToTemplate"; "Quotation";
+                                                             "MetaCoq"] "E" 150, "subst_telescope") [])
+                                                      [tApp
+                                                         (tConstruct
+                                                            {|
+                                                              inductive_mind :=
+                                                                (MPfile ["Datatypes"; "Init"; "Coq"],
+                                                                 "list");
+                                                              inductive_ind := 0
+                                                            |} 1 [])
+                                                         [tConst
+                                                            (MPbound
+                                                               ["Sig"; "EnvironmentTyping"; "Common";
+                                                                "QuotationOf"; "ToTemplate";
+                                                                "Quotation"; "MetaCoq"] "T" 149,
+                                                             "term") []; tRel 4;
+                                                          tApp
+                                                            (tConstruct
+                                                               {|
+                                                                 inductive_mind :=
+                                                                   (MPfile
+                                                                      ["Datatypes"; "Init"; "Coq"],
+                                                                    "list");
+                                                                 inductive_ind := 0
+                                                               |} 0 [])
+                                                            [tConst
+                                                               (MPbound
+                                                                  ["Sig"; "EnvironmentTyping";
+                                                                   "Common"; "QuotationOf";
+                                                                   "ToTemplate"; "Quotation";
+                                                                   "MetaCoq"] "T" 149, "term") []]];
+                                                       tConstruct
+                                                         {|
+                                                           inductive_mind :=
+                                                             (MPfile ["Datatypes"; "Init"; "Coq"],
+                                                              "nat");
+                                                           inductive_ind := 0
+                                                         |} 0 []; tRel 2];
+                                                    tRel 0])
+                                                (tApp (tRel 9)
+                                                   [tApp
+                                                      (tConstruct
+                                                         {|
+                                                           inductive_mind :=
+                                                             (MPfile ["Datatypes"; "Init"; "Coq"],
+                                                              "list");
+                                                           inductive_ind := 0
+                                                         |} 1 [])
+                                                      [tConst
+                                                         (MPbound
+                                                            ["Sig"; "EnvironmentTyping"; "Common";
+                                                             "QuotationOf"; "ToTemplate"; "Quotation";
+                                                             "MetaCoq"] "T" 149, "term") [];
+                                                       tRel 5; tRel 4];
+                                                    tApp
+                                                      (tConstruct
+                                                         {|
+                                                           inductive_mind :=
+                                                             (MPfile ["Datatypes"; "Init"; "Coq"],
+                                                              "list");
+                                                           inductive_ind := 0
+                                                         |} 1 [])
+                                                      [tApp
+                                                         (tInd
+                                                            {|
+                                                              inductive_mind :=
+                                                                (MPfile
+                                                                   ["BasicAst"; "Common"; "MetaCoq"],
+                                                                 "context_decl");
+                                                              inductive_ind := 0
+                                                            |} [])
+                                                         [tConst
+                                                            (MPbound
+                                                               ["Sig"; "EnvironmentTyping"; "Common";
+                                                                "QuotationOf"; "ToTemplate";
+                                                                "Quotation"; "MetaCoq"] "T" 149,
+                                                             "term") []];
+                                                       tApp
+                                                         (tConst
+                                                            (MPbound
+                                                               ["Sig"; "EnvironmentTyping"; "Common";
+                                                                "QuotationOf"; "ToTemplate";
+                                                                "Quotation"; "MetaCoq"] "E" 150,
+                                                             "vass") []) [
+                                                         tRel 7; tRel 6];
+                                                       tRel 3];
+                                                    tApp
+                                                      (tConstruct
+                                                         {|
+                                                           inductive_mind :=
+                                                             (MPbound
+                                                                ["Sig"; "EnvironmentTyping"; "Common";
+                                                                 "QuotationOf"; "ToTemplate";
+                                                                 "Quotation"; "MetaCoq"] "ET" 152,
+                                                              "ctx_inst");
+                                                           inductive_ind := 0
+                                                         |} 1 [])
+                                                      [tRel 12; tRel 11; tRel 10;
+                                                       tRel 7; tRel 6; tRel 5;
+                                                       tRel 4; tRel 3; tRel 2;
+                                                       tRel 1]])))))))))
+                        (tProd {| binder_name := nNamed "f1"; binder_relevance := Relevant |}
+                           (tProd {| binder_name := nNamed "na"; binder_relevance := Relevant |}
+                              (tConst (MPfile ["BasicAst"; "Common"; "MetaCoq"], "aname") [])
+                              (tProd {| binder_name := nNamed "b"; binder_relevance := Relevant |}
+                                 (tConst
+                                    (MPbound
+                                       ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                        "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                                 (tProd {| binder_name := nNamed "t"; binder_relevance := Relevant |}
+                                    (tConst
+                                       (MPbound
+                                          ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                           "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                                    (tProd
+                                       {|
+                                         binder_name := nNamed "inst"; binder_relevance := Relevant
+                                       |}
+                                       (tApp
+                                          (tInd
+                                             {|
+                                               inductive_mind :=
+                                                 (MPfile ["Datatypes"; "Init"; "Coq"], "list");
+                                               inductive_ind := 0
+                                             |} [])
+                                          [tConst
+                                             (MPbound
+                                                ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                                 "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term")
+                                             []])
+                                       (tProd
+                                          {|
+                                            binder_name := nNamed "Δ"; binder_relevance := Relevant
+                                          |}
+                                          (tConst
+                                             (MPbound
+                                                ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                                 "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150,
+                                              "context") [])
+                                          (tProd
+                                             {|
+                                               binder_name := nNamed "c"; binder_relevance := Relevant
+                                             |}
+                                             (tApp
+                                                (tInd
+                                                   {|
+                                                     inductive_mind :=
+                                                       (MPbound
+                                                          ["Sig"; "EnvironmentTyping"; "Common";
+                                                           "QuotationOf"; "ToTemplate"; "Quotation";
+                                                           "MetaCoq"] "ET" 152, "ctx_inst");
+                                                     inductive_ind := 0
+                                                   |} [])
+                                                [tRel 10; tRel 9; tRel 8;
+                                                 tRel 1;
+                                                 tApp
+                                                   (tConst
+                                                      (MPbound
+                                                         ["Sig"; "EnvironmentTyping"; "Common";
+                                                          "QuotationOf"; "ToTemplate"; "Quotation";
+                                                          "MetaCoq"] "E" 150, "subst_telescope") [])
+                                                   [tApp
+                                                      (tConstruct
+                                                         {|
+                                                           inductive_mind :=
+                                                             (MPfile ["Datatypes"; "Init"; "Coq"],
+                                                              "list");
+                                                           inductive_ind := 0
+                                                         |} 1 [])
+                                                      [tConst
+                                                         (MPbound
+                                                            ["Sig"; "EnvironmentTyping"; "Common";
+                                                             "QuotationOf"; "ToTemplate"; "Quotation";
+                                                             "MetaCoq"] "T" 149, "term") [];
+                                                       tRel 3;
+                                                       tApp
+                                                         (tConstruct
+                                                            {|
+                                                              inductive_mind :=
+                                                                (MPfile ["Datatypes"; "Init"; "Coq"],
+                                                                 "list");
+                                                              inductive_ind := 0
+                                                            |} 0 [])
+                                                         [tConst
+                                                            (MPbound
+                                                               ["Sig"; "EnvironmentTyping"; "Common";
+                                                                "QuotationOf"; "ToTemplate";
+                                                                "Quotation"; "MetaCoq"] "T" 149,
+                                                             "term") []]];
+                                                    tConstruct
+                                                      {|
+                                                        inductive_mind :=
+                                                          (MPfile ["Datatypes"; "Init"; "Coq"], "nat");
+                                                        inductive_ind := 0
+                                                      |} 0 []; tRel 0]])
+                                             (tProd
+                                                {|
+                                                  binder_name := nAnon; binder_relevance := Relevant
+                                                |}
+                                                (tApp (tRel 8)
+                                                   [tRel 2;
+                                                    tApp
+                                                      (tConst
+                                                         (MPbound
+                                                            ["Sig"; "EnvironmentTyping"; "Common";
+                                                             "QuotationOf"; "ToTemplate"; "Quotation";
+                                                             "MetaCoq"] "E" 150, "subst_telescope") [])
+                                                      [tApp
+                                                         (tConstruct
+                                                            {|
+                                                              inductive_mind :=
+                                                                (MPfile ["Datatypes"; "Init"; "Coq"],
+                                                                 "list");
+                                                              inductive_ind := 0
+                                                            |} 1 [])
+                                                         [tConst
+                                                            (MPbound
+                                                               ["Sig"; "EnvironmentTyping"; "Common";
+                                                                "QuotationOf"; "ToTemplate";
+                                                                "Quotation"; "MetaCoq"] "T" 149,
+                                                             "term") []; tRel 4;
+                                                          tApp
+                                                            (tConstruct
+                                                               {|
+                                                                 inductive_mind :=
+                                                                   (MPfile
+                                                                      ["Datatypes"; "Init"; "Coq"],
+                                                                    "list");
+                                                                 inductive_ind := 0
+                                                               |} 0 [])
+                                                            [tConst
+                                                               (MPbound
+                                                                  ["Sig"; "EnvironmentTyping";
+                                                                   "Common"; "QuotationOf";
+                                                                   "ToTemplate"; "Quotation";
+                                                                   "MetaCoq"] "T" 149, "term") []]];
+                                                       tConstruct
+                                                         {|
+                                                           inductive_mind :=
+                                                             (MPfile ["Datatypes"; "Init"; "Coq"],
+                                                              "nat");
+                                                           inductive_ind := 0
+                                                         |} 0 []; tRel 1];
+                                                    tRel 0])
+                                                (tApp (tRel 9)
+                                                   [tRel 3;
+                                                    tApp
+                                                      (tConstruct
+                                                         {|
+                                                           inductive_mind :=
+                                                             (MPfile ["Datatypes"; "Init"; "Coq"],
+                                                              "list");
+                                                           inductive_ind := 0
+                                                         |} 1 [])
+                                                      [tApp
+                                                         (tInd
+                                                            {|
+                                                              inductive_mind :=
+                                                                (MPfile
+                                                                   ["BasicAst"; "Common"; "MetaCoq"],
+                                                                 "context_decl");
+                                                              inductive_ind := 0
+                                                            |} [])
+                                                         [tConst
+                                                            (MPbound
+                                                               ["Sig"; "EnvironmentTyping"; "Common";
+                                                                "QuotationOf"; "ToTemplate";
+                                                                "Quotation"; "MetaCoq"] "T" 149,
+                                                             "term") []];
+                                                       tApp
+                                                         (tConst
+                                                            (MPbound
+                                                               ["Sig"; "EnvironmentTyping"; "Common";
+                                                                "QuotationOf"; "ToTemplate";
+                                                                "Quotation"; "MetaCoq"] "E" 150,
+                                                             "vdef") []) [
+                                                         tRel 6; tRel 5; tRel 4];
+                                                       tRel 2];
+                                                    tApp
+                                                      (tConstruct
+                                                         {|
+                                                           inductive_mind :=
+                                                             (MPbound
+                                                                ["Sig"; "EnvironmentTyping"; "Common";
+                                                                 "QuotationOf"; "ToTemplate";
+                                                                 "Quotation"; "MetaCoq"] "ET" 152,
+                                                              "ctx_inst");
+                                                           inductive_ind := 0
+                                                         |} 2 [])
+                                                      [tRel 12; tRel 11; tRel 10;
+                                                       tRel 6; tRel 5; tRel 4;
+                                                       tRel 3; tRel 2; tRel 1]]))))))))
+                           (tProd {| binder_name := nNamed "l"; binder_relevance := Relevant |}
+                              (tApp
+                                 (tInd
+                                    {|
+                                      inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "list");
+                                      inductive_ind := 0
+                                    |} [])
+                                 [tConst
+                                    (MPbound
+                                       ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                        "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") []])
+                              (tProd {| binder_name := nNamed "c"; binder_relevance := Relevant |}
+                                 (tConst
+                                    (MPbound
+                                       ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                        "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150, "context") [])
+                                 (tProd {| binder_name := nNamed "c0"; binder_relevance := Relevant |}
+                                    (tApp
+                                       (tInd
+                                          {|
+                                            inductive_mind :=
+                                              (MPbound
+                                                 ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                                  "ToTemplate"; "Quotation"; "MetaCoq"] "ET" 152,
+                                               "ctx_inst");
+                                            inductive_ind := 0
+                                          |} []) [tRel 8; tRel 7; tRel 6; tRel 1; tRel 0])
+                                    (tApp (tRel 6) [tRel 2; tRel 1; tRel 0]))))))))));
+       tConst
+         (MPbound
+            ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate"; "Quotation"; "MetaCoq"]
+            "ET" 152, "ctx_inst_rect") []])).
+unquoting
+(@quotation_of
+   (forall (Σ : E.global_env_ext) (Γ : E.context) (inst : list T.term) (Δ : E.context)
+      (args : list
+                (E.global_env_ext -> E.context -> T.term -> T.term -> Type@{ET.ctx_inst_impl_gen.u1}))
+      (P : E.global_env_ext -> E.context -> T.term -> T.term -> Type@{ET.ctx_inst_impl_gen.u2}),
+    (∑ P' : E.global_env_ext -> E.context -> T.term -> T.term -> Type@{ET.ctx_inst_impl_gen.u0},
+       ET.ctx_inst P' Σ Γ inst Δ) ->
+    (forall t T : T.term,
+     @All (E.global_env_ext -> E.context -> T.term -> T.term -> Type@{ET.ctx_inst_impl_gen.u1})
+       (fun P' : E.global_env_ext -> E.context -> T.term -> T.term -> Type@{ET.ctx_inst_impl_gen.u1}
+        => P' Σ Γ t T) args -> P Σ Γ t T) ->
+    @All (E.global_env_ext -> E.context -> T.term -> T.term -> Type@{ET.ctx_inst_impl_gen.u3})
+      (fun P' : E.global_env_ext -> E.context -> T.term -> T.term -> Type@{ET.ctx_inst_impl_gen.u3} =>
+       ET.ctx_inst P' Σ Γ inst Δ) args -> ET.ctx_inst P Σ Γ inst Δ) ET.ctx_inst_impl_gen)
+(tApp (tConst (MPfile ["Init"; "ToTemplate"; "Quotation"; "MetaCoq"], "quotation_of") [])
+   [tProd {| binder_name := nNamed "Σ"; binder_relevance := Relevant |}
+      (tConst
+         (MPbound
+            ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate"; "Quotation"; "MetaCoq"]
+            "E" 150, "global_env_ext") [])
+      (tProd {| binder_name := nNamed "Γ"; binder_relevance := Relevant |}
+         (tConst
+            (MPbound
+               ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate"; "Quotation";
+                "MetaCoq"] "E" 150, "context") [])
+         (tProd {| binder_name := nNamed "inst"; binder_relevance := Relevant |}
+            (tApp
+               (tInd
+                  {|
+                    inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "list");
+                    inductive_ind := 0
+                  |} [])
+               [tConst
+                  (MPbound
+                     ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate"; "Quotation";
+                      "MetaCoq"] "T" 149, "term") []])
+            (tProd {| binder_name := nNamed "Δ"; binder_relevance := Relevant |}
+               (tConst
+                  (MPbound
+                     ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate"; "Quotation";
+                      "MetaCoq"] "E" 150, "context") [])
+               (tProd {| binder_name := nNamed "args"; binder_relevance := Relevant |}
+                  (tApp
+                     (tInd
+                        {|
+                          inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "list");
+                          inductive_ind := 0
+                        |} [])
+                     [tProd {| binder_name := nNamed "x"; binder_relevance := Relevant |}
+                        (tConst
+                           (MPbound
+                              ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate";
+                               "Quotation"; "MetaCoq"] "E" 150, "global_env_ext") [])
+                        (tProd {| binder_name := nNamed "x0"; binder_relevance := Relevant |}
+                           (tConst
+                              (MPbound
+                                 ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate";
+                                  "Quotation"; "MetaCoq"] "E" 150, "context") [])
+                           (tProd {| binder_name := nNamed "x1"; binder_relevance := Relevant |}
+                              (tConst
+                                 (MPbound
+                                    ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                     "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                              (tProd {| binder_name := nNamed "x2"; binder_relevance := Relevant |}
+                                 (tConst
+                                    (MPbound
+                                       ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                        "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                                 (tSort
+                                    (Universe.of_levels
+                                       (@inr PropLevel.t Level.t
+                                          (Level.Level "MetaCoq.Common.EnvironmentTyping.896")))))))])
+                  (tProd {| binder_name := nNamed "P"; binder_relevance := Relevant |}
+                     (tProd {| binder_name := nNamed "x"; binder_relevance := Relevant |}
+                        (tConst
+                           (MPbound
+                              ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate";
+                               "Quotation"; "MetaCoq"] "E" 150, "global_env_ext") [])
+                        (tProd {| binder_name := nNamed "x0"; binder_relevance := Relevant |}
+                           (tConst
+                              (MPbound
+                                 ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate";
+                                  "Quotation"; "MetaCoq"] "E" 150, "context") [])
+                           (tProd {| binder_name := nNamed "x1"; binder_relevance := Relevant |}
+                              (tConst
+                                 (MPbound
+                                    ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                     "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                              (tProd {| binder_name := nNamed "x2"; binder_relevance := Relevant |}
+                                 (tConst
+                                    (MPbound
+                                       ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                        "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                                 (tSort
+                                    (Universe.of_levels
+                                       (@inr PropLevel.t Level.t
+                                          (Level.Level "MetaCoq.Common.EnvironmentTyping.907"))))))))
+                     (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                        (tApp
+                           (tInd
+                              {|
+                                inductive_mind := (MPfile ["Specif"; "Init"; "Coq"], "sigT");
+                                inductive_ind := 0
+                              |} [])
+                           [tProd {| binder_name := nNamed "Σ"; binder_relevance := Relevant |}
+                              (tConst
+                                 (MPbound
+                                    ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                     "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150, "global_env_ext")
+                                 [])
+                              (tProd {| binder_name := nNamed "Γ"; binder_relevance := Relevant |}
+                                 (tConst
+                                    (MPbound
+                                       ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                        "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150, "context") [])
+                                 (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                                    (tConst
+                                       (MPbound
+                                          ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                           "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                                    (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                                       (tConst
+                                          (MPbound
+                                             ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                              "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term")
+                                          [])
+                                       (tSort
+                                          (Universe.of_levels
+                                             (@inr PropLevel.t Level.t
+                                                (Level.Level "MetaCoq.Common.EnvironmentTyping.883")))))));
+                            tLambda {| binder_name := nNamed "P'"; binder_relevance := Relevant |}
+                              (tProd {| binder_name := nNamed "Σ"; binder_relevance := Relevant |}
+                                 (tConst
+                                    (MPbound
+                                       ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                        "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150,
+                                     "global_env_ext") [])
+                                 (tProd {| binder_name := nNamed "Γ"; binder_relevance := Relevant |}
+                                    (tConst
+                                       (MPbound
+                                          ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                           "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150, "context")
+                                       [])
+                                    (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                                       (tConst
+                                          (MPbound
+                                             ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                              "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term")
+                                          [])
+                                       (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                                          (tConst
+                                             (MPbound
+                                                ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                                 "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term")
+                                             [])
+                                          (tSort
+                                             (Universe.of_levels
+                                                (@inr PropLevel.t Level.t
+                                                   (Level.Level "MetaCoq.Common.EnvironmentTyping.883"))))))))
+                              (tApp
+                                 (tInd
+                                    {|
+                                      inductive_mind :=
+                                        (MPbound
+                                           ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                            "ToTemplate"; "Quotation"; "MetaCoq"] "ET" 152, "ctx_inst");
+                                      inductive_ind := 0
+                                    |} []) [tRel 0; tRel 6; tRel 5; tRel 4; tRel 3])])
+                        (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                           (tProd {| binder_name := nNamed "t"; binder_relevance := Relevant |}
+                              (tConst
+                                 (MPbound
+                                    ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                     "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                              (tProd {| binder_name := nNamed "T"; binder_relevance := Relevant |}
+                                 (tConst
+                                    (MPbound
+                                       ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                        "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                                 (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                                    (tApp
+                                       (tInd
+                                          {|
+                                            inductive_mind :=
+                                              (MPfile ["All_Forall"; "Utils"; "MetaCoq"], "All");
+                                            inductive_ind := 0
+                                          |} [])
+                                       [tProd
+                                          {|
+                                            binder_name := nNamed "x"; binder_relevance := Relevant
+                                          |}
+                                          (tConst
+                                             (MPbound
+                                                ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                                 "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150,
+                                              "global_env_ext") [])
+                                          (tProd
+                                             {|
+                                               binder_name := nNamed "x0";
+                                               binder_relevance := Relevant
+                                             |}
+                                             (tConst
+                                                (MPbound
+                                                   ["Sig"; "EnvironmentTyping"; "Common";
+                                                    "QuotationOf"; "ToTemplate"; "Quotation";
+                                                    "MetaCoq"] "E" 150, "context") [])
+                                             (tProd
+                                                {|
+                                                  binder_name := nNamed "x1";
+                                                  binder_relevance := Relevant
+                                                |}
+                                                (tConst
+                                                   (MPbound
+                                                      ["Sig"; "EnvironmentTyping"; "Common";
+                                                       "QuotationOf"; "ToTemplate"; "Quotation";
+                                                       "MetaCoq"] "T" 149, "term") [])
+                                                (tProd
+                                                   {|
+                                                     binder_name := nNamed "x2";
+                                                     binder_relevance := Relevant
+                                                   |}
+                                                   (tConst
+                                                      (MPbound
+                                                         ["Sig"; "EnvironmentTyping"; "Common";
+                                                          "QuotationOf"; "ToTemplate"; "Quotation";
+                                                          "MetaCoq"] "T" 149, "term") [])
+                                                   (tSort
+                                                      (Universe.of_levels
+                                                         (@inr PropLevel.t Level.t
+                                                            (Level.Level
+                                                               "MetaCoq.Common.EnvironmentTyping.896")))))));
+                                        tLambda
+                                          {|
+                                            binder_name := nNamed "P'"; binder_relevance := Relevant
+                                          |}
+                                          (tProd
+                                             {|
+                                               binder_name := nNamed "x"; binder_relevance := Relevant
+                                             |}
+                                             (tConst
+                                                (MPbound
+                                                   ["Sig"; "EnvironmentTyping"; "Common";
+                                                    "QuotationOf"; "ToTemplate"; "Quotation";
+                                                    "MetaCoq"] "E" 150, "global_env_ext") [])
+                                             (tProd
+                                                {|
+                                                  binder_name := nNamed "x0";
+                                                  binder_relevance := Relevant
+                                                |}
+                                                (tConst
+                                                   (MPbound
+                                                      ["Sig"; "EnvironmentTyping"; "Common";
+                                                       "QuotationOf"; "ToTemplate"; "Quotation";
+                                                       "MetaCoq"] "E" 150, "context") [])
+                                                (tProd
+                                                   {|
+                                                     binder_name := nNamed "x1";
+                                                     binder_relevance := Relevant
+                                                   |}
+                                                   (tConst
+                                                      (MPbound
+                                                         ["Sig"; "EnvironmentTyping"; "Common";
+                                                          "QuotationOf"; "ToTemplate"; "Quotation";
+                                                          "MetaCoq"] "T" 149, "term") [])
+                                                   (tProd
+                                                      {|
+                                                        binder_name := nNamed "x2";
+                                                        binder_relevance := Relevant
+                                                      |}
+                                                      (tConst
+                                                         (MPbound
+                                                            ["Sig"; "EnvironmentTyping"; "Common";
+                                                             "QuotationOf"; "ToTemplate"; "Quotation";
+                                                             "MetaCoq"] "T" 149, "term") [])
+                                                      (tSort
+                                                         (Universe.of_levels
+                                                            (@inr PropLevel.t Level.t
+                                                               (Level.Level
+                                                                  "MetaCoq.Common.EnvironmentTyping.896"))))))))
+                                          (tApp (tRel 0) [tRel 9; tRel 8; tRel 2; tRel 1]);
+                                        tRel 4]) (tApp (tRel 4) [tRel 9; tRel 8; tRel 2; tRel 1]))))
+                           (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                              (tApp
+                                 (tInd
+                                    {|
+                                      inductive_mind :=
+                                        (MPfile ["All_Forall"; "Utils"; "MetaCoq"], "All");
+                                      inductive_ind := 0
+                                    |} [])
+                                 [tProd {| binder_name := nNamed "Σ"; binder_relevance := Relevant |}
+                                    (tConst
+                                       (MPbound
+                                          ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                           "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150,
+                                        "global_env_ext") [])
+                                    (tProd
+                                       {| binder_name := nNamed "Γ"; binder_relevance := Relevant |}
+                                       (tConst
+                                          (MPbound
+                                             ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                              "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150, "context")
+                                          [])
+                                       (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                                          (tConst
+                                             (MPbound
+                                                ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                                 "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term")
+                                             [])
+                                          (tProd
+                                             {| binder_name := nAnon; binder_relevance := Relevant |}
+                                             (tConst
+                                                (MPbound
+                                                   ["Sig"; "EnvironmentTyping"; "Common";
+                                                    "QuotationOf"; "ToTemplate"; "Quotation";
+                                                    "MetaCoq"] "T" 149, "term") [])
+                                             (tSort
+                                                (Universe.of_levels
+                                                   (@inr PropLevel.t Level.t
+                                                      (Level.Level
+                                                         "MetaCoq.Common.EnvironmentTyping.908")))))));
+                                  tLambda
+                                    {| binder_name := nNamed "P'"; binder_relevance := Relevant |}
+                                    (tProd
+                                       {| binder_name := nNamed "Σ"; binder_relevance := Relevant |}
+                                       (tConst
+                                          (MPbound
+                                             ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                              "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150,
+                                           "global_env_ext") [])
+                                       (tProd
+                                          {|
+                                            binder_name := nNamed "Γ"; binder_relevance := Relevant
+                                          |}
+                                          (tConst
+                                             (MPbound
+                                                ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                                 "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150,
+                                              "context") [])
+                                          (tProd
+                                             {| binder_name := nAnon; binder_relevance := Relevant |}
+                                             (tConst
+                                                (MPbound
+                                                   ["Sig"; "EnvironmentTyping"; "Common";
+                                                    "QuotationOf"; "ToTemplate"; "Quotation";
+                                                    "MetaCoq"] "T" 149, "term") [])
+                                             (tProd
+                                                {|
+                                                  binder_name := nAnon; binder_relevance := Relevant
+                                                |}
+                                                (tConst
+                                                   (MPbound
+                                                      ["Sig"; "EnvironmentTyping"; "Common";
+                                                       "QuotationOf"; "ToTemplate"; "Quotation";
+                                                       "MetaCoq"] "T" 149, "term") [])
+                                                (tSort
+                                                   (Universe.of_levels
+                                                      (@inr PropLevel.t Level.t
+                                                         (Level.Level
+                                                            "MetaCoq.Common.EnvironmentTyping.908"))))))))
+                                    (tApp
+                                       (tInd
+                                          {|
+                                            inductive_mind :=
+                                              (MPbound
+                                                 ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                                  "ToTemplate"; "Quotation"; "MetaCoq"] "ET" 152,
+                                               "ctx_inst");
+                                            inductive_ind := 0
+                                          |} []) [tRel 0; tRel 8; tRel 7; tRel 6; tRel 5]);
+                                  tRel 3])
+                              (tApp
+                                 (tInd
+                                    {|
+                                      inductive_mind :=
+                                        (MPbound
+                                           ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                            "ToTemplate"; "Quotation"; "MetaCoq"] "ET" 152, "ctx_inst");
+                                      inductive_ind := 0
+                                    |} []) [tRel 3; tRel 8; tRel 7; tRel 6; tRel 5])))))))));
+    tConst
+      (MPbound
+         ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate"; "Quotation"; "MetaCoq"]
+         "ET" 152, "ctx_inst_impl_gen") []])
+(Universe.of_levels
+   (@inr PropLevel.t Level.t
+      (Level.Level "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380")))
+(tmUnquoteTyped@{option_instance.u0 tmRetypeRelaxOnlyType'.u2}
+   Type@{WithTemplate.tmRetypeAroundMetaCoqBug853.u3}
+   (tApp (tConst (MPfile ["Init"; "ToTemplate"; "Quotation"; "MetaCoq"], "quotation_of") [])
+      [tProd {| binder_name := nNamed "Σ"; binder_relevance := Relevant |}
+         (tConst
+            (MPbound
+               ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate"; "Quotation";
+                "MetaCoq"] "E" 150, "global_env_ext") [])
+         (tProd {| binder_name := nNamed "Γ"; binder_relevance := Relevant |}
+            (tConst
+               (MPbound
+                  ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate"; "Quotation";
+                   "MetaCoq"] "E" 150, "context") [])
+            (tProd {| binder_name := nNamed "inst"; binder_relevance := Relevant |}
+               (tApp
+                  (tInd
+                     {|
+                       inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "list");
+                       inductive_ind := 0
+                     |} [])
+                  [tConst
+                     (MPbound
+                        ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate";
+                         "Quotation"; "MetaCoq"] "T" 149, "term") []])
+               (tProd {| binder_name := nNamed "Δ"; binder_relevance := Relevant |}
+                  (tConst
+                     (MPbound
+                        ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate";
+                         "Quotation"; "MetaCoq"] "E" 150, "context") [])
+                  (tProd {| binder_name := nNamed "args"; binder_relevance := Relevant |}
+                     (tApp
+                        (tInd
+                           {|
+                             inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "list");
+                             inductive_ind := 0
+                           |} [])
+                        [tProd {| binder_name := nNamed "x"; binder_relevance := Relevant |}
+                           (tConst
+                              (MPbound
+                                 ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate";
+                                  "Quotation"; "MetaCoq"] "E" 150, "global_env_ext") [])
+                           (tProd {| binder_name := nNamed "x0"; binder_relevance := Relevant |}
+                              (tConst
+                                 (MPbound
+                                    ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                     "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150, "context") [])
+                              (tProd {| binder_name := nNamed "x1"; binder_relevance := Relevant |}
+                                 (tConst
+                                    (MPbound
+                                       ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                        "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                                 (tProd {| binder_name := nNamed "x2"; binder_relevance := Relevant |}
+                                    (tConst
+                                       (MPbound
+                                          ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                           "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                                    (tSort
+                                       (Universe.lType
+                                          {|
+                                            t_set :=
+                                              {|
+                                                LevelExprSet.this :=
+                                                  [(Level.Level
+                                                      "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                    0)];
+                                                LevelExprSet.is_ok :=
+                                                  LevelExprSet.Raw.singleton_ok
+                                                    (Level.Level
+                                                       "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                     0)
+                                              |};
+                                            t_ne := @eq_refl bool false
+                                          |})))))])
+                     (tProd {| binder_name := nNamed "P"; binder_relevance := Relevant |}
+                        (tProd {| binder_name := nNamed "x"; binder_relevance := Relevant |}
+                           (tConst
+                              (MPbound
+                                 ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate";
+                                  "Quotation"; "MetaCoq"] "E" 150, "global_env_ext") [])
+                           (tProd {| binder_name := nNamed "x0"; binder_relevance := Relevant |}
+                              (tConst
+                                 (MPbound
+                                    ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                     "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150, "context") [])
+                              (tProd {| binder_name := nNamed "x1"; binder_relevance := Relevant |}
+                                 (tConst
+                                    (MPbound
+                                       ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                        "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                                 (tProd {| binder_name := nNamed "x2"; binder_relevance := Relevant |}
+                                    (tConst
+                                       (MPbound
+                                          ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                           "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                                    (tSort
+                                       (Universe.lType
+                                          {|
+                                            t_set :=
+                                              {|
+                                                LevelExprSet.this :=
+                                                  [(Level.Level
+                                                      "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                    0)];
+                                                LevelExprSet.is_ok :=
+                                                  LevelExprSet.Raw.singleton_ok
+                                                    (Level.Level
+                                                       "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                     0)
+                                              |};
+                                            t_ne := @eq_refl bool false
+                                          |}))))))
+                        (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                           (tApp
+                              (tInd
+                                 {|
+                                   inductive_mind := (MPfile ["Specif"; "Init"; "Coq"], "sigT");
+                                   inductive_ind := 0
+                                 |} [])
+                              [tProd {| binder_name := nNamed "Σ"; binder_relevance := Relevant |}
+                                 (tConst
+                                    (MPbound
+                                       ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                        "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150,
+                                     "global_env_ext") [])
+                                 (tProd {| binder_name := nNamed "Γ"; binder_relevance := Relevant |}
+                                    (tConst
+                                       (MPbound
+                                          ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                           "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150, "context")
+                                       [])
+                                    (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                                       (tConst
+                                          (MPbound
+                                             ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                              "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term")
+                                          [])
+                                       (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                                          (tConst
+                                             (MPbound
+                                                ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                                 "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term")
+                                             [])
+                                          (tSort
+                                             (Universe.lType
+                                                {|
+                                                  t_set :=
+                                                    {|
+                                                      LevelExprSet.this :=
+                                                        [(Level.Level
+                                                            "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                          0)];
+                                                      LevelExprSet.is_ok :=
+                                                        LevelExprSet.Raw.singleton_ok
+                                                          (Level.Level
+                                                             "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                           0)
+                                                    |};
+                                                  t_ne := @eq_refl bool false
+                                                |})))));
+                               tLambda {| binder_name := nNamed "P'"; binder_relevance := Relevant |}
+                                 (tProd {| binder_name := nNamed "Σ"; binder_relevance := Relevant |}
+                                    (tConst
+                                       (MPbound
+                                          ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                           "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150,
+                                        "global_env_ext") [])
+                                    (tProd
+                                       {| binder_name := nNamed "Γ"; binder_relevance := Relevant |}
+                                       (tConst
+                                          (MPbound
+                                             ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                              "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150, "context")
+                                          [])
+                                       (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                                          (tConst
+                                             (MPbound
+                                                ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                                 "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term")
+                                             [])
+                                          (tProd
+                                             {| binder_name := nAnon; binder_relevance := Relevant |}
+                                             (tConst
+                                                (MPbound
+                                                   ["Sig"; "EnvironmentTyping"; "Common";
+                                                    "QuotationOf"; "ToTemplate"; "Quotation";
+                                                    "MetaCoq"] "T" 149, "term") [])
+                                             (tSort
+                                                (Universe.lType
+                                                   {|
+                                                     t_set :=
+                                                       {|
+                                                         LevelExprSet.this :=
+                                                           [(Level.Level
+                                                               "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                             0)];
+                                                         LevelExprSet.is_ok :=
+                                                           LevelExprSet.Raw.singleton_ok
+                                                             (Level.Level
+                                                                "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                              0)
+                                                       |};
+                                                     t_ne := @eq_refl bool false
+                                                   |}))))))
+                                 (tApp
+                                    (tInd
+                                       {|
+                                         inductive_mind :=
+                                           (MPbound
+                                              ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                               "ToTemplate"; "Quotation"; "MetaCoq"] "ET" 152,
+                                            "ctx_inst");
+                                         inductive_ind := 0
+                                       |} []) [tRel 0; tRel 6; tRel 5; tRel 4; tRel 3])])
+                           (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                              (tProd {| binder_name := nNamed "t"; binder_relevance := Relevant |}
+                                 (tConst
+                                    (MPbound
+                                       ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                        "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                                 (tProd {| binder_name := nNamed "T"; binder_relevance := Relevant |}
+                                    (tConst
+                                       (MPbound
+                                          ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                           "ToTemplate"; "Quotation"; "MetaCoq"] "T" 149, "term") [])
+                                    (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                                       (tApp
+                                          (tInd
+                                             {|
+                                               inductive_mind :=
+                                                 (MPfile ["All_Forall"; "Utils"; "MetaCoq"], "All");
+                                               inductive_ind := 0
+                                             |} [])
+                                          [tProd
+                                             {|
+                                               binder_name := nNamed "x"; binder_relevance := Relevant
+                                             |}
+                                             (tConst
+                                                (MPbound
+                                                   ["Sig"; "EnvironmentTyping"; "Common";
+                                                    "QuotationOf"; "ToTemplate"; "Quotation";
+                                                    "MetaCoq"] "E" 150, "global_env_ext") [])
+                                             (tProd
+                                                {|
+                                                  binder_name := nNamed "x0";
+                                                  binder_relevance := Relevant
+                                                |}
+                                                (tConst
+                                                   (MPbound
+                                                      ["Sig"; "EnvironmentTyping"; "Common";
+                                                       "QuotationOf"; "ToTemplate"; "Quotation";
+                                                       "MetaCoq"] "E" 150, "context") [])
+                                                (tProd
+                                                   {|
+                                                     binder_name := nNamed "x1";
+                                                     binder_relevance := Relevant
+                                                   |}
+                                                   (tConst
+                                                      (MPbound
+                                                         ["Sig"; "EnvironmentTyping"; "Common";
+                                                          "QuotationOf"; "ToTemplate"; "Quotation";
+                                                          "MetaCoq"] "T" 149, "term") [])
+                                                   (tProd
+                                                      {|
+                                                        binder_name := nNamed "x2";
+                                                        binder_relevance := Relevant
+                                                      |}
+                                                      (tConst
+                                                         (MPbound
+                                                            ["Sig"; "EnvironmentTyping"; "Common";
+                                                             "QuotationOf"; "ToTemplate"; "Quotation";
+                                                             "MetaCoq"] "T" 149, "term") [])
+                                                      (tSort
+                                                         (Universe.lType
+                                                            {|
+                                                              t_set :=
+                                                                {|
+                                                                  LevelExprSet.this :=
+                                                                    [(Level.Level
+                                                                        "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                                      0)];
+                                                                  LevelExprSet.is_ok :=
+                                                                    LevelExprSet.Raw.singleton_ok
+                                                                      (Level.Level
+                                                                         "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                                       0)
+                                                                |};
+                                                              t_ne := @eq_refl bool false
+                                                            |})))));
+                                           tLambda
+                                             {|
+                                               binder_name := nNamed "P'";
+                                               binder_relevance := Relevant
+                                             |}
+                                             (tProd
+                                                {|
+                                                  binder_name := nNamed "x";
+                                                  binder_relevance := Relevant
+                                                |}
+                                                (tConst
+                                                   (MPbound
+                                                      ["Sig"; "EnvironmentTyping"; "Common";
+                                                       "QuotationOf"; "ToTemplate"; "Quotation";
+                                                       "MetaCoq"] "E" 150, "global_env_ext") [])
+                                                (tProd
+                                                   {|
+                                                     binder_name := nNamed "x0";
+                                                     binder_relevance := Relevant
+                                                   |}
+                                                   (tConst
+                                                      (MPbound
+                                                         ["Sig"; "EnvironmentTyping"; "Common";
+                                                          "QuotationOf"; "ToTemplate"; "Quotation";
+                                                          "MetaCoq"] "E" 150, "context") [])
+                                                   (tProd
+                                                      {|
+                                                        binder_name := nNamed "x1";
+                                                        binder_relevance := Relevant
+                                                      |}
+                                                      (tConst
+                                                         (MPbound
+                                                            ["Sig"; "EnvironmentTyping"; "Common";
+                                                             "QuotationOf"; "ToTemplate"; "Quotation";
+                                                             "MetaCoq"] "T" 149, "term") [])
+                                                      (tProd
+                                                         {|
+                                                           binder_name := nNamed "x2";
+                                                           binder_relevance := Relevant
+                                                         |}
+                                                         (tConst
+                                                            (MPbound
+                                                               ["Sig"; "EnvironmentTyping"; "Common";
+                                                                "QuotationOf"; "ToTemplate";
+                                                                "Quotation"; "MetaCoq"] "T" 149,
+                                                             "term") [])
+                                                         (tSort
+                                                            (Universe.lType
+                                                               {|
+                                                                 t_set :=
+                                                                   {|
+                                                                     LevelExprSet.this :=
+                                                                       [(Level.Level
+                                                                         "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                                         0)];
+                                                                     LevelExprSet.is_ok :=
+                                                                       LevelExprSet.Raw.singleton_ok
+                                                                         (
+                                                                         Level.Level
+                                                                         "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                                         0)
+                                                                   |};
+                                                                 t_ne := @eq_refl bool false
+                                                               |}))))))
+                                             (tApp (tRel 0) [tRel 9; tRel 8; tRel 2; tRel 1]);
+                                           tRel 4]) (tApp (tRel 4) [tRel 9; tRel 8; tRel 2; tRel 1]))))
+                              (tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+                                 (tApp
+                                    (tInd
+                                       {|
+                                         inductive_mind :=
+                                           (MPfile ["All_Forall"; "Utils"; "MetaCoq"], "All");
+                                         inductive_ind := 0
+                                       |} [])
+                                    [tProd
+                                       {| binder_name := nNamed "Σ"; binder_relevance := Relevant |}
+                                       (tConst
+                                          (MPbound
+                                             ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                              "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150,
+                                           "global_env_ext") [])
+                                       (tProd
+                                          {|
+                                            binder_name := nNamed "Γ"; binder_relevance := Relevant
+                                          |}
+                                          (tConst
+                                             (MPbound
+                                                ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                                 "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150,
+                                              "context") [])
+                                          (tProd
+                                             {| binder_name := nAnon; binder_relevance := Relevant |}
+                                             (tConst
+                                                (MPbound
+                                                   ["Sig"; "EnvironmentTyping"; "Common";
+                                                    "QuotationOf"; "ToTemplate"; "Quotation";
+                                                    "MetaCoq"] "T" 149, "term") [])
+                                             (tProd
+                                                {|
+                                                  binder_name := nAnon; binder_relevance := Relevant
+                                                |}
+                                                (tConst
+                                                   (MPbound
+                                                      ["Sig"; "EnvironmentTyping"; "Common";
+                                                       "QuotationOf"; "ToTemplate"; "Quotation";
+                                                       "MetaCoq"] "T" 149, "term") [])
+                                                (tSort
+                                                   (Universe.lType
+                                                      {|
+                                                        t_set :=
+                                                          {|
+                                                            LevelExprSet.this :=
+                                                              [(Level.Level
+                                                                  "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                                0)];
+                                                            LevelExprSet.is_ok :=
+                                                              LevelExprSet.Raw.singleton_ok
+                                                                (Level.Level
+                                                                   "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                                 0)
+                                                          |};
+                                                        t_ne := @eq_refl bool false
+                                                      |})))));
+                                     tLambda
+                                       {| binder_name := nNamed "P'"; binder_relevance := Relevant |}
+                                       (tProd
+                                          {|
+                                            binder_name := nNamed "Σ"; binder_relevance := Relevant
+                                          |}
+                                          (tConst
+                                             (MPbound
+                                                ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                                 "ToTemplate"; "Quotation"; "MetaCoq"] "E" 150,
+                                              "global_env_ext") [])
+                                          (tProd
+                                             {|
+                                               binder_name := nNamed "Γ"; binder_relevance := Relevant
+                                             |}
+                                             (tConst
+                                                (MPbound
+                                                   ["Sig"; "EnvironmentTyping"; "Common";
+                                                    "QuotationOf"; "ToTemplate"; "Quotation";
+                                                    "MetaCoq"] "E" 150, "context") [])
+                                             (tProd
+                                                {|
+                                                  binder_name := nAnon; binder_relevance := Relevant
+                                                |}
+                                                (tConst
+                                                   (MPbound
+                                                      ["Sig"; "EnvironmentTyping"; "Common";
+                                                       "QuotationOf"; "ToTemplate"; "Quotation";
+                                                       "MetaCoq"] "T" 149, "term") [])
+                                                (tProd
+                                                   {|
+                                                     binder_name := nAnon;
+                                                     binder_relevance := Relevant
+                                                   |}
+                                                   (tConst
+                                                      (MPbound
+                                                         ["Sig"; "EnvironmentTyping"; "Common";
+                                                          "QuotationOf"; "ToTemplate"; "Quotation";
+                                                          "MetaCoq"] "T" 149, "term") [])
+                                                   (tSort
+                                                      (Universe.lType
+                                                         {|
+                                                           t_set :=
+                                                             {|
+                                                               LevelExprSet.this :=
+                                                                 [(Level.Level
+                                                                     "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                                   0)];
+                                                               LevelExprSet.is_ok :=
+                                                                 LevelExprSet.Raw.singleton_ok
+                                                                   (Level.Level
+                                                                      "MetaCoq.Quotation.ToTemplate.QuotationOf.Common.EnvironmentTyping.Sig.17380",
+                                                                    0)
+                                                             |};
+                                                           t_ne := @eq_refl bool false
+                                                         |}))))))
+                                       (tApp
+                                          (tInd
+                                             {|
+                                               inductive_mind :=
+                                                 (MPbound
+                                                    ["Sig"; "EnvironmentTyping"; "Common";
+                                                     "QuotationOf"; "ToTemplate"; "Quotation";
+                                                     "MetaCoq"] "ET" 152, "ctx_inst");
+                                               inductive_ind := 0
+                                             |} []) [tRel 0; tRel 8; tRel 7; tRel 6; tRel 5]);
+                                     tRel 3])
+                                 (tApp
+                                    (tInd
+                                       {|
+                                         inductive_mind :=
+                                           (MPbound
+                                              ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf";
+                                               "ToTemplate"; "Quotation"; "MetaCoq"] "ET" 152,
+                                            "ctx_inst");
+                                         inductive_ind := 0
+                                       |} []) [tRel 3; tRel 8; tRel 7; tRel 6; tRel 5])))))))));
+       tConst
+         (MPbound
+            ["Sig"; "EnvironmentTyping"; "Common"; "QuotationOf"; "ToTemplate"; "Quotation"; "MetaCoq"]
+            "ET" 152, "ctx_inst_impl_gen") []])).
+  Fail MetaCoq Run bar.
   FIXME HERE
     lazymatch (eval cbv [v] in v) with
     | monad_utils.bind ?p ?q
