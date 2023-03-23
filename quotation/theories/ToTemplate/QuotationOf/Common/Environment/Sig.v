@@ -12,3 +12,7 @@ End QuoteTerm.
 Module Type QuotationOfEnvironment (T : Term) (Import E : EnvironmentSig T).
   MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "E").
 End QuotationOfEnvironment.
+
+Module Type QuotationOfTermUtils (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E).
+  MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "TU").
+End QuotationOfTermUtils.
