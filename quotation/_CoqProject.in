@@ -18,6 +18,7 @@ theories/ToTemplate/Coq/Strings.v
 theories/ToTemplate/Coq/ssr.v
 theories/ToTemplate/Init.v
 theories/ToTemplate/QuotationOf/Common/Environment/Sig.v
+theories/ToTemplate/QuotationOf/Common/EnvironmentTyping/Sig.v
 theories/ToTemplate/QuotationOf/Common/Kernames/Instances.v
 theories/ToTemplate/QuotationOf/Common/Kernames/Kername/Instances.v
 theories/ToTemplate/QuotationOf/Common/Kernames/KernameMap/Instances.v
