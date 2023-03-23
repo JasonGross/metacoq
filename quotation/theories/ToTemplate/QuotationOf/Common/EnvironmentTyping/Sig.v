@@ -16,6 +16,67 @@ Module Type QuoteLookupSig (Import T : Term) (Import E : EnvironmentSig T) (Impo
 End QuoteLookupSig.
 
 Module Type QuotationOfEnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E) (ET : EnvTypingSig T E TU).
+  Instance: debug_opt := true. (*Set Printing Implicit. Set Printing Universes.*)
+  Require Import monad_utils Loader.
+  Import List.ListNotations.
+  Open Scope list_scope.
+  Import MetaCoq.Utils.bytestring MetaCoq.Utils.ReflectEq.
+  Print bytestring.String.contains.
+  Print bytestring.String.index.
+  Compute String.index 0 "ctx_inst"%bs "ctx_inst_impl_gen"%bs.
+  Definition foo : Core.TemplateMonad unit.
+    pose (tmDeclareQuotationOfModule everything (Some export) "ET") as v.
+    cbv [tmDeclareQuotationOfModule] in v.
+    lazymatch (eval cbv [v] in v) with
+    | monad_utils.bind ?p ?q
+      => clear v;
+         run_template_program p (fun p' => let p' := constr:(List.flat_map (fun r => match r with ConstRef (_, s) => match String.index 0 "ctx_inst"%bs s with Some _ => match String.index 0 "obligation"%bs s, String.index 0 "Confusion"%bs s with None, None => r :: nil | _, _ => nil end | None => nil end | _ => nil end) p') in
+                                           pose (q (List.firstn 1 p' ++ List.skipn (List.length p' - 2) p')) as v)
+    end.
+    vm_compute List.flat_map in v.
+    vm_compute List.app in v.
+    let v' := (eval cbv [v] in v) in exact v'.
+  Defined.
+  Definition bar := Eval cbv [foo] in foo.
+  Print bar.
+  Print bar.
+  FIXME HERE
+  MetaCoq Run bar.
+    lazymatch (eval cbv [v] in v) with
+    | monad_utils.bind ?p ?q
+      => clear v;
+         run_template_program p (fun p' => let p' := constr:(List.flat_map (fun r => match r with ConstRef (_, s) => if ((s:IdentOT.t) == "ctx_inst_impl_gen"%bs) then r :: nil else nil | _ => nil end) p') in
+                                           pose (q p') as v)
+    end.
+    vm_compute List.flat_map in v.
+    lazymatch (eval cbv [v] in v) with
+    | monad_utils.bind ?p ?q
+      => clear v;
+         run_template_program p (fun p' => pose (q p') as v)
+    end.
+    cbn -[tmDeclareQuotationOfConstants] in v.
+    cbv [tmDeclareQuotationOfConstants] in v.
+    cbv [tmMakeQuotationOfConstants_gen] in v.
+    do 2 lazymatch (eval cbv [v] in v) with
+    | monad_utils.bind ?p ?q
+      => clear v;
+         run_template_program p (fun p' => pose (q p') as v)
+      end; cbv beta in v.
+    exact v.
+  Defined.
+  MetaCoq Run foo.
+    cbn in v.
+
+
+    pose (List.flat_map (fun r => match r with ConstRef (_, s) => if ((s:IdentOT.t) == "ctx_inst_impl_gen"%bs) then r :: nil else nil | _ => nil end) l).
+    compute in l0.
+           (MPbound
+              ("Sig"%bs
+               :: "EnvironmentTyping"%bs
+                  :: "Common"%bs
+                     :: "QuotationOf"%bs
+                        :: "ToTemplate"%bs :: "Quotation"%bs :: "MetaCoq"%bs :: @nil string)%list
+              "ET"%bs 152, "ctx_inst_impl_gen"%bs)
   MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "ET").
 End QuotationOfEnvTyping.
  *)
