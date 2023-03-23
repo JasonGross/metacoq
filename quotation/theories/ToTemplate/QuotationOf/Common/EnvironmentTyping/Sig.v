@@ -35,7 +35,25 @@ Module Type QuotationOfEnvTyping (T : Term) (E : EnvironmentSig T) (TU : TermUti
     end.
     vm_compute List.flat_map in v.
     vm_compute List.app in v.
-    cbn in v.
+    cbn -[monad_utils.bind] in v.
+    lazymatch (eval cbv [v] in v) with
+    | monad_utils.bind ?p ?q
+      => clear v;
+         run_template_program p (fun p' => pose (q p') as v)
+    end.
+    cbv [tmDeclareQuotationOfConstants] in v.
+    cbv [tmMakeQuotationOfConstants_gen] in v.
+    do 2 lazymatch (eval cbv [v] in v) with
+    | monad_utils.bind ?p ?q
+      => clear v;
+         run_template_program p (fun p' => pose (q p') as v)
+      end; cbv beta in v.
+    cbn -[monad_utils.bind] in v.
+    repeat match (eval cbv [v] in v) with
+    | context P[@monad_utils.bind ?m ?M ?t ?u (@monad_utils.bind ?m ?M ?t' ?u' ?x ?y)]
+      => let P' := context P[fun z => @monad_utils.bind m M t' u x (fun x' => @monad_utils.bind m M u' u (y x') z)] in
+         clear v; pose P' as v; cbv beta in v
+      end.
     let v' := (eval cbv [v] in v) in exact v'.
   Defined.
   Definition bar := Eval cbv [foo] in foo.
