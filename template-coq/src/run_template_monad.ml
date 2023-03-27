@@ -348,6 +348,8 @@ let rec run_template_program_rec ~poly ?(intactic=false) (k : Constr.t Plugin_co
     run_template_program_rec ~poly ~intactic:intactic
       (fun ~st env evm ar ->
          run_template_program_rec ~poly ~intactic:intactic k env ~st (evm, Constr.mkApp (f, [|ar|]))) env ~st (evm, a)
+  | TmTry f ->
+     run_template_program_rec ~poly ~intactic:intactic k env ~st (evm, f)
  | TmVariable (name, typ) ->
     if intactic then not_in_tactic "tmVariable"
     else

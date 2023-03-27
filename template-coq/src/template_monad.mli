@@ -16,6 +16,7 @@ type template_monad =
   | TmPrintTerm of Constr.t  (* only Extractable *)
   | TmMsg of Constr.t
   | TmFail of Constr.t
+  | TmTry of Constr.t
 
     (* evaluation *)
   | TmEval of Constr.t * Constr.t      (* only Prop *)

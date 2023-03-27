@@ -25,6 +25,7 @@ Cumulative Inductive TM@{t} : Type@{t} -> Type :=
 | tmFail : forall {A:Type@{t}}, string -> TM A
 | tmEval (red : reductionStrategy) (tm : Ast.term)
   : TM Ast.term
+| tmTry : forall {A:Type@{t}}, TM A -> TM (option_try A)
 
 (* Return the defined constant *)
 | tmDefinition_ (opaque : bool) (*local : locality*)
@@ -71,6 +72,7 @@ Definition TypeInstance : Common.TMInstance :=
    ; Common.tmReturn:=@tmReturn
    ; Common.tmBind:=@tmBind
    ; Common.tmFail:=@tmFail
+   ; Common.tmTry:=@tmTry
    ; Common.tmFreshName:=@tmFreshName
    ; Common.tmLocate:=@tmLocate
    ; Common.tmLocateModule:=@tmLocateModule

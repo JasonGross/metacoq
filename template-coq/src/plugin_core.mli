@@ -36,6 +36,7 @@ val with_env_evm : (Environ.env -> Evd.evar_map -> 'a tm) -> 'a tm
 val run_vernac : st:coq_state -> 'a tm -> coq_state
 
 val tmReturn : 'a -> 'a tm
+val tmTry : 'a tm -> 'a option tm
 val tmBind : 'a tm -> ('a -> 'b tm) -> 'b tm
 val tmMap  : ('a -> 'b) -> 'a tm -> 'b tm
 

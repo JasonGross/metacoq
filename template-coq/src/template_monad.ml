@@ -19,6 +19,8 @@ let (ptmReturn,
 
      ptmEval,
 
+     ptmTry,
+
      ptmLemma,
      ptmDefinitionRed,
      ptmAxiomRed,
@@ -62,6 +64,8 @@ let (ptmReturn,
 
    r_template_monad_prop_p "tmEval",
 
+   r_template_monad_prop_p "tmTry",
+
    r_template_monad_prop_p "tmLemma",
    r_template_monad_prop_p "tmDefinitionRed_",
    r_template_monad_prop_p "tmAxiomRed",
@@ -104,6 +108,7 @@ let (ttmReturn,
      ttmMsg,
      ttmFail,
      ttmEval,
+     ttmTry,
 
      ttmDefinition,
      ttmAxiom,
@@ -129,6 +134,7 @@ let (ttmReturn,
    r_template_monad_type_p "tmMsg",
    r_template_monad_type_p "tmFail",
    r_template_monad_type_p "tmEval",
+   r_template_monad_type_p "tmTry",
 
    r_template_monad_type_p "tmDefinition_",
    r_template_monad_type_p "tmAxiom",
@@ -164,6 +170,7 @@ type template_monad =
   | TmPrintTerm of Constr.t  (* only Extractable *)
   | TmMsg of Constr.t
   | TmFail of Constr.t
+  | TmTry of Constr.t
 
     (* evaluation *)
   | TmEval of Constr.t * Constr.t      (* only Prop *)
@@ -269,6 +276,11 @@ let next_action env evd (pgm : constr) : template_monad * _ =
     match args with
     | strat::trm::[] -> (TmEvalTerm (strat, trm), universes)
     | _ -> monad_failure "tmEval" 2
+  else if eq_gr ptmTry || eq_gr ttmTry then
+    match args with
+    | _::f::[] ->
+       (TmTry f, universes)
+    | _ -> monad_failure "tmTry" 2
 
   else if eq_gr ptmDefinitionRed then
     match args with

@@ -26,6 +26,7 @@ Cumulative Inductive TemplateMonad@{t u} : Type@{t} -> Prop :=
 | tmMsg   : string -> TemplateMonad unit
 | tmFail : forall {A:Type@{t}}, string -> TemplateMonad A
 | tmEval : reductionStrategy -> forall {A:Type@{t}}, A -> TemplateMonad A
+| tmTry : forall {A:Type@{t}}, TemplateMonad A -> TemplateMonad (option_try A)
 
 (* Return the defined constant *)
 | tmLemma : ident -> forall A : Type@{t}, TemplateMonad A
@@ -142,6 +143,7 @@ Definition TypeInstance : Common.TMInstance :=
    ; Common.tmReturn:=@tmReturn
    ; Common.tmBind:=@tmBind
    ; Common.tmFail:=@tmFail
+   ; Common.tmTry:=@tmTry
    ; Common.tmFreshName:=@tmFreshName
    ; Common.tmLocate:=@tmLocate
    ; Common.tmLocateModule:=@tmLocateModule

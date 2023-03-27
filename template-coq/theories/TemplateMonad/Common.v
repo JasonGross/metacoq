@@ -23,6 +23,13 @@ Monomorphic Inductive option_instance (A : Type) : Type := my_Some : A -> option
 Arguments Some {A} a.
 Arguments None {A}.
 
+Monomorphic Variant exn : Set := GenericError.
+
+Variant option_try (A : Type) : Type := my_Value (val : A) | my_Error (err : exn).
+
+Arguments my_Value {A} val.
+Arguments my_Error {A} _.
+
 Record TMInstance@{t u r} :=
 { TemplateMonad : Type@{t} -> Type@{r}
 ; tmReturn : forall {A:Type@{t}}, A -> TemplateMonad A
@@ -31,6 +38,7 @@ Record TMInstance@{t u r} :=
 
 (* General commands *)
 ; tmFail : forall {A:Type@{t}}, string -> TemplateMonad A
+; tmTry : forall {A:Type@{t}}, TemplateMonad A -> TemplateMonad (option_try A)
 
 (* Guaranteed to not cause "... already declared" error *)
 ; tmFreshName : ident -> TemplateMonad ident

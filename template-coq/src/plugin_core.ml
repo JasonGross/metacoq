@@ -53,6 +53,11 @@ let tmBind (x : 'a tm) (k : 'a -> 'b tm) : 'b tm =
   fun ~st env evd success fail ->
         x ~st env evd (fun ~st env evd v -> k v ~st env evd success fail) fail
 
+let tmTry (x : 'a tm) : 'a option tm =
+  fun ~st env evd success fail ->
+        x ~st env evd (fun ~st env evd v -> success ~st env evd (Some v))
+          (fun ~st _err -> success ~st env evd None)
+
 let tmMap (f : 'a -> 'b) (x : 'a tm) : 'b tm =
   fun ~st env evd success fail ->
         x ~st env evd (fun ~st env evd v -> success ~st env evd (f v)) fail
