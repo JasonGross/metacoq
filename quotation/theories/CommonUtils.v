@@ -324,10 +324,22 @@ Module WithTemplate.
        end.
 
   (* Hack around https://github.com/MetaCoq/metacoq/issues/853 *)
-  Definition tmRetypeAroundMetaCoqBug853 (t : typed_term) : TemplateMonad typed_term
+  Polymorphic Definition tmRetypeAroundMetaCoqBug853_gen (t : typed_term) : TemplateMonad typed_term
     := let '{| my_projT1 := ty ; my_projT2 := v |} := t in
        ty <- tmRetypeRelaxOnlyType ty;;
        v <- tmRetypeMagicRelaxOnlyType ty v;;
        ret {| my_projT1 := ty ; my_projT2 := v |}.
+
+  Definition tmRetypeAroundMetaCoqBug853 (t : typed_term) : TemplateMonad typed_term
+    := Eval cbv [List.fold_right] in
+      List.fold_right
+        (fun tmRetype acc
+         => res <- tmTry (tmRetype t);;
+            match res with
+            | my_Value v => ret v
+            | my_Error _ => acc
+            end)
+        (tmRetypeAroundMetaCoqBug853_gen t)
+        [tmRetypeAroundMetaCoqBug853_gen].
 End WithTemplate.
 Export WithTemplate (transparentify, tmQuoteToGlobalReference, tmRetypeRelaxSet, tmRetypeRelaxType, tmRetypeRelaxSetInCodomain, tmRetypeRelaxSetInAppArgsCodomain, tmRetypeRelaxTypeInCodomain, tmRetypeRelaxOnlyType, tmRetypeMagicRelaxSet, tmRetypeMagicRelaxType, tmRetypeMagicRelaxSetInCodomain, tmRetypeMagicRelaxSetInAppArgsCodomain, tmRetypeMagicRelaxTypeInCodomain, tmRetypeMagicRelaxOnlyType, tmObj_magic, tmRetype, tmExtractBaseModPathFromMod, tmRetypeAroundMetaCoqBug853).
