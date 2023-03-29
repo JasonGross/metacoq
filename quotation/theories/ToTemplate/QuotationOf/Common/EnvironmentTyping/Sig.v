@@ -74,8 +74,1839 @@ Module Type QuoteConversionSig (Import T : Term) (Import E : EnvironmentSig T) (
 End QuoteConversionSig.
 
 Module Type QuotationOfGlobalMaps (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E) (ET : EnvTypingSig T E TU) (C : ConversionSig T E TU ET) (L : LookupSig T E) (GM : GlobalMapsSig T E TU ET C L).
+  Definition foo := (Core.tmUnquoteTyped@{Common.option_instance.u0
+   WithTemplate.tmRetypeAroundMetaCoqBug853.u1}
+   Type@{WithTemplate.tmRetypeAroundMetaCoqBug853.u0}
+   (CommonUtils.WithTemplate.tmRelaxOnlyType
+      (Ast.tSort
+         (Universes.Universe.of_levels
+            (inr
+               (Universes.Level.Level "MetaCoq.Quotation.CommonUtils.1024"%bs))))
+      (Ast.tApp
+         (Ast.tConst
+            (MPfile
+               ("Init"%bs
+                :: "ToTemplate"%bs :: "Quotation"%bs :: "MetaCoq"%bs :: nil)%list,
+             "quotation_of"%bs) nil)
+         (Ast.tProd
+            {| binder_name := nNamed "Σ"%bs; binder_relevance := Relevant |}
+            (Ast.tInd
+               {|
+                 inductive_mind :=
+                   (MPbound
+                      ("Sig"%bs
+                       :: "EnvironmentTyping"%bs
+                          :: "Common"%bs
+                             :: "QuotationOf"%bs
+                                :: "ToTemplate"%bs
+                                   :: "Quotation"%bs :: "MetaCoq"%bs :: nil)%list
+                      "E"%bs 25, "global_env"%bs);
+                 inductive_ind := 0
+               |} nil)
+            (Ast.tProd
+               {|
+                 binder_name := nNamed "mdecl"%bs;
+                 binder_relevance := Relevant
+               |}
+               (Ast.tInd
+                  {|
+                    inductive_mind :=
+                      (MPbound
+                         ("Sig"%bs
+                          :: "EnvironmentTyping"%bs
+                             :: "Common"%bs
+                                :: "QuotationOf"%bs
+                                   :: "ToTemplate"%bs
+                                      :: "Quotation"%bs
+                                         :: "MetaCoq"%bs :: nil)%list "E"%bs
+                         25, "mutual_inductive_body"%bs);
+                    inductive_ind := 0
+                  |} nil)
+               (Ast.tProd
+                  {|
+                    binder_name := nNamed "v"%bs;
+                    binder_relevance := Relevant
+                  |}
+                  (Ast.tApp
+                     (Ast.tInd
+                        {|
+                          inductive_mind :=
+                            (MPfile
+                               ("Datatypes"%bs
+                                :: "Init"%bs :: "Coq"%bs :: nil)%list,
+                             "list"%bs);
+                          inductive_ind := 0
+                        |} nil)
+                     (Ast.tInd
+                        {|
+                          inductive_mind :=
+                            (MPdot
+                               (MPfile
+                                  ("Universes"%bs
+                                   :: "Common"%bs :: "MetaCoq"%bs :: nil)%list)
+                               "Variance"%bs, "t"%bs);
+                          inductive_ind := 0
+                        |} nil :: nil))
+                  (Ast.tProd
+                     {|
+                       binder_name := nNamed "cs"%bs;
+                       binder_relevance := Relevant
+                     |}
+                     (Ast.tInd
+                        {|
+                          inductive_mind :=
+                            (MPbound
+                               ("Sig"%bs
+                                :: "EnvironmentTyping"%bs
+                                   :: "Common"%bs
+                                      :: "QuotationOf"%bs
+                                         :: "ToTemplate"%bs
+                                            :: "Quotation"%bs
+                                               ::
+                                               "MetaCoq"%bs :: nil)%list
+                               "E"%bs 25, "constructor_body"%bs);
+                          inductive_ind := 0
+                        |} nil)
+                     (Ast.tProd
+                        {|
+                          binder_name := nNamed "args"%bs;
+                          binder_relevance := Relevant
+                        |}
+                        (Ast.tApp
+                           (Ast.tInd
+                              {|
+                                inductive_mind :=
+                                  (MPfile
+                                     ("Datatypes"%bs
+                                      :: "Init"%bs :: "Coq"%bs :: nil)%list,
+                                   "list"%bs);
+                                inductive_ind := 0
+                              |} nil)
+                           (Ast.tProd
+                              {|
+                                binder_name := nNamed "x"%bs;
+                                binder_relevance := Relevant
+                              |}
+                              (Ast.tApp
+                                 (Ast.tInd
+                                    {|
+                                      inductive_mind :=
+                                        (MPfile
+                                           ("Datatypes"%bs
+                                            :: "Init"%bs :: "Coq"%bs :: nil)%list,
+                                         "prod"%bs);
+                                      inductive_ind := 0
+                                    |} nil)
+                                 (Ast.tInd
+                                    {|
+                                      inductive_mind :=
+                                        (MPbound
+                                           ("Sig"%bs
+                                            :: "EnvironmentTyping"%bs
+                                               ::
+                                               "Common"%bs
+                                               ::
+                                               "QuotationOf"%bs
+                                               ::
+                                               "ToTemplate"%bs
+                                               ::
+                                               "Quotation"%bs
+                                               ::
+                                               "MetaCoq"%bs :: nil)%list
+                                           "E"%bs 25, "global_env"%bs);
+                                      inductive_ind := 0
+                                    |} nil
+                                  :: Ast.tInd
+                                       {|
+                                         inductive_mind :=
+                                           (MPfile
+                                              ("Universes"%bs
+                                               ::
+                                               "Common"%bs
+                                               ::
+                                               "MetaCoq"%bs :: nil)%list,
+                                            "universes_decl"%bs);
+                                         inductive_ind := 0
+                                       |} nil :: nil))
+                              (Ast.tProd
+                                 {|
+                                   binder_name := nNamed "x0"%bs;
+                                   binder_relevance := Relevant
+                                 |}
+                                 (Ast.tConst
+                                    (MPbound
+                                       ("Sig"%bs
+                                        :: "EnvironmentTyping"%bs
+                                           :: "Common"%bs
+                                              :: "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                       "E"%bs 25, "context"%bs) nil)
+                                 (Ast.tProd
+                                    {|
+                                      binder_name := nNamed "x1"%bs;
+                                      binder_relevance := Relevant
+                                    |}
+                                    (Ast.tInd
+                                       {|
+                                         inductive_mind :=
+                                           (MPfile
+                                              ("BasicAst"%bs
+                                               ::
+                                               "Common"%bs
+                                               ::
+                                               "MetaCoq"%bs :: nil)%list,
+                                            "conv_pb"%bs);
+                                         inductive_ind := 0
+                                       |} nil)
+                                    (Ast.tProd
+                                       {|
+                                         binder_name := nNamed "x2"%bs;
+                                         binder_relevance := Relevant
+                                       |}
+                                       (Ast.tConst
+                                          (MPbound
+                                             ("Sig"%bs
+                                              :: "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                             "T"%bs 24, "term"%bs) nil)
+                                       (Ast.tProd
+                                          {|
+                                            binder_name := nNamed "x3"%bs;
+                                            binder_relevance := Relevant
+                                          |}
+                                          (Ast.tConst
+                                             (MPbound
+                                                ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                "T"%bs 24, "term"%bs) nil)
+                                          (Ast.tSort
+                                             (Universes.Universe.of_levels
+                                                (inr
+                                                 (Universes.Level.Level
+                                                 "MetaCoq.Common.EnvironmentTyping.1656"%bs))))))))
+                            :: nil))
+                        (Ast.tProd
+                           {|
+                             binder_name := nNamed "Pcmp"%bs;
+                             binder_relevance := Relevant
+                           |}
+                           (Ast.tProd
+                              {|
+                                binder_name := nNamed "x"%bs;
+                                binder_relevance := Relevant
+                              |}
+                              (Ast.tApp
+                                 (Ast.tInd
+                                    {|
+                                      inductive_mind :=
+                                        (MPfile
+                                           ("Datatypes"%bs
+                                            :: "Init"%bs :: "Coq"%bs :: nil)%list,
+                                         "prod"%bs);
+                                      inductive_ind := 0
+                                    |} nil)
+                                 (Ast.tInd
+                                    {|
+                                      inductive_mind :=
+                                        (MPbound
+                                           ("Sig"%bs
+                                            :: "EnvironmentTyping"%bs
+                                               ::
+                                               "Common"%bs
+                                               ::
+                                               "QuotationOf"%bs
+                                               ::
+                                               "ToTemplate"%bs
+                                               ::
+                                               "Quotation"%bs
+                                               ::
+                                               "MetaCoq"%bs :: nil)%list
+                                           "E"%bs 25, "global_env"%bs);
+                                      inductive_ind := 0
+                                    |} nil
+                                  :: Ast.tInd
+                                       {|
+                                         inductive_mind :=
+                                           (MPfile
+                                              ("Universes"%bs
+                                               ::
+                                               "Common"%bs
+                                               ::
+                                               "MetaCoq"%bs :: nil)%list,
+                                            "universes_decl"%bs);
+                                         inductive_ind := 0
+                                       |} nil :: nil))
+                              (Ast.tProd
+                                 {|
+                                   binder_name := nNamed "x0"%bs;
+                                   binder_relevance := Relevant
+                                 |}
+                                 (Ast.tConst
+                                    (MPbound
+                                       ("Sig"%bs
+                                        :: "EnvironmentTyping"%bs
+                                           :: "Common"%bs
+                                              :: "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                       "E"%bs 25, "context"%bs) nil)
+                                 (Ast.tProd
+                                    {|
+                                      binder_name := nNamed "x1"%bs;
+                                      binder_relevance := Relevant
+                                    |}
+                                    (Ast.tInd
+                                       {|
+                                         inductive_mind :=
+                                           (MPfile
+                                              ("BasicAst"%bs
+                                               ::
+                                               "Common"%bs
+                                               ::
+                                               "MetaCoq"%bs :: nil)%list,
+                                            "conv_pb"%bs);
+                                         inductive_ind := 0
+                                       |} nil)
+                                    (Ast.tProd
+                                       {|
+                                         binder_name := nNamed "x2"%bs;
+                                         binder_relevance := Relevant
+                                       |}
+                                       (Ast.tConst
+                                          (MPbound
+                                             ("Sig"%bs
+                                              :: "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                             "T"%bs 24, "term"%bs) nil)
+                                       (Ast.tProd
+                                          {|
+                                            binder_name := nNamed "x3"%bs;
+                                            binder_relevance := Relevant
+                                          |}
+                                          (Ast.tConst
+                                             (MPbound
+                                                ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                "T"%bs 24, "term"%bs) nil)
+                                          (Ast.tSort
+                                             (Universes.Universe.of_levels
+                                                (inr
+                                                 (Universes.Level.Level
+                                                 "MetaCoq.Common.EnvironmentTyping.1671"%bs)))))))))
+                           (Ast.tProd
+                              {|
+                                binder_name := nAnon;
+                                binder_relevance := Relevant
+                              |}
+                              (Ast.tApp
+                                 (Ast.tInd
+                                    {|
+                                      inductive_mind :=
+                                        (MPfile
+                                           ("Specif"%bs
+                                            :: "Init"%bs :: "Coq"%bs :: nil)%list,
+                                         "sigT"%bs);
+                                      inductive_ind := 0
+                                    |} nil)
+                                 (Ast.tProd
+                                    {|
+                                      binder_name := nAnon;
+                                      binder_relevance := Relevant
+                                    |}
+                                    (Ast.tConst
+                                       (MPbound
+                                          ("Sig"%bs
+                                           :: "EnvironmentTyping"%bs
+                                              :: "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                          "E"%bs 25, "global_env_ext"%bs) nil)
+                                    (Ast.tProd
+                                       {|
+                                         binder_name := nAnon;
+                                         binder_relevance := Relevant
+                                       |}
+                                       (Ast.tConst
+                                          (MPbound
+                                             ("Sig"%bs
+                                              :: "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                             "E"%bs 25, "context"%bs) nil)
+                                       (Ast.tProd
+                                          {|
+                                            binder_name := nAnon;
+                                            binder_relevance := Relevant
+                                          |}
+                                          (Ast.tInd
+                                             {|
+                                               inductive_mind :=
+                                                 (
+                                                 MPfile
+                                                 ("BasicAst"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "conv_pb"%bs);
+                                               inductive_ind := 0
+                                             |} nil)
+                                          (Ast.tProd
+                                             {|
+                                               binder_name := nAnon;
+                                               binder_relevance := Relevant
+                                             |}
+                                             (Ast.tConst
+                                                (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                             (Ast.tProd
+                                                {|
+                                                 binder_name := nAnon;
+                                                 binder_relevance := Relevant
+                                                |}
+                                                (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                                (Ast.tSort
+                                                 (Universes.Universe.of_levels
+                                                 (inr
+                                                 (Universes.Level.Level
+                                                 "MetaCoq.Common.EnvironmentTyping.1635"%bs))))))))
+                                  :: Ast.tLambda
+                                       {|
+                                         binder_name := nNamed "Pcmp'"%bs;
+                                         binder_relevance := Relevant
+                                       |}
+                                       (Ast.tProd
+                                          {|
+                                            binder_name := nAnon;
+                                            binder_relevance := Relevant
+                                          |}
+                                          (Ast.tConst
+                                             (MPbound
+                                                ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                "E"%bs 25,
+                                              "global_env_ext"%bs) nil)
+                                          (Ast.tProd
+                                             {|
+                                               binder_name := nAnon;
+                                               binder_relevance := Relevant
+                                             |}
+                                             (Ast.tConst
+                                                (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "E"%bs 25, "context"%bs) nil)
+                                             (Ast.tProd
+                                                {|
+                                                 binder_name := nAnon;
+                                                 binder_relevance := Relevant
+                                                |}
+                                                (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("BasicAst"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "conv_pb"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                (Ast.tProd
+                                                 {|
+                                                 binder_name := nAnon;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name := nAnon;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                                 (Ast.tSort
+                                                 (Universes.Universe.of_levels
+                                                 (inr
+                                                 (Universes.Level.Level
+                                                 "MetaCoq.Common.EnvironmentTyping.1635"%bs)))))))))
+                                       (Ast.tApp
+                                          (Ast.tConst
+                                             (MPbound
+                                                ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                "GM"%bs 30,
+                                              "cstr_respects_variance"%bs)
+                                             nil)
+                                          (Ast.tRel 0
+                                           :: Ast.tRel 6
+                                              :: Ast.tRel 5
+                                                 ::
+                                                 Ast.tRel 4
+                                                 ::
+                                                 Ast.tRel 3 :: nil)) :: nil))
+                              (Ast.tProd
+                                 {|
+                                   binder_name := nAnon;
+                                   binder_relevance := Relevant
+                                 |}
+                                 (Ast.tCase
+                                    {|
+                                      ci_ind :=
+                                        {|
+                                          inductive_mind :=
+                                            (MPfile
+                                               ("Datatypes"%bs
+                                                ::
+                                                "Init"%bs ::
+                                                "Coq"%bs :: nil)%list,
+                                             "option"%bs);
+                                          inductive_ind := 0
+                                        |};
+                                      ci_npar := 1;
+                                      ci_relevance := Relevant
+                                    |}
+                                    {|
+                                      Ast.puinst := nil;
+                                      Ast.pparams :=
+                                        Ast.tApp
+                                          (Ast.tInd
+                                             {|
+                                               inductive_mind :=
+                                                 (
+                                                 MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "prod"%bs);
+                                               inductive_ind := 0
+                                             |} nil)
+                                          (Ast.tApp
+                                             (Ast.tInd
+                                                {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "prod"%bs);
+                                                 inductive_ind := 0
+                                                |} nil)
+                                             (Ast.tInd
+                                                {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Universes"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "universes_decl"%bs);
+                                                 inductive_ind := 0
+                                                |} nil
+                                              :: Ast.tApp
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "list"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPdot
+                                                 (MPfile
+                                                 ("Universes"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list)
+                                                 "Level"%bs, "t_"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil :: nil) :: nil)
+                                           :: Ast.tApp
+                                                (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "list"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPdot
+                                                 (MPfile
+                                                 ("Universes"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list)
+                                                 "Level"%bs, "t_"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil :: nil) :: nil)
+                                        :: nil;
+                                      Ast.pcontext :=
+                                        {|
+                                          binder_name := nNamed "x"%bs;
+                                          binder_relevance := Relevant
+                                        |} :: nil;
+                                      Ast.preturn :=
+                                        Ast.tSort
+                                          (Universes.Universe.of_levels
+                                             (inr
+                                                (Universes.Level.Level
+                                                 "MetaCoq.Common.EnvironmentTyping.1672"%bs)))
+                                    |}
+                                    (Ast.tApp
+                                       (Ast.tConst
+                                          (MPbound
+                                             ("Sig"%bs
+                                              :: "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                             "GM"%bs 30,
+                                           "variance_universes"%bs) nil)
+                                       (Ast.tApp
+                                          (Ast.tConst
+                                             (MPbound
+                                                ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                "E"%bs 25, "ind_universes"%bs)
+                                             nil)
+                                          (Ast.tRel 5 :: nil)
+                                        :: Ast.tRel 4 :: nil))
+                                    ({|
+                                       Ast.bcontext :=
+                                         {|
+                                           binder_name := nNamed "p"%bs;
+                                           binder_relevance := Relevant
+                                         |} :: nil;
+                                       Ast.bbody :=
+                                         Ast.tCase
+                                           {|
+                                             ci_ind :=
+                                               {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "prod"%bs);
+                                                 inductive_ind := 0
+                                               |};
+                                             ci_npar := 2;
+                                             ci_relevance := Relevant
+                                           |}
+                                           {|
+                                             Ast.puinst := nil;
+                                             Ast.pparams :=
+                                               Ast.tApp
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "prod"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Universes"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "universes_decl"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil
+                                                 ::
+                                                 Ast.tApp
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "list"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPdot
+                                                 (MPfile
+                                                 ("Universes"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list)
+                                                 "Level"%bs, "t_"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil :: nil) :: nil)
+                                               ::
+                                               Ast.tApp
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "list"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPdot
+                                                 (MPfile
+                                                 ("Universes"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list)
+                                                 "Level"%bs, "t_"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil :: nil) :: nil;
+                                             Ast.pcontext :=
+                                               {|
+                                                 binder_name := nNamed "p"%bs;
+                                                 binder_relevance := Relevant
+                                               |} :: nil;
+                                             Ast.preturn :=
+                                               Ast.tSort
+                                                 (Universes.Universe.of_levels
+                                                 (inr
+                                                 (Universes.Level.Level
+                                                 "MetaCoq.Common.EnvironmentTyping.1672"%bs)))
+                                           |} (Ast.tRel 0)
+                                           ({|
+                                              Ast.bcontext :=
+                                                {|
+                                                 binder_name :=
+                                                 nNamed "u'"%bs;
+                                                 binder_relevance := Relevant
+                                                |}
+                                                ::
+                                                {|
+                                                 binder_name :=
+                                                 nNamed "p0"%bs;
+                                                 binder_relevance := Relevant
+                                                |} :: nil;
+                                              Ast.bbody :=
+                                                Ast.tCase
+                                                 {|
+                                                 ci_ind :=
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "prod"%bs);
+                                                 inductive_ind := 0
+                                                 |};
+                                                 ci_npar := 2;
+                                                 ci_relevance := Relevant
+                                                 |}
+                                                 {|
+                                                 Ast.puinst := nil;
+                                                 Ast.pparams :=
+                                                 Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Universes"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "universes_decl"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil
+                                                 ::
+                                                 Ast.tApp
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "list"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPdot
+                                                 (MPfile
+                                                 ("Universes"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list)
+                                                 "Level"%bs, "t_"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil :: nil) :: nil;
+                                                 Ast.pcontext :=
+                                                 {|
+                                                 binder_name :=
+                                                 nNamed "p0"%bs;
+                                                 binder_relevance := Relevant
+                                                 |} :: nil;
+                                                 Ast.preturn :=
+                                                 Ast.tSort
+                                                 (Universes.Universe.of_levels
+                                                 (inr
+                                                 (Universes.Level.Level
+                                                 "MetaCoq.Common.EnvironmentTyping.1672"%bs)))
+                                                 |}
+                                                 (Ast.tRel 1)
+                                                 ({|
+                                                 Ast.bcontext :=
+                                                 {|
+                                                 binder_name := nNamed "u"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 ::
+                                                 {|
+                                                 binder_name :=
+                                                 nNamed "univs"%bs;
+                                                 binder_relevance := Relevant
+                                                 |} :: nil;
+                                                 Ast.bbody :=
+                                                 Ast.tProd
+                                                 {|
+                                                 binder_name := nNamed "Γ"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "E"%bs 25, "context"%bs) nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name := nNamed "t"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name := nNamed "T"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name :=
+                                                 nNamed "pb"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("BasicAst"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "conv_pb"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name := nAnon;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tApp
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("All_Forall"%bs
+                                                 ::
+                                                 "Utils"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "All"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name := nNamed "x"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tApp
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "prod"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "E"%bs 25, "global_env"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil
+                                                 ::
+                                                 Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Universes"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "universes_decl"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil :: nil))
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name :=
+                                                 nNamed "x0"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "E"%bs 25, "context"%bs) nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name :=
+                                                 nNamed "x1"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("BasicAst"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "conv_pb"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name :=
+                                                 nNamed "x2"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name :=
+                                                 nNamed "x3"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                                 (Ast.tSort
+                                                 (Universes.Universe.of_levels
+                                                 (inr
+                                                 (Universes.Level.Level
+                                                 "MetaCoq.Common.EnvironmentTyping.1656"%bs))))))))
+                                                 ::
+                                                 Ast.tLambda
+                                                 {|
+                                                 binder_name :=
+                                                 nNamed "Pcmp'"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name := nNamed "x"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tApp
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "prod"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "E"%bs 25, "global_env"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil
+                                                 ::
+                                                 Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Universes"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "universes_decl"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil :: nil))
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name :=
+                                                 nNamed "x0"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "E"%bs 25, "context"%bs) nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name :=
+                                                 nNamed "x1"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("BasicAst"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "conv_pb"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name :=
+                                                 nNamed "x2"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name :=
+                                                 nNamed "x3"%bs;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                                 (Ast.tSort
+                                                 (Universes.Universe.of_levels
+                                                 (inr
+                                                 (Universes.Level.Level
+                                                 "MetaCoq.Common.EnvironmentTyping.1656"%bs)))))))))
+                                                 (Ast.tApp
+                                                 (Ast.tRel 0)
+                                                 (Ast.tApp
+                                                 (Ast.tConstruct
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "prod"%bs);
+                                                 inductive_ind := 0
+                                                 |} 0 nil)
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "E"%bs 25, "global_env"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil
+                                                 ::
+                                                 Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Universes"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "universes_decl"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil
+                                                 ::
+                                                 Ast.tRel 16
+                                                 ::
+                                                 Ast.tRel 6 :: nil)
+                                                 ::
+                                                 Ast.tRel 4
+                                                 ::
+                                                 Ast.tRel 1
+                                                 ::
+                                                 Ast.tRel 3
+                                                 ::
+                                                 Ast.tRel 2 :: nil))
+                                                 ::
+                                                 Ast.tRel 11 :: nil))
+                                                 (Ast.tApp
+                                                 (Ast.tRel 11)
+                                                 (Ast.tApp
+                                                 (Ast.tConstruct
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Datatypes"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "prod"%bs);
+                                                 inductive_ind := 0
+                                                 |} 0 nil)
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "E"%bs 25, "global_env"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil
+                                                 ::
+                                                 Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("Universes"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "universes_decl"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil
+                                                 ::
+                                                 Ast.tRel 16
+                                                 ::
+                                                 Ast.tRel 6 :: nil)
+                                                 ::
+                                                 Ast.tRel 4
+                                                 ::
+                                                 Ast.tRel 1
+                                                 ::
+                                                 Ast.tRel 3
+                                                 ::
+                                                 Ast.tRel 2 :: nil))))))
+                                                 |} :: nil)
+                                            |} :: nil)
+                                     |}
+                                     :: {|
+                                          Ast.bcontext := nil;
+                                          Ast.bbody :=
+                                            Ast.tInd
+                                              {|
+                                                inductive_mind :=
+                                                 (MPfile
+                                                 ("Logic"%bs
+                                                 ::
+                                                 "Init"%bs ::
+                                                 "Coq"%bs :: nil)%list,
+                                                 "True"%bs);
+                                                inductive_ind := 0
+                                              |} nil
+                                        |} :: nil))
+                                 (Ast.tProd
+                                    {|
+                                      binder_name := nAnon;
+                                      binder_relevance := Relevant
+                                    |}
+                                    (Ast.tApp
+                                       (Ast.tInd
+                                          {|
+                                            inductive_mind :=
+                                              (MPfile
+                                                 ("All_Forall"%bs
+                                                 ::
+                                                 "Utils"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                               "All"%bs);
+                                            inductive_ind := 0
+                                          |} nil)
+                                       (Ast.tProd
+                                          {|
+                                            binder_name := nAnon;
+                                            binder_relevance := Relevant
+                                          |}
+                                          (Ast.tConst
+                                             (MPbound
+                                                ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                "E"%bs 25,
+                                              "global_env_ext"%bs) nil)
+                                          (Ast.tProd
+                                             {|
+                                               binder_name := nAnon;
+                                               binder_relevance := Relevant
+                                             |}
+                                             (Ast.tConst
+                                                (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "E"%bs 25, "context"%bs) nil)
+                                             (Ast.tProd
+                                                {|
+                                                 binder_name := nAnon;
+                                                 binder_relevance := Relevant
+                                                |}
+                                                (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("BasicAst"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "conv_pb"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                (Ast.tProd
+                                                 {|
+                                                 binder_name := nAnon;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name := nAnon;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                                 (Ast.tSort
+                                                 (Universes.Universe.of_levels
+                                                 (inr
+                                                 (Universes.Level.Level
+                                                 "MetaCoq.Common.EnvironmentTyping.1673"%bs))))))))
+                                        :: Ast.tLambda
+                                             {|
+                                               binder_name :=
+                                                 nNamed "Pcmp'"%bs;
+                                               binder_relevance := Relevant
+                                             |}
+                                             (Ast.tProd
+                                                {|
+                                                 binder_name := nAnon;
+                                                 binder_relevance := Relevant
+                                                |}
+                                                (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "E"%bs 25,
+                                                 "global_env_ext"%bs) nil)
+                                                (Ast.tProd
+                                                 {|
+                                                 binder_name := nAnon;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "E"%bs 25, "context"%bs) nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name := nAnon;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tInd
+                                                 {|
+                                                 inductive_mind :=
+                                                 (MPfile
+                                                 ("BasicAst"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list,
+                                                 "conv_pb"%bs);
+                                                 inductive_ind := 0
+                                                 |} nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name := nAnon;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                                 (Ast.tProd
+                                                 {|
+                                                 binder_name := nAnon;
+                                                 binder_relevance := Relevant
+                                                 |}
+                                                 (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "T"%bs 24, "term"%bs) nil)
+                                                 (Ast.tSort
+                                                 (Universes.Universe.of_levels
+                                                 (inr
+                                                 (Universes.Level.Level
+                                                 "MetaCoq.Common.EnvironmentTyping.1673"%bs)))))))))
+                                             (Ast.tApp
+                                                (Ast.tConst
+                                                 (MPbound
+                                                 ("Sig"%bs
+                                                 ::
+                                                 "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                                 "GM"%bs 30,
+                                                 "cstr_respects_variance"%bs)
+                                                 nil)
+                                                (Ast.tRel 0
+                                                 ::
+                                                 Ast.tRel 8
+                                                 ::
+                                                 Ast.tRel 7
+                                                 ::
+                                                 Ast.tRel 6
+                                                 ::
+                                                 Ast.tRel 5 :: nil))
+                                           :: Ast.tRel 3 :: nil))
+                                    (Ast.tApp
+                                       (Ast.tConst
+                                          (MPbound
+                                             ("Sig"%bs
+                                              :: "EnvironmentTyping"%bs
+                                                 ::
+                                                 "Common"%bs
+                                                 ::
+                                                 "QuotationOf"%bs
+                                                 ::
+                                                 "ToTemplate"%bs
+                                                 ::
+                                                 "Quotation"%bs
+                                                 ::
+                                                 "MetaCoq"%bs :: nil)%list
+                                             "GM"%bs 30,
+                                           "cstr_respects_variance"%bs) nil)
+                                       (Ast.tRel 3
+                                        :: Ast.tRel 8
+                                           :: Ast.tRel 7
+                                              :: Ast.tRel 6
+                                                 ::
+                                                 Ast.tRel 5 :: nil))))))))))
+          :: Ast.tConst
+               (MPbound
+                  ("Sig"%bs
+                   :: "EnvironmentTyping"%bs
+                      :: "Common"%bs
+                         :: "QuotationOf"%bs
+                            :: "ToTemplate"%bs
+                               :: "Quotation"%bs :: "MetaCoq"%bs :: nil)%list
+                  "GM"%bs 30, "cstr_respects_variance_impl_gen"%bs) nil
+             :: nil)))).
   Instance:debug_opt := true. Set Typeclasses Debug Verbosity 2. Set Printing Universes. Set Printing Depth 100000. Set MetaCoq Template Monad Debug Verbosity 1.
+  MetaCoq Run foo.
   MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "GM").
+  (* Error: In pattern-matching on term "p0" the branch for constructor
+"pair@{}" has type
+ "Universes.universes_decl ->
+  list Universes.Level.t_ ->
+  Type@{max(Set,All_Forall.All.u0,All_Forall.All.u1,T.term.u0,binder_annot.u0,MetaCoq.Common.BasicAst.289,WithTemplate.tmRetypeAroundMetaCoqBug853.u2)}"
+which should be
+ "Universes.universes_decl ->
+  list Universes.Level.t_ ->
+  Type@{WithTemplate.tmRetypeAroundMetaCoqBug853.u2}".
+*)
 End QuotationOfGlobalMaps.
 
 Module QuoteGlobalMapsSig (Import T: Term) (Import E: EnvironmentSig T) (Import TU : TermUtils T E) (Import ET: EnvTypingSig T E TU) (Import C: ConversionSig T E TU ET) (Import L: LookupSig T E) (Import GM : GlobalMapsSig T E TU ET C L).

@@ -355,6 +355,6 @@ Module WithTemplate.
             | my_Error _ => acc
             end)
         (tmRetypeAroundMetaCoqBug853_gen t)
-        [tmRetypeAroundMetaCoqBug853_gen].
+        [tmRetypeAroundMetaCoqBug853_gen; tmRetypeAroundMetaCoqBug853_gen].
 End WithTemplate.
 Export WithTemplate (transparentify, tmQuoteToGlobalReference, tmRetypeRelaxSet, tmRetypeRelaxType, tmRetypeRelaxSetInCodomain, tmRetypeRelaxSetInAppArgsCodomain, tmRetypeRelaxTypeInCodomain, tmRetypeRelaxOnlyType, tmRetypeMagicRelaxSet, tmRetypeMagicRelaxType, tmRetypeMagicRelaxSetInCodomain, tmRetypeMagicRelaxSetInAppArgsCodomain, tmRetypeMagicRelaxTypeInCodomain, tmRetypeMagicRelaxOnlyType, tmObj_magic, tmRetype, tmExtractBaseModPathFromMod, tmRetypeAroundMetaCoqBug853).
