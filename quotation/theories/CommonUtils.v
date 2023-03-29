@@ -330,11 +330,26 @@ Module WithTemplate.
        v <- tmRetypeMagicRelaxOnlyType ty v;;
        ret {| my_projT1 := ty ; my_projT2 := v |}.
 
+  (* Hack around https://github.com/MetaCoq/metacoq/pull/876#issuecomment-1487743822 *)
+  Polymorphic Class tmCheckSuccessHelper@{t u} {A : Type@{t}} (run : TemplateMonad@{t u} A) := tmCheckSuccessHelper_tt : unit.
+  #[global] Hint Extern 0 (tmCheckSuccessHelper ?run) => run_template_program run (fun _ => refine tt) : typeclass_instances.
+  Polymorphic Definition tmCheckSuccess@{t u} {A : Type@{t}} (run : TemplateMonad@{t u} A) : TemplateMonad@{t u} bool
+  := tmBind (tmInferInstance None (tmTryHelper run))
+            (fun inst => match inst with
+                         | my_Some _ => tmReturn true
+                         | my_None => tmReturn false
+                         end).
+  Polymorphic Definition tmTryWorseButNoAnomaly@{t u} {A : Type@{t}} (run : TemplateMonad@{t u} A) : TemplateMonad@{t u} (option_try@{t} A)
+    := succeeds <- tmCheckSuccess run;;
+       if succeeds:bool
+       then v <- run;; ret (my_Value v)
+       else ret (my_Error GenericError).
+
   Definition tmRetypeAroundMetaCoqBug853 (t : typed_term) : TemplateMonad typed_term
     := Eval cbv [List.fold_right] in
       List.fold_right
         (fun tmRetype acc
-         => res <- tmTry (tmRetype t);;
+         => res <- tmTryWorseButNoAnomaly (tmRetype t);;
             match res with
             | my_Value v => ret v
             | my_Error _ => acc

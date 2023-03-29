@@ -74,7 +74,7 @@ Module Type QuoteConversionSig (Import T : Term) (Import E : EnvironmentSig T) (
 End QuoteConversionSig.
 
 Module Type QuotationOfGlobalMaps (T : Term) (E : EnvironmentSig T) (TU : TermUtils T E) (ET : EnvTypingSig T E TU) (C : ConversionSig T E TU ET) (L : LookupSig T E) (GM : GlobalMapsSig T E TU ET C L).
-  Set Printing All. Set Printing Universes.
+  Instance:debug_opt := true. Set Typeclasses Debug Verbosity 2. Set Printing Universes. Set Printing Depth 100000. Set MetaCoq Template Monad Debug Verbosity 1.
   MetaCoq Run (tmDeclareQuotationOfModule everything (Some export) "GM").
 End QuotationOfGlobalMaps.
 
