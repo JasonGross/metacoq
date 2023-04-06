@@ -14,7 +14,7 @@ Tactic Notation "admit" := abstract case proof_admitted.
 End AdmitTactic.
 Module MetaCoq_DOT_SafeChecker_DOT_PCUICSafeReduce_WRAPPED.
 Module PCUICSafeReduce.
- 
+
 
 Require Coq.Classes.RelationClasses.
 Import Coq.Classes.RelationClasses.
@@ -69,9 +69,9 @@ Import Equations.Prop.Equations.
 Set Equations Transparent.
 Set Equations With UIP.
 
- 
 
- 
+
+
 Notation " `  t " := (proj1_sig t) (at level 10, t at next level) : metacoq_scope.
 
 Set Default Goal Selector "!".
@@ -90,7 +90,7 @@ Lemma welltyped_is_open_term {cf Σ} {wfΣ : wf Σ} {Γ t} :
 Admitted.
 #[global] Hint Resolve welltyped_is_open_term : fvs.
 
- 
+
 Section Measure.
 
   Context {cf : checker_flags} {no : normalizing_flags}.
@@ -162,11 +162,11 @@ Admitted.
 
 End Measure.
 
- 
+
 Section Acc_sidecond_generator.
   Context {A : Type} {R : A -> A -> Prop} {P : A -> Prop}.
   Variable Pimpl : forall x y, P x -> R y x -> P y.
-   
+
   Fixpoint Acc_intro_generator n (acc : forall t, P t -> Acc R t) : forall t, P t -> Acc R t :=
     match n with
         | O => acc
@@ -174,7 +174,7 @@ Section Acc_sidecond_generator.
                    Acc_intro x (fun y Hy => Acc_intro_generator n (Acc_intro_generator n acc) y (Pimpl _ _ Px Hy))
     end.
 End Acc_sidecond_generator.
- 
+
 Opaque Acc_intro_generator.
 
 Section Reduce.
@@ -189,7 +189,7 @@ Section Reduce.
 
   Context {normalization_in : forall Σ, wf_ext Σ -> Σ ∼_ext X -> NormalizationIn Σ}.
 
- 
+
 
   Local Definition heΣ Σ (wfΣ : abstract_env_ext_rel X Σ) :
     ∥ wf_ext Σ ∥ :=  abstract_env_ext_wf _ wfΣ.
@@ -324,9 +324,9 @@ Defined.
 admit.
 Defined.
 
-   
+
   Ltac obTac :=
-     
+
     Program.Tactics.program_simplify ;
     Equations.CoreTactics.equations_simpl ;
     try Program.Tactics.program_solve_wf ;
@@ -334,29 +334,16 @@ Defined.
 
   Obligation Tactic := obTac.
 
-  Equations discr_construct (t : term) : Prop :=
-    discr_construct (tConstruct ind n ui) := False ;
-    discr_construct _ := True.
+  Lemma discr_construct (t : term) : Prop. Admitted.
 
   Inductive construct_view : term -> Type :=
   | view_construct : forall ind n ui, construct_view (tConstruct ind n ui)
   | view_other : forall t, discr_construct t -> construct_view t.
 
-  Equations construct_viewc t : construct_view t :=
-    construct_viewc (tConstruct ind n ui) := view_construct ind n ui ;
-    construct_viewc t := view_other t I.
+  Lemma construct_viewc t : construct_view t. Admitted.
 
-   
-  Equations red_discr (t : term) (π : stack) : Prop :=
-    red_discr (tRel _) _ := False ;
-    red_discr (tLetIn _ _ _ _) _ := False ;
-    red_discr (tConst _ _) _ := False ;
-    red_discr (tApp _ _) _ := False ;
-    red_discr (tLambda _ _ _) (App_l _ :: _) := False ;
-    red_discr (tFix _ _) _ := False ;
-    red_discr (tCase _ _ _ _) _ := False ;
-    red_discr (tProj _ _) _ := False ;
-    red_discr _ _ := True.
+
+  Lemma red_discr (t : term) (π : stack) : Prop. Admitted.
 
   Inductive red_view : term -> stack -> Type :=
   | red_view_Rel c π : red_view (tRel c) π
@@ -369,185 +356,32 @@ Defined.
   | red_view_Proj p c π : red_view (tProj p c) π
   | red_view_other t π : red_discr t π -> red_view t π.
 
-  Equations red_viewc t π : red_view t π :=
-    red_viewc (tRel c) π := red_view_Rel c π ;
-    red_viewc (tLetIn A b B c) π := red_view_LetIn A b B c π ;
-    red_viewc (tConst c u) π := red_view_Const c u π ;
-    red_viewc (tApp f a) π := red_view_App f a π ;
-    red_viewc (tLambda na A t) (App_l a :: args) := red_view_Lambda na A t a args ;
-    red_viewc (tFix mfix idx) π := red_view_Fix mfix idx π ;
-    red_viewc (tCase ci p c brs) π := red_view_Case ci p c brs π ;
-    red_viewc (tProj p c) π := red_view_Proj p c π ;
-    red_viewc t π := red_view_other t π I.
+  Lemma red_viewc t π : red_view t π. Admitted.
 
-  Equations discr_construct_cofix (t : term) : Prop :=
-    discr_construct_cofix (tConstruct ind n ui) := False ;
-    discr_construct_cofix (tCoFix mfix idx) := False ;
-    discr_construct_cofix _ := True.
+  Lemma discr_construct_cofix (t : term) : Prop. Admitted.
 
   Inductive construct_cofix_view : term -> Type :=
   | ccview_construct : forall ind n ui, construct_cofix_view (tConstruct ind n ui)
   | ccview_cofix : forall mfix idx, construct_cofix_view (tCoFix mfix idx)
   | ccview_other : forall t, discr_construct_cofix t -> construct_cofix_view t.
 
-  Equations cc_viewc t : construct_cofix_view t :=
-    cc_viewc (tConstruct ind n ui) := ccview_construct ind n ui ;
-    cc_viewc (tCoFix mfix idx) := ccview_cofix mfix idx ;
-    cc_viewc t := ccview_other t I.
+  Lemma cc_viewc t : construct_cofix_view t. Admitted.
 
-  Equations discr_construct0_cofix (t : term) : Prop :=
-    discr_construct0_cofix (tConstruct ind n ui) := n <> 0 ;
-    discr_construct0_cofix (tCoFix mfix idx) := False ;
-    discr_construct0_cofix _ := True.
+  Lemma discr_construct0_cofix (t : term) : Prop. Admitted.
 
   Inductive construct0_cofix_view : term -> Type :=
   | cc0view_construct : forall ind ui, construct0_cofix_view (tConstruct ind 0 ui)
   | cc0view_cofix : forall mfix idx, construct0_cofix_view (tCoFix mfix idx)
   | cc0view_other : forall t, discr_construct0_cofix t -> construct0_cofix_view t.
 
-  Equations cc0_viewc t : construct0_cofix_view t :=
-    cc0_viewc (tConstruct ind 0 ui) := cc0view_construct ind ui ;
-    cc0_viewc (tCoFix mfix idx) := cc0view_cofix mfix idx ;
-    cc0_viewc t := cc0view_other t _.
+  Lemma cc0_viewc t : construct0_cofix_view t. Admitted.
 
-  Equations _reduce_stack (Γ : context) (t : term) (π : stack)
+  Lemma _reduce_stack (Γ : context) (t : term) (π : stack)
             (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π)))
             (reduce : forall t' π', (forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ (t',π') (t,π)) ->
                                { t'' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t'' (t',π') /\ Pr t'' π' /\ Pr' t'' })
-    : { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t,π) /\ Pr t' π /\ Pr' t' } :=
-
-    _reduce_stack Γ t π h reduce with red_viewc t π := {
-
-    | red_view_Rel c π with RedFlags.zeta flags := {
-      | true with inspect (nth_error (Γ ,,, stack_context π) c) := {
-        | @exist None eq := False_rect _ _ ;
-        | @exist (Some d) eq with inspect d.(decl_body) := {
-          | @exist None _ := give (tRel c) π ;
-          | @exist (Some b) H := rec reduce (lift0 (S c) b) π
-          }
-        } ;
-      | false := give (tRel c) π
-      } ;
-
-    | red_view_LetIn A b B c π with RedFlags.zeta flags := {
-      | true := rec reduce (subst10 b c) π ;
-      | false := give (tLetIn A b B c) π
-      } ;
-
-    | red_view_Const c u π with RedFlags.delta flags := {
-      | true with inspect (abstract_env_lookup X c) := {
-        | @exist (Some (ConstantDecl {| cst_body := Some body |})) eq :=
-          let body' := subst_instance u body in
-          rec reduce body' π ;
-        | @exist (Some (InductiveDecl _)) eq := False_rect _ _ ;
-        | @exist (Some _) eq := give (tConst c u) π ;
-        | @exist None eq := False_rect _ _
-        } ;
-      | _ := give (tConst c u) π
-      } ;
-
-    | red_view_App f a π := rec reduce f (App_l a :: π) ;
-
-    | red_view_Lambda na A t a args with inspect (RedFlags.beta flags) := {
-      | @exist true eq1 := rec reduce (subst10 a t) args ;
-      | @exist false eq1 := give (tLambda na A t) (App_l a :: args)
-      } ;
-
-    | red_view_Fix mfix idx π with RedFlags.fix_ flags := {
-      | true with inspect (unfold_fix mfix idx) := {
-        | @exist (Some (narg, fn)) eq1 with inspect (decompose_stack_at π narg) := {
-          | @exist (Some (args, c, ρ)) eq2 with inspect (reduce c (Fix_app mfix idx args :: ρ) _) := {
-            | @exist (@exist (t, ρ') prf) eq3 with construct_viewc t := {
-              | view_construct ind n ui with inspect (decompose_stack ρ') := {
-                | @exist (l, θ) eq4 :=
-                  rec reduce fn (appstack args (App_l (mkApps (tConstruct ind n ui) l) :: ρ))
-                } ;
-              | view_other t ht with inspect (decompose_stack ρ') := {
-                | @exist (l, θ) eq4 :=
-                  give (tFix mfix idx) (appstack args (App_l (mkApps t l) :: ρ))
-                }
-              }
-            } ;
-          | _ := give (tFix mfix idx) π
-          } ;
-        | _ := give (tFix mfix idx) π
-        } ;
-      | false := give (tFix mfix idx) π
-      } ;
-
-    | red_view_Case ci p c brs π with RedFlags.iota flags := {
-      | true with inspect (reduce c (Case_discr ci p brs :: π) _) := {
-        | @exist (@exist (t,π') prf) eq with inspect (decompose_stack π') := {
-          | @exist (args, ρ) prf' with cc_viewc t := {
-            | ccview_construct ind' c' inst' with inspect (nth_error brs c') := {
-              | exist (Some br) eqbr := rec reduce (iota_red ci.(ci_npar) p args br) π ;
-              | exist None bot := False_rect _ _ } ;
-            | ccview_cofix mfix idx with inspect (unfold_cofix mfix idx) := {
-              | @exist (Some (narg, fn)) eq' :=
-                rec reduce (tCase ci p (mkApps fn args) brs) π ;
-              | @exist None bot := False_rect _ _
-              } ;
-            | ccview_other t ht := give (tCase ci p (mkApps t args) brs) π
-            }
-          }
-        } ;
-      | false := give (tCase ci p c brs) π
-      } ;
-
-    | red_view_Proj p c π with RedFlags.iota flags := {
-      | true with inspect (reduce c (Proj p :: π) _) := {
-        | @exist (@exist (t,π') prf) eq with inspect (decompose_stack π') := {
-          | @exist (args, ρ) prf' with cc0_viewc t := {
-            | cc0view_construct ind' _
-              with inspect (nth_error args (p.(proj_npars) + p.(proj_arg))) := {
-              | @exist (Some arg) eqa := rec reduce arg π ;
-              | @exist None eqa := False_rect _ _
-              } ;
-            | cc0view_cofix mfix idx with inspect (unfold_cofix mfix idx) := {
-              | @exist (Some (rarg, fn)) eq' :=
-                rec reduce (tProj p (mkApps fn args)) π ;
-              | @exist None bot := False_rect _ _
-              } ;
-            | cc0view_other t ht := give (tProj p (mkApps t args)) π
-            }
-          }
-        } ;
-      | false := give (tProj p c) π
-      } ;
-
-    | red_view_other t π discr := give t π
-
-    }.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
-Admit Obligations.
+    : { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t,π) /\ Pr t' π /\ Pr' t' }.
+    Admitted.
 
   Lemma welltyped_R_pres Σ (wfΣ : abstract_env_ext_rel X Σ) Γ :
     forall x y : term × stack, welltyped Σ Γ (zip x) -> R Σ Γ y x -> welltyped Σ Γ (zip y).
@@ -563,7 +397,7 @@ Admitted.
         forall Σ, abstract_env_ext_rel X Σ -> R Σ Γ (pr1 x, pr1 (pr2 x)) (pr1 y, pr1 (pr2 y))).
     Proof using normalization_in.
       intros [t [π wt]].
-       
+
       unshelve eapply (Acc_intro_generator
         (R:=fun x y : sigmaarg => forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ (x.(pr1), x.(pr2).(pr1)) (y.(pr1), y.(pr2).(pr1)))
         (P:=fun x : sigmaarg => forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (x.(pr1), x.(pr2).(pr1))))
@@ -596,10 +430,9 @@ exact H1.
  reflexivity.
   Defined.
 
-  Equations reduce_stack_full (t : term) (π : stack) (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π))) :
-    { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t, π) /\ Pr t' π /\ Pr' t' }
-    by wf (t, π) (fun (x y : term * stack) => forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ x y) :=
-    reduce_stack_full t π h := _reduce_stack Γ t π h (fun t' π' hr => reduce_stack_full t' π' (fun Σ wfΣ' => welltyped_R_pres Σ wfΣ' Γ _ _ (h Σ wfΣ') (hr Σ wfΣ'))).
+  Lemma reduce_stack_full (t : term) (π : stack) (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π))) :
+    { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t, π) /\ Pr t' π /\ Pr' t' }.
+Admitted.
 
   End reducewf.
 
@@ -770,7 +603,7 @@ Section ReduceFns.
   Context {cf : checker_flags} {no : normalizing_flags}
           {X_type : abstract_env_impl} {X : X_type.π2.π1} {normalization_in : forall Σ, wf_ext Σ -> Σ ∼_ext X -> NormalizationIn Σ}.
 
-   
+
   Opaque reduce_stack_full.
 
   Definition hnf := reduce_term RedFlags.default X_type X.
@@ -786,40 +619,11 @@ eapply into_closed_red; fvs.
   Theorem hnf_complete {Γ t h} Σ (wfΣ : abstract_env_ext_rel X Σ) : ∥whnf RedFlags.default Σ Γ (hnf Γ t h)∥.
 Admitted.
 
-  Equations? reduce_to_sort (Γ : context) (t : term)
+  Lemma reduce_to_sort (Γ : context) (t : term)
     (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ t)
-    : typing_result_comp (∑ u, forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ Σ ;;; Γ ⊢ t ⇝ tSort u ∥) :=
-    reduce_to_sort Γ t h with view_sortc t := {
-      | view_sort_sort s => Checked_comp (s; _);
-      | view_sort_other t _ with inspect (hnf Γ t h) :=
-        | exist hnft eq with view_sortc hnft := {
-          | view_sort_sort s => Checked_comp (s; _);
-          | view_sort_other hnft r => TypeError_comp (NotASort hnft) _
-        }
-      }.
-  Proof using Type.
-    *
- destruct (h _ wfΣ) as [? hs].
-      pose proof (hΣ := hΣ _ X _ wfΣ).
-sq.
-      eapply (wt_closed_red_refl hs).
-    *
- pose proof (hnf_sound (h:=h)).
-      now rewrite eq.
-    *
- destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
-specialize (X1 _ wfΣ).
-      pose proof (hΣ := hΣ _ X _ wfΣ).
-sq.
-      pose proof (@hnf_complete Γ t h) as [wh]; eauto.
-      pose proof (@hnf_sound Γ t h) as [r']; eauto.
-      eapply PCUICContextConversion.closed_red_confluence in X1 as (?&r1&r2); eauto.
-      apply invert_red_sort in r2 as ->.
-      eapply whnf_red_inv in r1; eauto.
-      depelim r1.
-      rewrite H in r.
-      now cbn in r.
-  Qed.
+    : typing_result_comp (∑ u, forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ Σ ;;; Γ ⊢ t ⇝ tSort u ∥).
+  Admitted.
+
 
   Lemma reduce_to_sort_complete {Γ t wt} Σ (wfΣ : abstract_env_ext_rel X Σ)
     e p :
@@ -827,39 +631,11 @@ sq.
     (forall s, red Σ Γ t (tSort s) -> False).
 Admitted.
 
-  Equations? reduce_to_prod (Γ : context) (t : term)
+  Lemma reduce_to_prod (Γ : context) (t : term)
     (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ t)
-    : typing_result_comp (∑ na a b, forall  Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ Σ ;;; Γ ⊢ t ⇝ tProd na a b ∥) :=
-    reduce_to_prod Γ t h with view_prodc t := {
-      | view_prod_prod na a b => Checked_comp (na; a; b; _);
-      | view_prod_other t _ with inspect (hnf Γ t h) :=
-        | exist hnft eq with view_prodc hnft := {
-          | view_prod_prod na a b => Checked_comp (na; a; b; _);
-          | view_prod_other hnft _ => TypeError_comp (NotAProduct t hnft) _
-        }
-      }.
-  Proof using Type.
-    *
- destruct (h _ wfΣ) as [? hs].
-      pose proof (hΣ := hΣ _ _ _ wfΣ).
-sq.
-      now eapply wt_closed_red_refl.
-    *
- pose proof (hnf_sound (h:=h)).
-      now rewrite eq.
-    *
- destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
-      specialize (X3 _ wfΣ).
-      sq.
-      pose proof (@hnf_complete Γ t h) as [wh]; eauto.
-      pose proof (@hnf_sound Γ t h) as [r']; eauto.
-      destruct (hΣ _ _ _ wfΣ).
-      eapply PCUICContextConversion.closed_red_confluence in X3 as (?&r1&r2); eauto.
-      apply invert_red_prod in r2 as (?&?&[-> ? ?]); auto.
-      eapply whnf_red_inv in r1; auto.
-      depelim r1.
-      now rewrite H in n0.
-  Qed.
+    : typing_result_comp (∑ na a b, forall  Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ Σ ;;; Γ ⊢ t ⇝ tProd na a b ∥).
+  Admitted.
+
 
   Lemma reduce_to_prod_complete {Γ t wt} Σ (wfΣ : abstract_env_ext_rel X Σ)
     e p :
@@ -867,90 +643,11 @@ sq.
     (forall na a b, red Σ Γ t (tProd na a b) -> False).
 Admitted.
 
-  Equations? reduce_to_ind (Γ : context) (t : term)
+  Lemma reduce_to_ind (Γ : context) (t : term)
     (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ t)
-    : typing_result_comp (∑ i u l, forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ Σ ;;; Γ ⊢ t ⇝ mkApps (tInd i u) l ∥) :=
-    reduce_to_ind Γ t h with inspect (decompose_app t) := {
-      | exist (thd, args) eq_decomp with view_indc thd := {
-        | view_ind_tInd i u => Checked_comp (i; u; args; _);
-        | view_ind_other thd _ with inspect (reduce_stack RedFlags.default _ X Γ t [] h) := {
-          | exist (hnft, π) eq with view_indc hnft := {
-            | view_ind_tInd i' u with inspect (decompose_stack π) := {
-              | exist (l, _) eq_decomp' => Checked_comp (i'; u; l; _)
-              };
-            | view_ind_other _ _ => TypeError_comp (NotAnInductive t) _
-            }
-          }
-        }
-      }.
-  Proof using Type.
-    -
- specialize (h _ wfΣ).
-destruct h  as [? h].
-      assert (Xeq : mkApps (tInd i u) args = t).
-      {
- etransitivity.
-2: symmetry; eapply mkApps_decompose_app.
-        now rewrite <- eq_decomp.
-}
-      rewrite Xeq.
-pose proof (hΣ := hΣ _ _ _ wfΣ); sq; eapply (wt_closed_red_refl h).
-    -
- pose proof (reduce_stack_sound RedFlags.default _ X _ wfΣ _ _ [] h).
-      rewrite <- eq in H.
-      cbn in *.
-      assert (π = appstack l []) as ->.
-      2: {
- now rewrite zipc_appstack in H.
-}
-      unfold reduce_stack in eq.
-      destruct reduce_stack_full as (?&_&stack_val&?); eauto.
-      subst x.
-      unfold Pr in stack_val.
-      cbn in *.
-      assert (decomp: decompose_stack π = ((decompose_stack π).1, [])).
-      {
- rewrite stack_val.
-        now destruct decompose_stack.
-}
-      apply decompose_stack_eq in decomp as ->.
-      now rewrite <- eq_decomp'.
-    -
- destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
-      specialize (X3 _ wfΣ).
-      pose proof (hΣ := hΣ _ _ _ wfΣ).
-sq.
-      pose proof (reduce_stack_whnf RedFlags.default _ X Γ t [] h _  wfΣ) as wh.
-      unfold reduce_stack in *.
-      destruct reduce_stack_full as ((hd&π')&r'&stack_valid&(notapp&_)); eauto.
-      destruct wh as [wh].
-      apply Req_red in r' as [r'].
-      unfold Pr in stack_valid.
-      cbn in *.
-      eapply into_closed_red in r'; fvs.
-      eapply PCUICContextConversion.closed_red_confluence in r' as (?&r1&r2).
-      2 : exact X3.
-      assert (exists args, π' = appstack args []) as (?&->).
-      {
- exists ((decompose_stack π').1).
-        assert (decomp: decompose_stack π' = ((decompose_stack π').1, [])).
-        {
- now rewrite stack_valid; destruct decompose_stack; cbn.
-}
-        now apply decompose_stack_eq in decomp.
-}
-      unfold zipp in wh.
-      rewrite stack_context_appstack, decompose_stack_appstack in wh.
-      rewrite zipc_appstack in r2.
-      cbn in *.
-      rewrite app_nil_r in wh.
-      eapply whnf_red_inv in r2; eauto.
-      apply invert_red_mkApps_tInd in r1 as (?&[-> _ ?]); auto.
-      apply whnf_red_mkApps_inv in r2 as (?&?); auto.
-      depelim w.
-      noconf eq.
-      discriminate i0.
-  Qed.
+    : typing_result_comp (∑ i u l, forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ Σ ;;; Γ ⊢ t ⇝ mkApps (tInd i u) l ∥).
+  Admitted.
+
 
   Lemma reduce_to_ind_complete  Σ (wfΣ : abstract_env_ext_rel X Σ) Γ ty wat e p :
     reduce_to_ind Γ ty wat = TypeError_comp e p ->
@@ -959,7 +656,7 @@ sq.
       False.
 Admitted.
 
-   
+
   Definition arity_ass := aname * term.
 
   Fixpoint mkAssumArity (l : list arity_ass) (s : Universe.t) : term :=
@@ -1094,8 +791,7 @@ Admitted.
   Notation obpack u:=
     (pzt u ; (pps1 u, (pwt u; (pps2 u, st u)))) (only parsing).
 
-  Definition R Γ (u v : pack Γ) :=
-    R_aux Γ (obpack u) (obpack v).
+  Axiom R : forall Γ : context, pack Γ -> pack Γ -> Prop.
 
   Notation conv_stack_ctx Γ π1 π2 :=
     (forall Σ, abstract_env_ext_rel X Σ -> ∥ (Σ ⊢ Γ ,,, stack_context π1 = Γ ,,, stack_context π2) ∥).
@@ -1111,27 +807,15 @@ Admitted.
   Arguments Success {_} _.
   Arguments Error {_} _.
 
-  Definition isred_full Γ t π :=
-    isApp t = false /\
-    forall Σ, abstract_env_ext_rel X Σ -> ∥whnf RedFlags.nodelta Σ (Γ,,, stack_context π) (zipp t π)∥.
-
+  Axiom isred_full : context -> term -> stack -> Prop.
   Lemma prog_discr (t1 t2 : term) : Prop.
 Admitted.
 
-  Definition Ret s Γ t π t' π' :=
+  Definition Ret (s:state) Γ t π t' π' :=
     forall (leq : conv_pb),
       conv_stack_ctx Γ π π' ->
-      (match s with Fallback | Term => isred_full Γ t π | _ => True end) ->
-      (match s with Fallback | Term => isred_full Γ t' π' | _ => True end) ->
-      (match s with | Fallback => prog_discr t t' | _ => True end) ->
-      match s with
-      | Reduction
-      | Term
-      | Fallback => ConversionResult (conv_term leq Γ t π t' π')
-      | Args => ConversionResult (forall Σ, abstract_env_ext_rel X Σ -> ∥ws_cumul_pb_terms Σ (Γ,,, stack_context π)
-                                   (decompose_stack π).1
-                                   (decompose_stack π').1∥)
-      end.
+      True -> True -> True ->
+      ConversionResult (conv_term leq Γ t π t' π').
 
   Definition Aux s Γ t1 π1 t2 π2 h2 :=
      forall s' t1' π1' t2' π2'
@@ -1249,4 +933,3 @@ admit.
   Next Obligation.
 admit.
 Defined.
-
