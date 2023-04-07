@@ -19,6 +19,7 @@ theories/LibHypsNaming.v
 theories/MCList.v
 theories/MCMSets.v
 theories/MCOption.v
+theories/MCPartialFuel.v
 theories/MCProd.v
 theories/MCPred.v
 theories/MCRelations.v

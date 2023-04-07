@@ -1,5 +1,5 @@
 Require Import Arith List.
-From MetaCoq.Utils Require Import All_Forall MCSquash.
+From MetaCoq.Utils Require Import All_Forall MCSquash MCPartialFuel.
 From Equations Require Import Equations.
 Coercion is_true : bool >-> Sortclass.
 
@@ -66,6 +66,27 @@ Import MCMonadNotation.
       | None => f tt
       end
 |}.
+
+#[global] Instance partial_fuel_monad {R} : Monad (PartiallyFueled R) | 10 :=
+  {| ret A a := finished a
+  ; bind A B m f := partially_fueled_bind m f
+  |}.
+
+Module MCPartialFuelMonadNotation.
+  Export MCMonadNotation.
+
+  Notation "'mlet' x <-inspect c1 ;; c2" := (@partially_fueled_bind_inspect _ _ _ c1 (fun x => c2))
+    (at level 100, c1 at next level, right associativity, x pattern) : monad_scope.
+
+  Notation "'mlet' ' pat <-inspect c1 ;; c2" := (@partially_fueled_bind_inspect _ _ _ c1 (fun x => match x with pat => c2 end))
+    (at level 100, pat pattern, c1 at next level, right associativity) : monad_scope.
+
+  Notation "x <-inspect c1 ;; c2" := (@partially_fueled_bind_inspect _ _ _ c1 (fun x => c2))
+    (at level 100, c1 at next level, right associativity) : monad_scope.
+
+  Notation "' pat <-inspect c1 ;; c2" := (@partially_fueled_bind_inspect _ _ _ c1 (fun x => match x with pat => c2 end))
+    (at level 100, pat pattern, c1 at next level, right associativity) : monad_scope.
+End MCPartialFuelMonadNotation.
 
 Open Scope monad.
 
