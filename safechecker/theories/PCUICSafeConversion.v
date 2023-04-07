@@ -148,72 +148,10 @@ Class abstract_env_struct {cf:checker_flags} (abstract_env_impl abstract_env_ext
   abstract_env_rel : abstract_env_impl -> global_env -> Prop;
   abstract_env_ext_rel : abstract_env_ext_impl -> global_env_ext -> Prop;
 
-  abstract_env_init (cs:ContextSet.t) (retro : Retroknowledge.t) : on_global_univs cs -> abstract_env_impl;
-  abstract_env_add_decl X (kn:kername) (d:global_decl) :
-   (forall Σ, abstract_env_rel X Σ -> ∥ on_global_decls Σ kn d ∥)
-   -> abstract_env_impl;
-  abstract_env_add_udecl X udecl :
-    (forall Σ, abstract_env_rel X Σ -> ∥ on_udecl Σ.(universes) udecl ∥) ->
-    abstract_env_ext_impl ;
-  abstract_pop_decls : abstract_env_impl -> abstract_env_impl ;
-
-  abstract_env_lookup : abstract_env_ext_impl -> kername -> option global_decl;
-  abstract_primitive_constant : abstract_env_ext_impl -> Primitive.prim_tag -> option kername;
-
-  abstract_env_level_mem : abstract_env_ext_impl -> Level.t -> bool;
-  abstract_env_leqb_level_n : abstract_env_ext_impl -> Z -> Level.t -> Level.t -> bool;
-  abstract_env_guard : abstract_env_ext_impl -> FixCoFix -> context -> mfixpoint term -> bool;
-  abstract_env_is_consistent : abstract_env_impl -> LevelSet.t * GoodConstraintSet.t -> bool ;
-
 }.
 
 Class abstract_env_prop {cf:checker_flags} (abstract_env_impl abstract_env_ext_impl: Type)
-  `{!abstract_env_struct abstract_env_impl abstract_env_ext_impl} : Prop := {
-
-  abstract_env_ext_exists X : ∥ ∑ Σ , abstract_env_ext_rel X Σ ∥;
-  abstract_env_ext_wf X {Σ} : abstract_env_ext_rel X Σ -> ∥ wf_ext Σ ∥ ;
-  abstract_env_ext_irr X {Σ Σ'} :
-      abstract_env_ext_rel X Σ -> abstract_env_ext_rel X Σ' ->  Σ = Σ';
-
-  abstract_env_exists X : ∥ ∑ Σ , abstract_env_rel X Σ ∥;
-  abstract_env_wf X {Σ} : abstract_env_rel X Σ -> ∥ wf Σ ∥;
-  abstract_env_irr X {Σ Σ'} :
-    abstract_env_rel X Σ -> abstract_env_rel X Σ' ->  Σ = Σ';
-
-  abstract_env_init_correct univs retro cuniv :
-    abstract_env_rel (abstract_env_init univs retro cuniv)
-    {| universes := univs; declarations := []; retroknowledge := retro |} ;
-  abstract_env_add_decl_correct X Σ kn d H : abstract_env_rel X Σ ->
-    abstract_env_rel (abstract_env_add_decl X kn d H) (add_global_decl Σ (kn,d));
-  abstract_env_add_udecl_rel X {Σ} udecl H :
-    (abstract_env_rel X Σ.1 /\ Σ.2 = udecl) <->
-    abstract_env_ext_rel (abstract_env_add_udecl X udecl H) Σ;
-  abstract_pop_decls_correct X decls (prf : forall Σ : global_env, abstract_env_rel X Σ ->
-            exists d, Σ.(declarations) = d :: decls) :
-    let X' := abstract_pop_decls X in
-    forall Σ Σ', abstract_env_rel X Σ -> abstract_env_rel X' Σ' ->
-                      Σ'.(declarations) = decls /\ Σ.(universes) = Σ'.(universes) /\
-                      Σ.(retroknowledge) = Σ'.(retroknowledge);
-
-  abstract_env_lookup_correct X {Σ} kn decl : abstract_env_ext_rel X Σ ->
-      In (kn, decl) (declarations Σ) <-> abstract_env_lookup X kn = Some decl ;
-
-  abstract_env_leqb_level_n_correct X {Σ} (wfΣ : abstract_env_ext_rel X Σ):
-    let uctx := (wf_ext_gc_of_uctx (abstract_env_ext_wf X wfΣ)).π1 in
-    leqb_level_n_spec_gen uctx (abstract_env_leqb_level_n X);
-  abstract_env_level_mem_correct X {Σ} (wfΣ : abstract_env_ext_rel X Σ) l:
-    LevelSet.In l (global_ext_levels Σ) <-> abstract_env_level_mem X l;
-  abstract_env_is_consistent_correct X Σ uctx udecl :
-    abstract_env_rel X Σ ->
-    ConstraintSet.For_all (declared_cstr_levels (LevelSet.union udecl.1 (global_levels Σ))) udecl.2 ->
-    gc_of_uctx udecl = Some uctx ->
-    consistent_extension_on (global_uctx Σ) udecl.2 <-> abstract_env_is_consistent X uctx ;
-
-  abstract_env_guard_correct X {Σ} (wfΣ : abstract_env_ext_rel X Σ) fix_cofix Γ mfix :
-      guard fix_cofix Σ Γ mfix <-> abstract_env_guard X fix_cofix Γ mfix;
-  abstract_primitive_constant_correct X tag Σ :
-    abstract_env_ext_rel X Σ -> abstract_primitive_constant X tag = PCUICEnvironment.primitive_constant Σ tag
-  }.
+  `{!abstract_env_struct abstract_env_impl abstract_env_ext_impl} : Prop := { }.
 
 Definition abstract_env_impl {cf:checker_flags} := ∑ X Y Z, @abstract_env_prop _ X Y Z.
 
@@ -221,115 +159,13 @@ Global Instance abstract_env_impl_abstract_env_struct {cf:checker_flags} (Σ : a
 Admitted.
 
 Inductive ConversionError :=
-| NotFoundConstants (c1 c2 : kername)
-
-| NotFoundConstant (c : kername)
-
-| LambdaNotConvertibleTypes
-    (Γ1 : context) (na : aname) (A1 t1 : term)
-    (Γ2 : context) (na' : aname) (A2 t2 : term)
-    (e : ConversionError)
-
-| LambdaNotConvertibleAnn
-    (Γ1 : context) (na : aname) (A1 t1 : term)
-    (Γ2 : context) (na' : aname) (A2 t2 : term)
-
-| ProdNotConvertibleDomains
-    (Γ1 : context) (na : aname) (A1 B1 : term)
-    (Γ2 : context) (na' : aname) (A2 B2 : term)
-    (e : ConversionError)
-
-| ProdNotConvertibleAnn
-    (Γ1 : context) (na : aname) (A1 B1 : term)
-    (Γ2 : context) (na' : aname) (A2 B2 : term)
-
-| ContextNotConvertibleAnn
-    (Γ : context) (decl : context_decl)
-    (Γ' : context) (decl' : context_decl)
-| ContextNotConvertibleType
-    (Γ : context) (decl : context_decl)
-    (Γ' : context) (decl' : context_decl)
-| ContextNotConvertibleBody
-    (Γ : context) (decl : context_decl)
-    (Γ' : context) (decl' : context_decl)
-| ContextNotConvertibleLength
-
-| CaseOnDifferentInd
-    (Γ1 : context)
-    (ci : case_info) (p : predicate term) (c : term) (brs : list (branch term))
-    (Γ2 : context)
-    (ci' : case_info) (p' : predicate term) (c' : term) (brs' : list (branch term))
-
-| CasePredParamsUnequalLength
-    (Γ1 : context)
-    (ci : case_info) (p : predicate term) (c : term) (brs : list (branch term))
-    (Γ2 : context)
-    (ci' : case_info) (p' : predicate term) (c' : term) (brs' : list (branch term))
-
-| CasePredUnequalUniverseInstances
-    (Γ1 : context)
-    (ci : case_info) (p : predicate term) (c : term) (brs : list (branch term))
-    (Γ2 : context)
-    (ci' : case_info) (p' : predicate term) (c' : term) (brs' : list (branch term))
-
-| DistinctStuckProj
-    (Γ : context) (p : projection) (c : term)
-    (Γ' : context) (p' : projection) (c' : term)
-
-| CannotUnfoldFix
-    (Γ : context) (mfix : mfixpoint term) (idx : nat)
-    (Γ' : context) (mfix' : mfixpoint term) (idx' : nat)
-
-| FixRargMismatch (idx : nat)
-    (Γ : context) (u : def term) (mfix1 mfix2 : mfixpoint term)
-    (Γ' : context) (v : def term) (mfix1' mfix2' : mfixpoint term)
-
-| FixMfixMismatch (idx : nat)
-    (Γ : context) (mfix : mfixpoint term)
-    (Γ' : context) (mfix' : mfixpoint term)
-
-| DistinctCoFix
-    (Γ : context) (mfix : mfixpoint term) (idx : nat)
-    (Γ' : context) (mfix' : mfixpoint term) (idx' : nat)
-
-| CoFixRargMismatch (idx : nat)
-    (Γ : context) (u : def term) (mfix1 mfix2 : mfixpoint term)
-    (Γ' : context) (v : def term) (mfix1' mfix2' : mfixpoint term)
-
-| CoFixMfixMismatch (idx : nat)
-    (Γ : context) (mfix : mfixpoint term)
-    (Γ' : context) (mfix' : mfixpoint term)
-
-| StackHeadError
-    (leq : conv_pb)
-    (Γ1 : context)
-    (t1 : term) (args1 : list term) (u1 : term) (l1 : list term)
-    (Γ2 : context)
-    (t2 : term) (u2 : term) (l2 : list term)
-    (e : ConversionError)
-
-| StackTailError (leq : conv_pb)
-    (Γ1 : context)
-    (t1 : term) (args1 : list term) (u1 : term) (l1 : list term)
-    (Γ2 : context)
-    (t2 : term) (u2 : term) (l2 : list term)
-    (e : ConversionError)
-
-| StackMismatch
-    (Γ1 : context) (t1 : term) (args1 l1 : list term)
-    (Γ2 : context) (t2 : term) (l2 : list term)
-
-| HeadMismatch
-    (leq : conv_pb)
-    (Γ1 : context) (t1 : term)
-    (Γ2 : context) (t2 : term).
+.
 
 Module Export MetaCoq_DOT_PCUIC_DOT_PCUICConvCumInversion_WRAPPED.
 Module Export PCUICConvCumInversion.
 Import MetaCoq.PCUIC.PCUICWellScopedCumulativity.
 
-Definition conv_cum {cf:checker_flags} pb Σ Γ u v :=
-  ∥ Σ ;;; Γ ⊢ u ≤[pb] v ∥.
+Axiom conv_cum : forall {cf:checker_flags}, conv_pb -> global_env_ext -> context -> term -> term -> Prop.
 
 #[global] Hint Resolve sq : core.
 
@@ -356,8 +192,7 @@ Import MetaCoq.PCUIC.PCUICConvCumInversion.
   | Args
   | Fallback.
 
-  Notation wtp Γ t π :=
-    (forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zipc t π)) (only parsing).
+  Axiom wtp : context -> term -> stack -> Prop.
 
   Record pack (Γ : context) := mkpack {
     st   : state ;
@@ -370,12 +205,9 @@ Import MetaCoq.PCUIC.PCUICConvCumInversion.
 
   Axiom R : forall Γ : context, pack Γ -> pack Γ -> Prop.
 
-  Notation conv_stack_ctx Γ π1 π2 :=
-    (forall Σ, abstract_env_ext_rel X Σ -> ∥ (Σ ⊢ Γ ,,, stack_context π1 = Γ ,,, stack_context π2) ∥).
+  Axiom conv_stack_ctx : context -> stack -> stack -> Prop.
 
-  Notation conv_term leq Γ t π t' π' :=
-    (forall Σ, abstract_env_ext_rel X Σ -> conv_cum leq Σ (Γ ,,, stack_context π) (zipp t π) (zipp t' π'))
-      (only parsing).
+  Axiom conv_term : conv_pb -> context -> term -> stack -> term -> stack -> Prop.
 
   Inductive ConversionResult (P : Prop) :=
   | Success (h : P)
@@ -423,86 +255,23 @@ Import MetaCoq.PCUIC.PCUICConvCumInversion.
     | IndFix => Fix
     | CoIndFix => CoFix
     end.
-
-  Equations isws_cumul_pb_fix_bodies (fk : fix_kind) (Γ : context) (idx : nat)
-    (mfix1 mfix2 : mfixpoint term) (π : stack)
-    (h : wtp Γ (mFix fk (mfix1 ++ mfix2) idx) π)
-    (mfix1' mfix2' : mfixpoint term) (π' : stack)
-    (h' : wtp Γ (mFix fk (mfix1' ++ mfix2') idx) π')
-    (hx : conv_stack_ctx Γ π π')
-    (h1 : ∥ All2 (fun u v => forall Σ (wfΣ : abstract_env_ext_rel X Σ), Σ ;;; Γ ,,, stack_context π ,,, fix_context_alt (map def_sig mfix1 ++ map def_sig mfix2) ⊢ u.(dbody) = v.(dbody)) mfix1 mfix1' ∥)
-    (ha : ∥ All2 (fun u v =>
-                    (forall Σ (wfΣ : abstract_env_ext_rel X Σ), Σ ;;; Γ ,,, stack_context π ⊢ u.(dtype) = v.(dtype)) ×
-                    (u.(rarg) = v.(rarg)) * eq_binder_annot u.(dname) v.(dname)
-           ) (mfix1 ++ mfix2) (mfix1' ++ mfix2') ∥)
-    (aux : Aux Term Γ (mFix fk (mfix1 ++ mfix2) idx) π (mFix fk (mfix1' ++ mfix2') idx) π' h')
-    : ConversionResult (∥ All2 (fun u v => forall Σ (wfΣ : abstract_env_ext_rel X Σ), Σ ;;; Γ ,,, stack_context π ,,, fix_context_alt (map def_sig mfix1 ++ map def_sig mfix2) ⊢ u.(dbody) = v.(dbody)) mfix2 mfix2' ∥)
+  Axiom admit : forall {T}, T.
+  Equations isws_cumul_pb_fix_bodies {term fix_kind} (fk : fix_kind) (idx : nat)
+    (mfix1 mfix2 : mfixpoint term)
+    (mfix1' mfix2' : mfixpoint term)
+    (h1 : ∥ All2 (fun u v => True) mfix1 mfix1' ∥)
+    : True
     by struct mfix2 :=
 
-  isws_cumul_pb_fix_bodies fk Γ idx mfix1 (u :: mfix2) π h mfix1' (v :: mfix2') π' h' hx h1 ha aux
-  with isconv_red_raw Conv
-        u.(dbody)
-        (mFix_mfix fk (mfix1, def_hole_body u.(dname) u.(dtype) u.(rarg), mfix2) idx :: π)
-        v.(dbody)
-        (mFix_mfix fk (mfix1', def_hole_body v.(dname) v.(dtype) v.(rarg), mfix2') idx :: π')
-        aux
-  := {
-  | Success h2
-    with isws_cumul_pb_fix_bodies fk Γ idx
-           (mfix1 ++ [u]) mfix2 π _
-           (mfix1' ++ [v]) mfix2' π' _
-           hx _ _ (expand aux)
-    := {
-    | Success h3 := yes ;
-    | Error e h'' := no e
-    } ;
-  | Error e h'' := no e
-  } ;
-
-  isws_cumul_pb_fix_bodies fk Γ idx mfix1 [] π h mfix1' [] π' h' hx h1 ha aux := yes ;
-
-  isws_cumul_pb_fix_bodies fk Γ idx mfix1 mfix2 π h mfix1' mfix2' π' h' hx h1 ha aux :=
-    False_rect _ _.
+  isws_cumul_pb_fix_bodies fk idx mfix1 (u :: mfix2) mfix1' (v :: mfix2') h1 := I ;
+  isws_cumul_pb_fix_bodies fk idx mfix1 [] mfix1' [] h1 := I ;
+  isws_cumul_pb_fix_bodies fk idx mfix1 mfix2 mfix1' mfix2' h1 := False_rect _ _.
 
   Next Obligation.
-    destruct h1 as [h1], ha as [ha].
+    destruct h1 as [h1].
     apply All2_length in h1 as e1.
-    apply All2_length in ha as ea.
-    rewrite !app_length in ea.
-simpl in ea.
-lia.
+admit.
   Qed.
-  Next Obligation.
-admit.
-Defined.
-  Next Obligation.
-admit.
-Defined.
-  Next Obligation.
-admit.
-Defined.
-  Next Obligation.
-admit.
-Defined.
-  Next Obligation.
-admit.
-Defined.
-  Next Obligation.
-Admitted.
-  Next Obligation.
-Admitted.
-  Next Obligation.
-Admitted.
-  Next Obligation.
-Admitted.
-  Next Obligation.
-Admitted.
-  Next Obligation.
-admit.
-Defined.
-  Next Obligation.
-admit.
-  Defined.
   Next Obligation.
 admit.
 Defined.
