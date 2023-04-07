@@ -1,748 +1,348 @@
 (* -*- mode: coq; coq-prog-args: ("-emacs" "-q" "-w" "-deprecated-native-compiler-option" "-native-compiler" "no" "-R" "/github/workspace/metacoq/utils/theories" "MetaCoq.Utils" "-R" "/github/workspace/metacoq/common/theories" "MetaCoq.Common" "-R" "/github/workspace/metacoq/pcuic/theories" "MetaCoq.PCUIC" "-R" "/github/workspace/metacoq/safechecker/theories" "MetaCoq.SafeChecker" "-Q" "/github/workspace/cwd" "Top" "-Q" "/home/coq/.opam/4.13.1+flambda/lib/coq/user-contrib/Bignums" "Bignums" "-Q" "/home/coq/.opam/4.13.1+flambda/lib/coq/user-contrib/Equations" "Equations" "-Q" "/home/coq/.opam/4.13.1+flambda/lib/coq/user-contrib/Ltac2" "Ltac2" "-top" "MetaCoq.SafeChecker.PCUICSafeConversion") -*- *)
-(* File reduced by coq-bug-minimizer from original input, then from 5927 lines to 1512 lines, then from 1095 lines to 222 lines, then from 235 lines to 2362 lines, then from 2362 lines to 1248 lines *)
+(* File reduced by coq-bug-minimizer from original input, then from 5927 lines to 1512 lines, then from 1095 lines to 222 lines, then from 235 lines to 2362 lines, then from 2362 lines to 1248 lines, then from 920 lines to 181 lines, then from 194 lines to 977 lines, then from 982 lines to 198 lines, then from 211 lines to 823 lines, then from 827 lines to 300 lines, then from 313 lines to 861 lines, then from 864 lines to 379 lines, then from 392 lines to 1922 lines, then from 1920 lines to 505 lines *)
 (* coqc version 8.16.1 compiled with OCaml 4.13.1
    coqtop version 8.16.1
-   Expected coqc runtime on this file: 112.421 sec *)
+   Expected coqc runtime on this file: 7.452 sec *)
 Require Coq.Init.Ltac.
-Module Export AdmitTactic.
-Module Import LocalFalse.
-Inductive False : Prop := .
-End LocalFalse.
-Axiom proof_admitted : False.
-Import Coq.Init.Ltac.
-Tactic Notation "admit" := abstract case proof_admitted.
-End AdmitTactic.
-Module MetaCoq_DOT_SafeChecker_DOT_PCUICSafeReduce_WRAPPED.
-Module PCUICSafeReduce.
-
-
-Require Coq.Classes.RelationClasses.
-Import Coq.Classes.RelationClasses.
-
-Require MetaCoq.Utils.utils.
-Import MetaCoq.Utils.utils.
-
-Require MetaCoq.Common.config.
-Import MetaCoq.Common.config.
-
-Require MetaCoq.PCUIC.PCUICCanonicity.
-Require MetaCoq.PCUIC.PCUICWellScopedCumulativity.
-Require MetaCoq.PCUIC.Syntax.PCUICOnFreeVars.
-Require MetaCoq.PCUIC.PCUICConversion.
-Require MetaCoq.PCUIC.PCUICConfluence.
-Require MetaCoq.PCUIC.PCUICSafeLemmata.
-Require MetaCoq.PCUIC.PCUICValidity.
-Require MetaCoq.PCUIC.PCUICReduction.
-Require MetaCoq.PCUIC.utils.PCUICUtils.
-Require MetaCoq.PCUIC.PCUICSN.
-Require MetaCoq.PCUIC.PCUICSR.
-Require MetaCoq.PCUIC.PCUICInversion.
-Require MetaCoq.PCUIC.PCUICNormal.
-Require MetaCoq.PCUIC.Syntax.PCUICPosition.
-Require MetaCoq.PCUIC.PCUICTyping.
-Require MetaCoq.PCUIC.Syntax.PCUICUnivSubst.
-Require MetaCoq.PCUIC.Syntax.PCUICLiftSubst.
-Require MetaCoq.PCUIC.PCUICGeneration.
-Require MetaCoq.PCUIC.utils.PCUICAstUtils.
-Require MetaCoq.PCUIC.PCUICAst.
-Import MetaCoq.PCUIC.PCUICAst MetaCoq.PCUIC.utils.PCUICAstUtils
-     MetaCoq.PCUIC.PCUICGeneration MetaCoq.PCUIC.Syntax.PCUICLiftSubst
-     MetaCoq.PCUIC.Syntax.PCUICUnivSubst MetaCoq.PCUIC.PCUICTyping MetaCoq.PCUIC.Syntax.PCUICPosition MetaCoq.PCUIC.PCUICNormal
-     MetaCoq.PCUIC.PCUICInversion MetaCoq.PCUIC.PCUICSR MetaCoq.PCUIC.PCUICSN
-     MetaCoq.PCUIC.utils.PCUICUtils MetaCoq.PCUIC.PCUICReduction MetaCoq.PCUIC.PCUICValidity MetaCoq.PCUIC.PCUICSafeLemmata
-     MetaCoq.PCUIC.PCUICConfluence MetaCoq.PCUIC.PCUICConversion
-     MetaCoq.PCUIC.Syntax.PCUICOnFreeVars MetaCoq.PCUIC.PCUICWellScopedCumulativity
-     MetaCoq.PCUIC.PCUICCanonicity.
-
-
-Require MetaCoq.SafeChecker.PCUICWfEnv.
-Require MetaCoq.SafeChecker.PCUICWfReduction.
-Require MetaCoq.SafeChecker.PCUICErrors.
-Import MetaCoq.SafeChecker.PCUICErrors MetaCoq.SafeChecker.PCUICWfReduction MetaCoq.SafeChecker.PCUICWfEnv.
-
-
+Require Coq.Bool.Bool.
+Require Coq.ZArith.ZArith.
+Require Coq.Arith.Arith.
+Require Coq.micromega.Lia.
+Require Coq.Lists.List.
+Require Coq.Init.Nat.
+Require Coq.Strings.Ascii.
+Require Coq.Strings.String.
+Require Coq.Classes.Morphisms.
+Require Coq.extraction.Extraction.
+Require Coq.Unicode.Utf8_core.
+Require Equations.Init.
+Require Equations.Signature.
+Require Equations.CoreTactics.
+Require Coq.Relations.Relation_Definitions.
+Require Equations.Prop.Logic.
+Require Equations.Prop.Classes.
+Require Coq.Program.Tactics.
+Require Equations.Prop.EqDec.
 Require Equations.Prop.DepElim.
-Import Equations.Prop.DepElim.
-
+Require Coq.Relations.Relations.
+Require Equations.Prop.Constants.
+Require Coq.Bool.Bvector.
+Require Coq.Arith.Wf_nat.
+Require Coq.Wellfounded.Wellfounded.
+Require Coq.Relations.Relation_Operators.
+Require Coq.Wellfounded.Lexicographic_Product.
+Require Coq.Program.Wf.
+Require Coq.Logic.FunctionalExtensionality.
+Require Equations.Prop.Subterm.
+Require Equations.Prop.FunctionalInduction.
+Require Equations.Prop.Tactics.
+Require Equations.Prop.NoConfusion.
+Require Equations.Prop.EqDecInstances.
+Require Equations.Prop.Loader.
+Require Equations.Prop.Telescopes.
 Require Equations.Prop.Equations.
-Import Equations.Prop.Equations.
-Set Equations Transparent.
-Set Equations With UIP.
-
-
-
-
-Notation " `  t " := (proj1_sig t) (at level 10, t at next level) : metacoq_scope.
-
-Set Default Goal Selector "!".
-
-Local Set Keyed Unification.
-
-Implicit Types (cf : checker_flags) (Σ : global_env_ext).
-
-Lemma welltyped_is_closed_context {cf Σ} {wfΣ : wf Σ} {Γ t} :
-  welltyped Σ Γ t -> is_closed_context Γ.
-Admitted.
-#[global] Hint Resolve welltyped_is_closed_context : fvs.
-
-Lemma welltyped_is_open_term {cf Σ} {wfΣ : wf Σ} {Γ t} :
-  welltyped Σ Γ t -> is_open_term Γ t.
-Admitted.
-#[global] Hint Resolve welltyped_is_open_term : fvs.
-
-
-Section Measure.
-
-  Context {cf : checker_flags} {no : normalizing_flags}.
-
-  Context (flags : RedFlags.t).
-  Context (Σ : global_env_ext).
-
-  Definition R_aux Γ :=
-    dlexprod (cored Σ Γ) (@posR).
-
-  Definition R Γ u v :=
-    R_aux Γ (zip u ; stack_pos (fst u) (snd u))
-            (zip v ; stack_pos (fst v) (snd v)).
-
-  Lemma cored_welltyped :
-    forall {Γ u v},
-      wf Σ -> welltyped Σ Γ u ->
-      cored Σ Γ v u ->
-      welltyped Σ Γ v.
-Admitted.
-
-  Lemma red_welltyped :
-    forall {Γ u v},
-      wf Σ -> welltyped Σ Γ u ->
-      red (fst Σ) Γ u v ->
-      welltyped Σ Γ v.
-Admitted.
-
-  Derive Signature for Acc.
-  Lemma R_positionR :
-    forall Γ t1 t2 (p1 : pos t1) (p2 : pos t2),
-      t1 = t2 ->
-      positionR (` p1) (` p2) ->
-      R_aux Γ (t1 ; p1) (t2 ; p2).
-Admitted.
-
-  Definition Req Γ t t' :=
-    t = t' \/ R Γ t t'.
-
-  Lemma Rtrans :
-    forall Γ u v w,
-      R Γ u v ->
-      R Γ v w ->
-      R Γ u w.
-admit.
-Defined.
-
-  Lemma Req_trans :
-    forall {Γ}, Transitive (Req Γ).
-admit.
-Defined.
-
-  Lemma R_to_Req :
-    forall {Γ u v},
-      R Γ u v ->
-      Req Γ u v.
-admit.
-Defined.
-
-  Instance Req_refl : forall Γ, Reflexive (Req Γ).
-Admitted.
-
-  Lemma R_Req_R :
-    forall {Γ u v w},
-      R Γ u v ->
-      Req Γ v w ->
-      R Γ u w.
-Admitted.
-
-End Measure.
-
-
-Section Acc_sidecond_generator.
-  Context {A : Type} {R : A -> A -> Prop} {P : A -> Prop}.
-  Variable Pimpl : forall x y, P x -> R y x -> P y.
-
-  Fixpoint Acc_intro_generator n (acc : forall t, P t -> Acc R t) : forall t, P t -> Acc R t :=
-    match n with
-        | O => acc
-        | S n => fun x Px =>
-                   Acc_intro x (fun y Hy => Acc_intro_generator n (Acc_intro_generator n acc) y (Pimpl _ _ Px Hy))
-    end.
-End Acc_sidecond_generator.
-
-Opaque Acc_intro_generator.
-
-Section Reduce.
-
-  Context {cf : checker_flags} {no : normalizing_flags}.
-
-  Context (flags : RedFlags.t).
-
-  Context (X_type : abstract_env_impl).
-
-  Context (X : X_type.π2.π1).
-
-  Context {normalization_in : forall Σ, wf_ext Σ -> Σ ∼_ext X -> NormalizationIn Σ}.
-
-
-
-  Local Definition heΣ Σ (wfΣ : abstract_env_ext_rel X Σ) :
-    ∥ wf_ext Σ ∥ :=  abstract_env_ext_wf _ wfΣ.
-
-  Local Definition hΣ Σ (wfΣ : abstract_env_ext_rel X Σ) :
-    ∥ wf Σ ∥ := abstract_env_ext_sq_wf _ _ _ wfΣ.
-
-  Existing Instance Req_refl.
-
-Lemma acc_dlexprod_gen P Q A B (leA : P -> A -> A -> Prop)
-  (HQ : ∥ ∑ p , Q p ∥)
-  (HP : forall p p' x x', Q p -> Q p' -> leA p x x' -> leA p' x x')
-  (leB : forall x : A, B x -> B x -> Prop) :
-  (forall x, well_founded (leB x)) ->
-  forall x,
-    Acc (fun t t' => forall (p:P), Q p -> leA p t t') x ->
-    forall y,
-      Acc (leB x) y ->
-      Acc (fun t t' => forall (p:P), Q p -> @dlexprod A B (leA p) leB t t') (x;y).
-admit.
-Defined.
-
-Lemma dlexprod_Acc_gen P Q A B (leA : P -> A -> A -> Prop)
-  (HQ : ∥ ∑ p , Q p ∥)
-  (HP : forall p p' x x', Q p -> Q p' -> leA p x x' -> leA p' x x')
-  (leB : forall x : A, B x -> B x -> Prop) :
-    (forall x, well_founded (leB x)) ->
-    forall x y,
-      Acc (fun t t' => forall (p:P), Q p -> leA p t t') x ->
-      Acc (fun t t' => forall (p:P), Q p -> @dlexprod A B (leA p) leB t t') (x;y).
-admit.
-Defined.
-
-Definition R_singleton Abs A
-  (R : Abs -> A -> A -> Prop) (Q : Abs -> Prop) x (q : Q x)
-  (HQ : forall x x' , Q x -> Q x' -> x = x') (a a' : A) :
-  R x a a' <-> (forall x, Q x -> R x a a').
-Proof using Type.
-  split.
-  -
- intros H x' q'.
- specialize (HQ x x' q q').
-subst; eauto.
-  -
- eauto.
-Defined.
-
-Fixpoint Acc_equiv A (R R' : A -> A -> Prop)
-  (Heq : forall a a', R a a' <-> R' a a') a
-  (HAcc : Acc R a) : Acc R' a.
-Proof using Type.
-  econstructor.
-intros.
-apply Heq in H.
-  destruct HAcc.
-eapply Acc_equiv; eauto.
-Defined.
-
-Corollary R_Acc_aux :
-    forall Γ t p,
-    (forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ t) ->
-    (Acc (fun t t' => forall Σ (wfΣ : abstract_env_ext_rel X Σ), R_aux Σ Γ t t') (t ; p)).
-  Proof using normalization_in.
-    intros Γ t p h.
-    eapply dlexprod_Acc_gen.
-    -
- apply abstract_env_ext_exists.
-    -
- intros.
-eapply abstract_env_cored; try apply H1; eauto.
-    -
- intros x.
-unfold well_founded.
-      eapply posR_Acc.
-    -
- destruct (abstract_env_ext_exists X) as [[Σ wfΣ]];
-      destruct (heΣ _ wfΣ).
-      eapply Acc_equiv; try
-      eapply normalization_in; eauto.
-      eapply R_singleton with (Q := abstract_env_ext_rel X)
-          (R := fun Σ a a' => cored Σ Γ a a'); eauto.
-      intros; eapply abstract_env_ext_irr; eauto.
-  Defined.
-
-  Corollary R_Acc :
-    forall Γ t,
-      (forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip t)) ->
-      Acc (fun t t' => forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ t t') t.
-admit.
-Defined.
-
-  Definition inspect {A} (x : A) : { y : A | y = x } := exist x eq_refl.
-
-  Definition Pr (t' : term * stack) π :=
-    snd (decompose_stack π) = snd (decompose_stack (snd t')).
-
-  Notation givePr := (_) (only parsing).
-
-  Definition Pr' (t' : term * stack) :=
-    isApp (fst t') = false /\
-    (RedFlags.beta flags -> isLambda (fst t') -> isStackApp (snd t') = false).
-
-  Notation givePr' := (conj _ (fun β hl => _)) (only parsing).
-
-  Notation rec reduce t π :=
-    (let smaller := _ in
-     let '(exist res prf_Σ) := reduce t π smaller in
-     exist res (fun Σ wfΣ => let '((conj prf (conj h (conj h1 h2)))) := prf_Σ Σ wfΣ in conj (Req_trans _ _ _ _ _ (R_to_Req _ (smaller Σ wfΣ))) (conj givePr givePr'))
-    ) (only parsing).
-
-  Notation give t π :=
-    (exist (t,π) (fun Σ wfΣ => conj _ (conj givePr givePr'))) (only parsing).
-
-  Tactic Notation "zip" "fold" "in" hyp(h) :=
-    lazymatch type of h with
-    | context C[ zipc ?t ?π ] =>
-      let C' := context C[ zip (t,π) ] in
-      change C' in h
-    end.
-
-  Tactic Notation "zip" "fold" :=
-    lazymatch goal with
-    | |- context C[ zipc ?t ?π ] =>
-      let C' := context C[ zip (t,π) ] in
-      change C'
-    end.
-
-  Lemma Req_red Σ :
-    forall Γ x y,
-      Req Σ Γ y x ->
-      ∥ red Σ Γ (zip x) (zip y) ∥.
-admit.
-Defined.
-
-
-  Ltac obTac :=
-
-    Program.Tactics.program_simplify ;
-    Equations.CoreTactics.equations_simpl ;
-    try Program.Tactics.program_solve_wf ;
-    try reflexivity.
-
-  Obligation Tactic := obTac.
-
-  Lemma discr_construct (t : term) : Prop. Admitted.
-
-  Inductive construct_view : term -> Type :=
-  | view_construct : forall ind n ui, construct_view (tConstruct ind n ui)
-  | view_other : forall t, discr_construct t -> construct_view t.
-
-  Lemma construct_viewc t : construct_view t. Admitted.
-
-
-  Lemma red_discr (t : term) (π : stack) : Prop. Admitted.
-
-  Inductive red_view : term -> stack -> Type :=
-  | red_view_Rel c π : red_view (tRel c) π
-  | red_view_LetIn A b B c π : red_view (tLetIn A b B c) π
-  | red_view_Const c u π : red_view (tConst c u) π
-  | red_view_App f a π : red_view (tApp f a) π
-  | red_view_Lambda na A t a args : red_view (tLambda na A t) (App_l a :: args)
-  | red_view_Fix mfix idx π : red_view (tFix mfix idx) π
-  | red_view_Case ci p c brs π : red_view (tCase ci p c brs) π
-  | red_view_Proj p c π : red_view (tProj p c) π
-  | red_view_other t π : red_discr t π -> red_view t π.
-
-  Lemma red_viewc t π : red_view t π. Admitted.
-
-  Lemma discr_construct_cofix (t : term) : Prop. Admitted.
-
-  Inductive construct_cofix_view : term -> Type :=
-  | ccview_construct : forall ind n ui, construct_cofix_view (tConstruct ind n ui)
-  | ccview_cofix : forall mfix idx, construct_cofix_view (tCoFix mfix idx)
-  | ccview_other : forall t, discr_construct_cofix t -> construct_cofix_view t.
-
-  Lemma cc_viewc t : construct_cofix_view t. Admitted.
-
-  Lemma discr_construct0_cofix (t : term) : Prop. Admitted.
-
-  Inductive construct0_cofix_view : term -> Type :=
-  | cc0view_construct : forall ind ui, construct0_cofix_view (tConstruct ind 0 ui)
-  | cc0view_cofix : forall mfix idx, construct0_cofix_view (tCoFix mfix idx)
-  | cc0view_other : forall t, discr_construct0_cofix t -> construct0_cofix_view t.
-
-  Lemma cc0_viewc t : construct0_cofix_view t. Admitted.
-
-  Lemma _reduce_stack (Γ : context) (t : term) (π : stack)
-            (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π)))
-            (reduce : forall t' π', (forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ (t',π') (t,π)) ->
-                               { t'' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t'' (t',π') /\ Pr t'' π' /\ Pr' t'' })
-    : { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t,π) /\ Pr t' π /\ Pr' t' }.
-    Admitted.
-
-  Lemma welltyped_R_pres Σ (wfΣ : abstract_env_ext_rel X Σ) Γ :
-    forall x y : term × stack, welltyped Σ Γ (zip x) -> R Σ Γ y x -> welltyped Σ Γ (zip y).
-Admitted.
-
-  Section reducewf.
-    Context (Γ : context).
-
-    Notation sigmaarg :=
-      (sigma (fun t => sigma (fun π => forall Σ, abstract_env_ext_rel X Σ -> welltyped Σ Γ (zipc t π)))).
-
-    Local Instance wf_proof : WellFounded (fun x y : sigmaarg =>
-        forall Σ, abstract_env_ext_rel X Σ -> R Σ Γ (pr1 x, pr1 (pr2 x)) (pr1 y, pr1 (pr2 y))).
-    Proof using normalization_in.
-      intros [t [π wt]].
-
-      unshelve eapply (Acc_intro_generator
-        (R:=fun x y : sigmaarg => forall Σ (wfΣ : abstract_env_ext_rel X Σ), R Σ Γ (x.(pr1), x.(pr2).(pr1)) (y.(pr1), y.(pr2).(pr1)))
-        (P:=fun x : sigmaarg => forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (x.(pr1), x.(pr2).(pr1))))
-        (fun x y Px Hy => _) 1000 _ {| pr1 := t; pr2 := {| pr1 := π; pr2 := wt |} |} wt).
-      -
- cbn in *.
-intros.
-destruct y as [t' [π' wt']].
-cbn.
-now apply wt'.
-      -
- cbn in *.
-intros.
-        destruct (abstract_env_ext_exists X) as [[Σ wfΣ]].
-        destruct (hΣ _ wfΣ) as [hΣ].
-pose proof (R_Acc Γ (t0.(pr1), t0.(pr2).(pr1)) H).
-        clear -H0.
-destruct t0 as [t [π wt]].
-        cbn in *.
-revert wt.
-        depind H0.
-intros wt.
-constructor.
-intros.
-eapply H0.
-        *
- cbn in H1.
-exact H1.
-        *
- reflexivity.
-  Defined.
-
-  Lemma reduce_stack_full (t : term) (π : stack) (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ (zip (t,π))) :
-    { t' : term * stack | forall Σ (wfΣ : abstract_env_ext_rel X Σ), Req Σ Γ t' (t, π) /\ Pr t' π /\ Pr' t' }.
-Admitted.
-
-  End reducewf.
-
-  Definition reduce_stack Γ t π h :=
-    let '(exist ts _) := reduce_stack_full Γ t π h in ts.
-
-  Lemma reduce_stack_Req :
-    forall Σ (wfΣ : abstract_env_ext_rel X Σ) Γ t π h,
-     Req Σ Γ (reduce_stack Γ t π h) (t, π).
-Admitted.
-
-  Theorem reduce_stack_sound :
-    forall Σ (wfΣ : abstract_env_ext_rel X Σ) Γ t π h,
-      ∥ Σ ;;; Γ ⊢ zip (t, π) ⇝ zip (reduce_stack Γ t π h) ∥.
-Admitted.
-
-  Lemma reduce_stack_decompose :
-    forall Γ t π h,
-      snd (decompose_stack (snd (reduce_stack Γ t π h))) =
-      snd (decompose_stack π).
-Admitted.
-
-  Lemma reduce_stack_context :
-    forall Γ t π h,
-      stack_context (snd (reduce_stack Γ t π h)) =
-      stack_context π.
-Admitted.
-
-  Definition isred (t : term * stack) :=
-    isApp (fst t) = false /\
-    (isLambda (fst t) -> isStackApp (snd t) = false).
-
-  Lemma reduce_stack_isred :
-    forall Γ t π h,
-      RedFlags.beta flags ->
-      isred (reduce_stack Γ t π h).
-Admitted.
-
-  Lemma reduce_stack_noApp :
-    forall Γ t π h,
-      isApp (fst (reduce_stack Γ t π h)) = false.
-Admitted.
-
-  Lemma reduce_stack_noLamApp :
-    forall Γ t π h,
-      RedFlags.beta flags ->
-      isLambda (fst (reduce_stack Γ t π h)) ->
-      isStackApp (snd (reduce_stack Γ t π h)) = false.
-Admitted.
-
-  Definition reduce_term Γ t
-    (h : forall Σ, abstract_env_ext_rel X Σ -> welltyped Σ Γ t) :=
-    zip (reduce_stack Γ t [] h).
-
-  Theorem reduce_term_sound :
-    forall Γ t (h : forall Σ, abstract_env_ext_rel X Σ -> welltyped Σ Γ t)
-      Σ, abstract_env_ext_rel X Σ ->
-      ∥ Σ ;;; Γ ⊢ t ⇝ reduce_term Γ t h ∥.
-Admitted.
-
-  Scheme Acc_ind' := Induction for Acc Sort Prop.
-
-  Lemma Fix_F_prop :
-    forall A R P f (pred : forall x : A, P x -> Prop) x hx,
-      (forall x aux, (forall y hy, pred y (aux y hy)) -> pred x (f x aux)) ->
-      pred x (@Fix_F A R P f x hx).
-Admitted.
-
-  Lemma reduce_stack_prop :
-    forall Γ t π h (P : term × stack -> term × stack -> Prop),
-      (forall t π h aux,
-          (forall t' π' hR, P (t', π') (` (aux t' π' hR))) ->
-          P (t, π) (` (_reduce_stack Γ t π h aux))) ->
-      P (t, π) (reduce_stack Γ t π h).
-Admitted.
-
-  Lemma decompose_stack_at_appstack_None l s n :
-    isStackApp s = false ->
-    nth_error l n = None <->
-    decompose_stack_at (appstack l s) n = None.
-Admitted.
-
-  Lemma mkApps_tApp hd arg args :
-    mkApps (tApp hd arg) args = mkApps hd (arg :: args).
-Admitted.
-
-  Lemma tApp_mkApps hd args arg :
-    tApp (mkApps hd args) arg = mkApps hd (args ++ [arg]).
-Admitted.
-
-  Lemma whnf_non_ctor_finite_ind_typed Σ Γ t ind u args :
-    wf Σ ->
-    whnf flags Σ Γ t ->
-    isConstruct_app t = false ->
-    check_recursivity_kind (lookup_env Σ) (inductive_mind ind) CoFinite = false ->
-    Σ ;;; Γ |- t : mkApps (tInd ind u) args ->
-    whne flags Σ Γ t.
-Admitted.
-
-  Definition isCoFix_app t :=
-    match (decompose_app t).1 with
-    | tCoFix _ _ => true
-    | _ => false
-    end.
-
-  Lemma whnf_non_ctor_non_cofix_ind_typed Σ Γ t ind u args :
-    wf Σ ->
-    whnf flags Σ Γ t ->
-    isConstruct_app t = false ->
-    isCoFix_app t = false ->
-    Σ ;;; Γ |- t : mkApps (tInd ind u) args ->
-    whne flags Σ Γ t.
-Admitted.
-
-  Lemma whnf_fix_arg_whne mfix idx body Σ Γ t before args aftr ty :
-    wf Σ ->
-    unfold_fix mfix idx = Some (#|before|, body) ->
-    match t with
-    | tConstruct _ _ _ => False
-    | tApp _ _ => False
-    | _ => True
-    end ->
-    whnf flags Σ Γ (mkApps t args) ->
-    Σ ;;; Γ |- mkApps (tFix mfix idx) (before ++ mkApps t args :: aftr) : ty ->
-    whne flags Σ Γ (mkApps t args).
-Admitted.
-
-  Lemma whnf_case_arg_whne Σ Γ hd args ci p brs T :
-    wf Σ ->
-    match hd with
-    | tApp _ _
-    | tConstruct _ _ _
-    | tCoFix _ _ => False
-    | _ => True
-    end ->
-    whnf flags Σ Γ (mkApps hd args) ->
-    Σ;;; Γ |- tCase ci p (mkApps hd args) brs : T ->
-    whne flags Σ Γ (mkApps hd args).
-Admitted.
-
-  Lemma whnf_proj_arg_whne Σ Γ hd args p T :
-    wf Σ ->
-    match hd with
-    | tApp _ _
-    | tCoFix _ _ => False
-    | tConstruct _ c _ => c <> 0
-    | _ => True
-    end ->
-    whnf flags Σ Γ (mkApps hd args) ->
-    Σ ;;; Γ |- tProj p (mkApps hd args) : T ->
-    whne flags Σ Γ (mkApps hd args).
-Admitted.
-
-  Lemma reduce_stack_whnf :
-    forall Γ t π h Σ (wfΣ : abstract_env_ext_rel X Σ),
-      let '(u, ρ) := reduce_stack Γ t π h in
-       ∥whnf flags Σ (Γ ,,, stack_context ρ) (zipp u ρ)∥.
-Admitted.
-
-  Theorem reduce_term_complete Σ (wfΣ : abstract_env_ext_rel X Σ) Γ t h :
-    ∥whnf flags Σ Γ (reduce_term Γ t h)∥.
-Admitted.
-
-End Reduce.
-
-Section ReduceFns.
-
-  Context {cf : checker_flags} {no : normalizing_flags}
-          {X_type : abstract_env_impl} {X : X_type.π2.π1} {normalization_in : forall Σ, wf_ext Σ -> Σ ∼_ext X -> NormalizationIn Σ}.
-
-
-  Opaque reduce_stack_full.
-
-  Definition hnf := reduce_term RedFlags.default X_type X.
-
-  Theorem hnf_sound {Γ t h} Σ (wfΣ : abstract_env_ext_rel X Σ) : ∥ Σ ;;; Γ ⊢ t ⇝ hnf Γ t h ∥.
-  Proof using Type.
-    unfold hnf.
-    destruct (reduce_term_sound RedFlags.default _ X _ _ h Σ wfΣ).
-    sq.
-eapply into_closed_red; fvs.
-  Defined.
-
-  Theorem hnf_complete {Γ t h} Σ (wfΣ : abstract_env_ext_rel X Σ) : ∥whnf RedFlags.default Σ Γ (hnf Γ t h)∥.
-Admitted.
-
-  Lemma reduce_to_sort (Γ : context) (t : term)
-    (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ t)
-    : typing_result_comp (∑ u, forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ Σ ;;; Γ ⊢ t ⇝ tSort u ∥).
-  Admitted.
-
-
-  Lemma reduce_to_sort_complete {Γ t wt} Σ (wfΣ : abstract_env_ext_rel X Σ)
-    e p :
-    reduce_to_sort Γ t wt = TypeError_comp e p ->
-    (forall s, red Σ Γ t (tSort s) -> False).
-Admitted.
-
-  Lemma reduce_to_prod (Γ : context) (t : term)
-    (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ t)
-    : typing_result_comp (∑ na a b, forall  Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ Σ ;;; Γ ⊢ t ⇝ tProd na a b ∥).
-  Admitted.
-
-
-  Lemma reduce_to_prod_complete {Γ t wt} Σ (wfΣ : abstract_env_ext_rel X Σ)
-    e p :
-    reduce_to_prod Γ t wt = TypeError_comp e p ->
-    (forall na a b, red Σ Γ t (tProd na a b) -> False).
-Admitted.
-
-  Lemma reduce_to_ind (Γ : context) (t : term)
-    (h : forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ t)
-    : typing_result_comp (∑ i u l, forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ Σ ;;; Γ ⊢ t ⇝ mkApps (tInd i u) l ∥).
-  Admitted.
-
-
-  Lemma reduce_to_ind_complete  Σ (wfΣ : abstract_env_ext_rel X Σ) Γ ty wat e p :
-    reduce_to_ind Γ ty wat = TypeError_comp e p ->
-    forall ind u args,
-      red Σ Γ ty (mkApps (tInd ind u) args) ->
-      False.
-Admitted.
-
-
-  Definition arity_ass := aname * term.
-
-  Fixpoint mkAssumArity (l : list arity_ass) (s : Universe.t) : term :=
-    match l with
-    | [] => tSort s
-    | (na, A) :: l => tProd na A (mkAssumArity l s)
-    end.
-
-  Definition arity_ass_context := rev_map (fun '(na, A) => vass na A).
-
-  Lemma assumption_context_arity_ass_context l :
-    assumption_context (arity_ass_context l).
-Admitted.
-
-  Lemma mkAssumArity_it_mkProd_or_LetIn (l : list arity_ass) (s : Universe.t) :
-    mkAssumArity l s = it_mkProd_or_LetIn (arity_ass_context l) (tSort s).
-Admitted.
-
-  Lemma isArity_mkAssumArity l s :
-    isArity (mkAssumArity l s).
-Admitted.
-
-  Record conv_arity {Γ T} : Type :=
-    build_conv_arity {
-        conv_ar_context : list arity_ass;
-        conv_ar_univ : Universe.t;
-        conv_ar_red : forall Σ (wfΣ : abstract_env_ext_rel X Σ), ∥ Σ ;;; Γ ⊢ T ⇝ mkAssumArity conv_ar_context conv_ar_univ ∥
-      }.
-
-  Global Arguments conv_arity : clear implicits.
-
-  Lemma conv_arity_Is_conv_to_Arity {Γ T} :
-    is_closed_context Γ ->
-    is_open_term Γ T ->
-    conv_arity Γ T ->
-    forall Σ (wfΣ : abstract_env_ext_rel X Σ), Is_conv_to_Arity Σ Γ T.
-Admitted.
-
-  Lemma isArity_red Σ Γ u v :
-    isArity u ->
-    red Σ Γ u v ->
-    isArity v.
-Admitted.
-
-  Lemma Is_conv_to_Arity_red Σ {wfΣ : wf Σ} Γ T T' :
-    Is_conv_to_Arity Σ Γ T ->
-    Σ ;;; Γ ⊢ T ⇝ T' ->
-    Is_conv_to_Arity Σ Γ T'.
-Admitted.
-
-  Local Instance wellfounded Σ wfΣ {normalization:NormalizationIn Σ} : WellFounded (@hnf_subterm_rel _ Σ) :=
-    @wf_hnf_subterm _ _ _ normalization (heΣ _ X Σ wfΣ).
-
-End ReduceFns.
-
-End PCUICSafeReduce.
-
-End MetaCoq_DOT_SafeChecker_DOT_PCUICSafeReduce_WRAPPED.
-Module Export MetaCoq_DOT_SafeChecker_DOT_PCUICSafeReduce.
-Module Export MetaCoq.
-Module Export SafeChecker.
-Module PCUICSafeReduce.
-Include MetaCoq_DOT_SafeChecker_DOT_PCUICSafeReduce_WRAPPED.PCUICSafeReduce.
-End PCUICSafeReduce.
-
-End SafeChecker.
-
-End MetaCoq.
-
-End MetaCoq_DOT_SafeChecker_DOT_PCUICSafeReduce.
-Require MetaCoq.PCUIC.PCUICConvCumInversion.
+Require MetaCoq.Utils.MCPrelude.
+Require Coq.ssr.ssreflect.
+Require MetaCoq.Utils.MCReflect.
+Require Coq.Unicode.Utf8.
+Require Coq.Lists.SetoidList.
+Require Coq.Classes.CRelationClasses.
+Require Equations.Type.Logic.
+Require Equations.Type.Relation.
+Require Equations.Type.Relation_Properties.
+Require MetaCoq.Utils.MCRelations.
+Require Coq.ssr.ssrbool.
+Require MetaCoq.Utils.ReflectEq.
+Require MetaCoq.Utils.MCList.
+Require Coq.Classes.RelationClasses.
+Require MetaCoq.Utils.MCProd.
+Require MetaCoq.Utils.MCOption.
+Require MetaCoq.Utils.MCSquash.
+Require MetaCoq.Utils.All_Forall.
+Require MetaCoq.Utils.MCArith.
+Require Coq.Structures.OrderedType.
+Require Coq.Structures.Orders.
+Require MetaCoq.Utils.MCCompare.
+Require MetaCoq.Utils.MCEquality.
+Require Coq.Init.Decimal.
+Require Coq.Numbers.DecimalString.
+Require Coq.NArith.NArith.
+Require Coq.Strings.Byte.
+Require Coq.NArith.BinNat.
+Require MetaCoq.Utils.ByteCompare.
+Require MetaCoq.Utils.ByteCompareSpec.
+Require MetaCoq.Utils.bytestring.
+Require MetaCoq.Utils.MCString.
+Require MetaCoq.Utils.MCTactics.SpecializeBy.
+Require MetaCoq.Utils.MCTactics.Zeta1.
+Require MetaCoq.Utils.MCTactics.GeneralizeOverHoles.
+Require MetaCoq.Utils.MCTactics.FindHyp.
+Require MetaCoq.Utils.MCTactics.UniquePose.
+Require MetaCoq.Utils.MCTactics.InHypUnderBindersDo.
+Require MetaCoq.Utils.MCTactics.SpecializeUnderBindersBy.
+Require MetaCoq.Utils.MCTactics.Head.
+Require MetaCoq.Utils.MCTactics.DestructHyps.
+Require MetaCoq.Utils.MCTactics.DestructHead.
+Require MetaCoq.Utils.MCTactics.SpecializeAllWays.
+Require MetaCoq.Utils.MCTactics.SplitInContext.
+Require Ltac2.Init.
+Require Ltac2.Message.
+Require Ltac2.Control.
+Require Ltac2.Ltac1.
+Require MetaCoq.Utils.MCUtils.
+Require MetaCoq.Utils.monad_utils.
+Require MetaCoq.Utils.utils.
+Require Coq.btauto.Btauto.
+Require MetaCoq.Common.config.
+Require Coq.Structures.OrdersAlt.
+Require Coq.MSets.MSetList.
+Require Coq.MSets.MSetAVL.
+Require Coq.MSets.MSetFacts.
+Require Coq.MSets.MSetProperties.
+Require Coq.MSets.MSetDecide.
+Require Coq.FSets.FMapAVL.
+Require Coq.Setoids.Setoid.
+Require Coq.Structures.OrderedTypeAlt.
+Require Coq.Structures.OrderedTypeEx.
+Require Coq.FSets.FMapFacts.
+Require MetaCoq.Common.Kernames.
+Require Coq.Floats.SpecFloat.
+Require MetaCoq.Common.BasicAst.
+Require MetaCoq.Common.Universes.
+Require Coq.ssr.ssrfun.
+Require Coq.Numbers.Cyclic.Int63.Uint63.
+Require Coq.Floats.PrimFloat.
+Require Coq.Floats.FloatOps.
+Require Coq.Numbers.HexadecimalString.
+Require MetaCoq.Common.Primitive.
+Require MetaCoq.Common.Environment.
+Require MetaCoq.PCUIC.PCUICSN.
 Axiom proof_admitted : False.
 Tactic Notation "admit" := abstract case proof_admitted.
 Import MetaCoq.Utils.utils.
 Import MetaCoq.Common.config.
+Import MetaCoq.Common.uGraph.
 Import MetaCoq.PCUIC.PCUICAst.
 Import MetaCoq.PCUIC.PCUICTyping.
-Import MetaCoq.PCUIC.PCUICConversion.
-Import MetaCoq.PCUIC.PCUICNormal.
+
+Lemma wf_ext_gc_of_uctx {cf:checker_flags} {Σ : global_env_ext} (HΣ : ∥ wf_ext Σ ∥)
+: ∑ uctx', gc_of_uctx (global_ext_uctx Σ) = Some uctx'.
+Admitted.
+
+Section EqualityDecGen.
+
+
+
+End EqualityDecGen.
+Import MetaCoq.Utils.utils.
+Import MetaCoq.Common.config.
+Import MetaCoq.Common.uGraph.
+Import MetaCoq.PCUIC.PCUICAst.
+Import MetaCoq.PCUIC.PCUICTyping.
+
+Definition on_global_decls {cf:checker_flags} Σ :=
+  on_global_decls_data cumulSpec0 (lift_typing typing) (cf:=cf) Σ.(universes) Σ.(retroknowledge) Σ.(declarations).
+
+Class abstract_env_struct {cf:checker_flags} (abstract_env_impl abstract_env_ext_impl : Type) := {
+
+  abstract_env_rel : abstract_env_impl -> global_env -> Prop;
+  abstract_env_ext_rel : abstract_env_ext_impl -> global_env_ext -> Prop;
+
+  abstract_env_init (cs:ContextSet.t) (retro : Retroknowledge.t) : on_global_univs cs -> abstract_env_impl;
+  abstract_env_add_decl X (kn:kername) (d:global_decl) :
+   (forall Σ, abstract_env_rel X Σ -> ∥ on_global_decls Σ kn d ∥)
+   -> abstract_env_impl;
+  abstract_env_add_udecl X udecl :
+    (forall Σ, abstract_env_rel X Σ -> ∥ on_udecl Σ.(universes) udecl ∥) ->
+    abstract_env_ext_impl ;
+  abstract_pop_decls : abstract_env_impl -> abstract_env_impl ;
+
+  abstract_env_lookup : abstract_env_ext_impl -> kername -> option global_decl;
+  abstract_primitive_constant : abstract_env_ext_impl -> Primitive.prim_tag -> option kername;
+
+  abstract_env_level_mem : abstract_env_ext_impl -> Level.t -> bool;
+  abstract_env_leqb_level_n : abstract_env_ext_impl -> Z -> Level.t -> Level.t -> bool;
+  abstract_env_guard : abstract_env_ext_impl -> FixCoFix -> context -> mfixpoint term -> bool;
+  abstract_env_is_consistent : abstract_env_impl -> LevelSet.t * GoodConstraintSet.t -> bool ;
+
+}.
+
+Class abstract_env_prop {cf:checker_flags} (abstract_env_impl abstract_env_ext_impl: Type)
+  `{!abstract_env_struct abstract_env_impl abstract_env_ext_impl} : Prop := {
+
+  abstract_env_ext_exists X : ∥ ∑ Σ , abstract_env_ext_rel X Σ ∥;
+  abstract_env_ext_wf X {Σ} : abstract_env_ext_rel X Σ -> ∥ wf_ext Σ ∥ ;
+  abstract_env_ext_irr X {Σ Σ'} :
+      abstract_env_ext_rel X Σ -> abstract_env_ext_rel X Σ' ->  Σ = Σ';
+
+  abstract_env_exists X : ∥ ∑ Σ , abstract_env_rel X Σ ∥;
+  abstract_env_wf X {Σ} : abstract_env_rel X Σ -> ∥ wf Σ ∥;
+  abstract_env_irr X {Σ Σ'} :
+    abstract_env_rel X Σ -> abstract_env_rel X Σ' ->  Σ = Σ';
+
+  abstract_env_init_correct univs retro cuniv :
+    abstract_env_rel (abstract_env_init univs retro cuniv)
+    {| universes := univs; declarations := []; retroknowledge := retro |} ;
+  abstract_env_add_decl_correct X Σ kn d H : abstract_env_rel X Σ ->
+    abstract_env_rel (abstract_env_add_decl X kn d H) (add_global_decl Σ (kn,d));
+  abstract_env_add_udecl_rel X {Σ} udecl H :
+    (abstract_env_rel X Σ.1 /\ Σ.2 = udecl) <->
+    abstract_env_ext_rel (abstract_env_add_udecl X udecl H) Σ;
+  abstract_pop_decls_correct X decls (prf : forall Σ : global_env, abstract_env_rel X Σ ->
+            exists d, Σ.(declarations) = d :: decls) :
+    let X' := abstract_pop_decls X in
+    forall Σ Σ', abstract_env_rel X Σ -> abstract_env_rel X' Σ' ->
+                      Σ'.(declarations) = decls /\ Σ.(universes) = Σ'.(universes) /\
+                      Σ.(retroknowledge) = Σ'.(retroknowledge);
+
+  abstract_env_lookup_correct X {Σ} kn decl : abstract_env_ext_rel X Σ ->
+      In (kn, decl) (declarations Σ) <-> abstract_env_lookup X kn = Some decl ;
+
+  abstract_env_leqb_level_n_correct X {Σ} (wfΣ : abstract_env_ext_rel X Σ):
+    let uctx := (wf_ext_gc_of_uctx (abstract_env_ext_wf X wfΣ)).π1 in
+    leqb_level_n_spec_gen uctx (abstract_env_leqb_level_n X);
+  abstract_env_level_mem_correct X {Σ} (wfΣ : abstract_env_ext_rel X Σ) l:
+    LevelSet.In l (global_ext_levels Σ) <-> abstract_env_level_mem X l;
+  abstract_env_is_consistent_correct X Σ uctx udecl :
+    abstract_env_rel X Σ ->
+    ConstraintSet.For_all (declared_cstr_levels (LevelSet.union udecl.1 (global_levels Σ))) udecl.2 ->
+    gc_of_uctx udecl = Some uctx ->
+    consistent_extension_on (global_uctx Σ) udecl.2 <-> abstract_env_is_consistent X uctx ;
+
+  abstract_env_guard_correct X {Σ} (wfΣ : abstract_env_ext_rel X Σ) fix_cofix Γ mfix :
+      guard fix_cofix Σ Γ mfix <-> abstract_env_guard X fix_cofix Γ mfix;
+  abstract_primitive_constant_correct X tag Σ :
+    abstract_env_ext_rel X Σ -> abstract_primitive_constant X tag = PCUICEnvironment.primitive_constant Σ tag
+  }.
+
+Definition abstract_env_impl {cf:checker_flags} := ∑ X Y Z, @abstract_env_prop _ X Y Z.
+
+Global Instance abstract_env_impl_abstract_env_struct {cf:checker_flags} (Σ : abstract_env_impl) : abstract_env_struct Σ.π1 Σ.π2.π1.
+Admitted.
+
+Inductive ConversionError :=
+| NotFoundConstants (c1 c2 : kername)
+
+| NotFoundConstant (c : kername)
+
+| LambdaNotConvertibleTypes
+    (Γ1 : context) (na : aname) (A1 t1 : term)
+    (Γ2 : context) (na' : aname) (A2 t2 : term)
+    (e : ConversionError)
+
+| LambdaNotConvertibleAnn
+    (Γ1 : context) (na : aname) (A1 t1 : term)
+    (Γ2 : context) (na' : aname) (A2 t2 : term)
+
+| ProdNotConvertibleDomains
+    (Γ1 : context) (na : aname) (A1 B1 : term)
+    (Γ2 : context) (na' : aname) (A2 B2 : term)
+    (e : ConversionError)
+
+| ProdNotConvertibleAnn
+    (Γ1 : context) (na : aname) (A1 B1 : term)
+    (Γ2 : context) (na' : aname) (A2 B2 : term)
+
+| ContextNotConvertibleAnn
+    (Γ : context) (decl : context_decl)
+    (Γ' : context) (decl' : context_decl)
+| ContextNotConvertibleType
+    (Γ : context) (decl : context_decl)
+    (Γ' : context) (decl' : context_decl)
+| ContextNotConvertibleBody
+    (Γ : context) (decl : context_decl)
+    (Γ' : context) (decl' : context_decl)
+| ContextNotConvertibleLength
+
+| CaseOnDifferentInd
+    (Γ1 : context)
+    (ci : case_info) (p : predicate term) (c : term) (brs : list (branch term))
+    (Γ2 : context)
+    (ci' : case_info) (p' : predicate term) (c' : term) (brs' : list (branch term))
+
+| CasePredParamsUnequalLength
+    (Γ1 : context)
+    (ci : case_info) (p : predicate term) (c : term) (brs : list (branch term))
+    (Γ2 : context)
+    (ci' : case_info) (p' : predicate term) (c' : term) (brs' : list (branch term))
+
+| CasePredUnequalUniverseInstances
+    (Γ1 : context)
+    (ci : case_info) (p : predicate term) (c : term) (brs : list (branch term))
+    (Γ2 : context)
+    (ci' : case_info) (p' : predicate term) (c' : term) (brs' : list (branch term))
+
+| DistinctStuckProj
+    (Γ : context) (p : projection) (c : term)
+    (Γ' : context) (p' : projection) (c' : term)
+
+| CannotUnfoldFix
+    (Γ : context) (mfix : mfixpoint term) (idx : nat)
+    (Γ' : context) (mfix' : mfixpoint term) (idx' : nat)
+
+| FixRargMismatch (idx : nat)
+    (Γ : context) (u : def term) (mfix1 mfix2 : mfixpoint term)
+    (Γ' : context) (v : def term) (mfix1' mfix2' : mfixpoint term)
+
+| FixMfixMismatch (idx : nat)
+    (Γ : context) (mfix : mfixpoint term)
+    (Γ' : context) (mfix' : mfixpoint term)
+
+| DistinctCoFix
+    (Γ : context) (mfix : mfixpoint term) (idx : nat)
+    (Γ' : context) (mfix' : mfixpoint term) (idx' : nat)
+
+| CoFixRargMismatch (idx : nat)
+    (Γ : context) (u : def term) (mfix1 mfix2 : mfixpoint term)
+    (Γ' : context) (v : def term) (mfix1' mfix2' : mfixpoint term)
+
+| CoFixMfixMismatch (idx : nat)
+    (Γ : context) (mfix : mfixpoint term)
+    (Γ' : context) (mfix' : mfixpoint term)
+
+| StackHeadError
+    (leq : conv_pb)
+    (Γ1 : context)
+    (t1 : term) (args1 : list term) (u1 : term) (l1 : list term)
+    (Γ2 : context)
+    (t2 : term) (u2 : term) (l2 : list term)
+    (e : ConversionError)
+
+| StackTailError (leq : conv_pb)
+    (Γ1 : context)
+    (t1 : term) (args1 : list term) (u1 : term) (l1 : list term)
+    (Γ2 : context)
+    (t2 : term) (u2 : term) (l2 : list term)
+    (e : ConversionError)
+
+| StackMismatch
+    (Γ1 : context) (t1 : term) (args1 l1 : list term)
+    (Γ2 : context) (t2 : term) (l2 : list term)
+
+| HeadMismatch
+    (leq : conv_pb)
+    (Γ1 : context) (t1 : term)
+    (Γ2 : context) (t2 : term).
+
+Module Export MetaCoq_DOT_PCUIC_DOT_PCUICConvCumInversion_WRAPPED.
+Module Export PCUICConvCumInversion.
+Import MetaCoq.PCUIC.PCUICWellScopedCumulativity.
+
+Definition conv_cum {cf:checker_flags} pb Σ Γ u v :=
+  ∥ Σ ;;; Γ ⊢ u ≤[pb] v ∥.
+
+#[global] Hint Resolve sq : core.
+
+End PCUICConvCumInversion.
+Module Export MetaCoq.
+Module Export PCUIC.
+Module Export PCUICConvCumInversion.
+Include MetaCoq_DOT_PCUIC_DOT_PCUICConvCumInversion_WRAPPED.PCUICConvCumInversion.
+End PCUICConvCumInversion.
 Import MetaCoq.PCUIC.Syntax.PCUICPosition.
 Import MetaCoq.PCUIC.PCUICSN.
 Import MetaCoq.PCUIC.PCUICWellScopedCumulativity.
 Import MetaCoq.PCUIC.PCUICConvCumInversion.
-Import MetaCoq.SafeChecker.PCUICErrors.
-Import MetaCoq.SafeChecker.PCUICWfEnv.
-Import MetaCoq.SafeChecker.PCUICSafeReduce.
 
   Context {cf : checker_flags} {nor : normalizing_flags}.
 
@@ -768,29 +368,6 @@ Import MetaCoq.SafeChecker.PCUICSafeReduce.
     wth  : wtp Γ tm2 stk2
   }.
 
-  Arguments st {_} _.
-  Arguments tm1 {_} _.
-  Arguments stk1 {_} _.
-  Arguments tm2 {_} _.
-  Arguments stk2 {_} _.
-  Arguments wth {_} _.
-
-  Definition wterm Γ := { t : term | forall Σ (wfΣ : abstract_env_ext_rel X Σ), welltyped Σ Γ t }.
-
-  Lemma R_aux (Γ : context) :
-    (∑ t : term, pos t × (∑ w : wterm Γ, pos (` w) × state)) ->
-    (∑ t : term, pos t × (∑ w : wterm Γ, pos (` w) × state)) -> Prop.
-Admitted.
-
-  Notation pzt u := (zipc (tm1 u) (stk1 u)) (only parsing).
-  Notation pps1 u := (stack_pos (tm1 u) (stk1 u)) (only parsing).
-  Notation pwt u := (exist (P := fun t => forall Σ, abstract_env_ext_rel X Σ -> welltyped Σ _ t)
-                                 _ (fun Σ wfΣ => wth u Σ wfΣ)) (only parsing).
-  Notation pps2 u := (stack_pos (tm2 u) (stk2 u)) (only parsing).
-
-  Notation obpack u:=
-    (pzt u ; (pps1 u, (pwt u; (pps2 u, st u)))) (only parsing).
-
   Axiom R : forall Γ : context, pack Γ -> pack Γ -> Prop.
 
   Notation conv_stack_ctx Γ π1 π2 :=
@@ -806,10 +383,6 @@ Admitted.
 
   Arguments Success {_} _.
   Arguments Error {_} _.
-
-  Axiom isred_full : context -> term -> stack -> Prop.
-  Lemma prog_discr (t1 t2 : term) : Prop.
-Admitted.
 
   Definition Ret (s:state) Γ t π t' π' :=
     forall (leq : conv_pb),
