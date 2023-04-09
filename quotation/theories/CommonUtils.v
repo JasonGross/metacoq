@@ -1,9 +1,12 @@
+From Coq.FSets Require Import FMapPositive.
+From Coq.ssr Require Import ssrfun.
 From MetaCoq.Utils Require Import utils monad_utils MCList.
 From MetaCoq.Common Require Import Kernames MonadBasicAst.
 From MetaCoq.Template Require MonadAst TemplateMonad Ast Loader.
 Require Import Equations.Prop.Classes.
 Require Import Coq.Lists.List.
 Import ListNotations.
+Import MCList.
 
 Local Unset Universe Minimization ToSet.
 Local Set Primitive Projections.
@@ -99,6 +102,77 @@ Definition rebase_global_reference (mp : modpath) (g : global_reference) : globa
      | IndRef ind => IndRef (replace_inductive_modpath mp ind)
      | ConstructRef ind idx => ConstructRef (replace_inductive_modpath mp ind) idx
      end.
+
+  Import MetaCoq.Template.Loader.
+  Import MetaCoq.Template.Ast.
+  Import MonadBasicAst MonadAst.
+  Import MetaCoq.Template.TemplateMonad.Common.
+  Import MetaCoq.Template.TemplateMonad.Core.
+MetaCoq Run (tmQuote I >>= tmPrint).
+Print MPfile.
+Print DirPathMap.t.
+Module Import DedupGrefs.
+  Fixpoint NestedMapOfDepth (depth : nat) : Type
+    := match depth with
+       | O => DirPathMap.t (IdentSet.t * list global_reference)
+       | S depth'
+         => DirPathMap.t global_reference * IdentMap.t (NestedMapOfDepth depth')
+       end.
+
+  Definition NestedMapOfDepth_empty {depth} : NestedMapOfDepth depth
+    := match depth return NestedMapOfDepth depth with
+       | O => @DirPathMap.empty _
+       | S depth'
+         => (@DirPathMap.empty _, @IdentMap.empty _)
+       end.
+
+  Fixpoint NestedMapOfDepth_add {depth} (dp' : list ident) (gr : global_reference) {struct depth} : NestedMapOfDepth depth -> NestedMapOfDepth depth
+    := match depth, dp' return NestedMapOfDepth depth -> NestedMapOfDepth depth with
+       | O, _
+         => fun s
+            => DirPathMap.add dp' gr s
+       | S depth', ([] (* oops, invalid *) | [_])
+         => fun '(s, rec)
+            => (DirPathMap.add dp' gr s, rec)
+       | S depth', i :: dp'
+         => fun '(v, rec)
+            => (v,
+                 let rec' := Option.default NestedMapOfDepth_empty (IdentMap.find i rec) in
+                 let rec' := @NestedMapOfDepth_add depth' dp' gr rec' in
+                 IdentMap.add i rec' rec)
+       end.
+
+  Fixpoint NestedMapOfDepth_remove {depth} (dp' : list ident) {struct depth} : NestedMapOfDepth depth -> NestedMapOfDepth depth
+    := match depth, dp' return NestedMapOfDepth depth -> NestedMapOfDepth depth with
+       | O, _
+         => fun m
+            => let m := DirPathMap.mapi
+                          (fun k v
+                           => match common_prefix_ls dp' k with
+                              | (_, [],
+       | S depth', []
+         => fun '(_, rec)
+            => (None,
+       | S depth', i :: dp'
+         => fun '(v, rec)
+            => (v,
+                 let rec' := Option.default NestedMapOfDepth_empty (IdentMap.find i rec) in
+                 let rec' := @NestedMapOfDepth_add depth' dp' gr rec' in
+                 IdentMap.add i rec' rec)
+       end.
+
+  Lemma sorry {A B} (msg : A) : B -> B.
+  Proof. exact id. Qed.
+
+
+  Record KernameNestedMap (depth : nat)
+    := { file_map : DirPathMap.t (NestedMapOfDepth depth)
+       ; bound_map : DirPathMap.t (KernameMap.t (PositiveMap.t (NestedMapOfDepth depth))) }.
+
+  Fixpoint
+
+Fixpoint DirPathMap
+Fixpoint group_grefs (depth : nat) (g : list
 
 (* hack around https://github.com/MetaCoq/metacoq/issues/850 *)
 Fixpoint dedup_grefs' (g : list global_reference) (seen : KernameSet.t) : list global_reference
