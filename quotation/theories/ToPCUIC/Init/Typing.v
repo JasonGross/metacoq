@@ -1,7 +1,7 @@
 From MetaCoq.Utils Require Export bytestring.
 From MetaCoq.Utils Require Import utils MCList.
 From MetaCoq.Common Require Import MonadBasicAst.
-From MetaCoq.PCUIC Require Import PCUICMonadAst PCUICAst PCUICTyping Typing.PCUICWeakeningTyp Syntax.PCUICLiftSubst Syntax.PCUICClosed Typing.PCUICClosedTyp PCUICSpine.
+From MetaCoq.PCUIC Require Import PCUICMonadAst PCUICAst PCUICTyping Typing.PCUICWeakeningTyp Syntax.PCUICLiftSubst Syntax.PCUICClosed Typing.PCUICClosedTyp PCUICSpine PCUICArities.
 From MetaCoq.TemplatePCUIC Require Import PCUICTemplateMonad Loader.
 From MetaCoq.Quotation Require Export CommonUtils.
 From MetaCoq.Quotation.ToPCUIC Require Export Init.
@@ -28,7 +28,21 @@ Module config.
   Class typing_restriction
     := { checker_flags_constraint : config.checker_flags -> bool
        ; global_env_ext_constraint : global_env_ext -> bool }.
+  Definition and_typing_restriction (x y : typing_restriction) : typing_restriction
+    := {| checker_flags_constraint cf := x.(checker_flags_constraint) cf && y.(checker_flags_constraint) cf;
+         global_env_ext_constraint Σ := x.(global_env_ext_constraint) Σ && y.(global_env_ext_constraint) Σ |}.
+  Definition or_typing_restriction (x y : typing_restriction) : typing_restriction
+    := {| checker_flags_constraint cf := x.(checker_flags_constraint) cf && y.(checker_flags_constraint) cf;
+         global_env_ext_constraint Σ := x.(global_env_ext_constraint) Σ && y.(global_env_ext_constraint) Σ |}.
+  Module Export Notations.
+    Declare Scope typing_restriction_scope.
+    Delimit Scope typing_restriction_scope with typing_restriction.
+    Bind Scope typing_restriction_scope with typing_restriction.
+    Infix "&&" := and_typing_restriction : typing_restriction_scope.
+    Infix "||" := or_typing_restriction : typing_restriction_scope.
+  End Notations.
 End config.
+Export config.Notations.
 
 Class quotation_of_well_typed {Pcf : config.typing_restriction} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} := typing_quoted_term_of : forall cf Σ Γ, config.checker_flags_constraint cf -> config.global_env_ext_constraint Σ -> wf Σ -> wf_local Σ Γ -> Σ ;;; Γ |- qt : qT.
 Class ground_quotable_well_typed {Pcf : config.typing_restriction} T {qT : quotation_of T} {quoteT : ground_quotable T} := typing_quote_ground : forall t : T, quotation_of_well_typed t.
@@ -50,7 +64,7 @@ Fixpoint quote_dynlist (d : dynlist) : TemplateMonad (list term)
 
 Definition constraint_for_globals (globals : dynlist) : TemplateMonad (global_env_ext -> bool)
   := qts <- quote_dynlist globals;;
-     inds <- monad_map (fun qt => match qt with
+     inds <- monad_map (fun qt => match Init.head qt with
                                   | tInd {| inductive_mind := mind |} _
                                     => ind <- tmQuoteInductive mind;;
                                        (*tmPrint ind;;*)
@@ -84,6 +98,16 @@ Notation quotation_of_well_typed_using ls t
                                        _ t' _ _)))
       end)
        (only parsing).
+Notation typing_restriction_for_globals ls
+  := (match ls%dynlist return _ with
+      | globals
+        => ltac:(run_template_program
+                   (constraint_for_globals globals)
+                   (fun c => refine ({| config.checker_flags_constraint := _.(config.checker_flags_constraint)
+                                     ; config.global_env_ext_constraint := c |})))
+      end)
+       (only parsing).
+
 
 Module Export Instances.
   #[export] Instance default_typing_restriction : config.typing_restriction | 1000
@@ -92,42 +116,29 @@ Module Export Instances.
   #[export] Existing Instance typing_quote_ground.
 End Instances.
 
-Lemma weakening_typing_from_empty {cf Σ Γ t T}
-  : @typing cf Σ [] t T -> wf Σ -> wf_local Σ Γ -> @typing cf Σ Γ t T.
-Proof.
-  intros Hty Hwf HΓ.
-  replace Γ with ([],,, Γ,,, lift_context #|Γ| 0 []);
-    [ replace t with (lift #|Γ| 0 t) | .. ];
-    [ replace T with (lift #|Γ| 0 T) | .. ].
-  { eapply (@weakening_typing cf Σ Hwf [] [] Γ);
-      rewrite ?app_context_nil_l; tea. }
-  all: rewrite ?app_context_nil_l.
-  all: try now generalize (lift_context_length #|Γ| 0 []); destruct lift_context; cbn; congruence.
-  all: rewrite lift_closed; try reflexivity.
-  all: change 0 with #|[]:context|.
-  all: unshelve ((eapply type_closed + eapply subject_closed); eassumption).
-  all: assumption.
-Qed.
-
-#[export] Instance well_typed_ground_quotable_of_bp {b P} (H : b = true -> P) {qH : quotation_of H} (H_for_safety : P -> b = true) {qP : quotation_of P} {Pcf : config.typing_restriction} {qtyH : quotation_of_well_typed H} {qtyP : quotation_of_well_typed P} : @ground_quotable_well_typed Pcf _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
+#[export] Instance well_typed_ground_quotable_of_bp {b P} (H : b = true -> P) {qH : quotation_of H} (H_for_safety : P -> b = true) {qP : quotation_of P} {Pcf : config.typing_restriction} {qtyH : quotation_of_well_typed H} {qtyP : quotation_of_well_typed P} : @ground_quotable_well_typed (Pcf && typing_restriction_for_globals [bool; @eq bool]) _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
 Proof.
   intros t cf Σ Γ Hcf HΣ Hwf HΓ.
+  apply andb_andI in Hcf; apply andb_andI in HΣ.
+  destruct Hcf, HΣ.
+  cbn [config.checker_flags_constraint config.global_env_ext_constraint map fold_right] in *.
   cbv [quote_ground ground_quotable_of_bp Init.quote_bool] in *.
   specialize (H_for_safety t); subst.
-  eapply weakening_typing_from_empty; [ | assumption .. ].
-  exactly_once econstructor.
-  repeat first [ assumption
-               | match goal with
-                 | [ |- _;;;_ |- tApp _ _ : _ ] => eapply type_App
-                 | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
-                   => (idtac + eapply type_Cumul); [ eapply H | .. ]
-                 | [ |- wf_local _ [] ] => constructor
-                 end ].
-  all: repeat first [ assumption
+  eapply @weaken_ctx with (Γ := nil); [ assumption .. | ].
+  repeat match goal with
+         | [ H : andb _ _ = true |- _ ] => apply andb_andI in H; destruct H
+         | [ H : is_true (andb _ _) |- _ ] => apply andb_andI in H; destruct H
+         | [ H : is_true (_ == _) |- _ ] => apply eqb_eq in H
+         end.
+  all: repeat
+         repeat first [ assumption
                     | now constructor
                     | progress cbv [subst1] in *
                     | rewrite subst_closedn
-                    | progress cbn [List.app]
+                    | progress cbn [List.app ind_type]
+                    | progress cbn [subst_instance subst_instance_constr subst_instance_univ]
+                    | progress cbn [type_of_constructor]
+                    | progress cbv [PCUICLookup.declared_minductive_gen]
                     | match goal with
                       | [ |- _;;;_ |- tApp _ _ : _ ] => eapply type_App
                       | [ |- _;;;_ |- tInd _ _ : _ ] => eapply type_Ind
@@ -139,6 +150,7 @@ Proof.
                       | [ |- wf_local _ [] ] => constructor
                       | [ |- wf_local _ (_ ,, _) ] => constructor
                       | [ |- _;;;_ |- tProd _ _ _ : _ ] => eapply type_Prod
+                      | [ |- _;;;_ |- tSort _ : _ ] => eapply type_Sort
                       | [ |- lift_typing _ _ _ _ _ ] => hnf; try eexists
                       | [ |- context[tApp ?f ?x] ]
                         => change (tApp f x) with (mkApps f [x])
@@ -148,7 +160,202 @@ Proof.
                         => eapply type_mkApps
                       | [ |- PCUICArities.typing_spine _ _ _ _ _ ]
                         => econstructor
+                      | [ |- declared_inductive _ _ _ _ ] => eapply declared_inductive_from_gen; constructor; hnf
+                      | [ |- declared_constructor _ _ _ _ _ ] => eapply declared_constructor_from_gen; repeat apply conj
+                      | [ |- isType _ _ (tProd _ _ _) ] => apply isType_tProd; split
+                      | [ |- isType _ _ (tSort _) ] => apply isType_Sort
+                      | [ |- _ = _ ] => eassumption
+                      | [ |- _;;;_ |- tSort _ <=s tSort _ ] => apply cumul_Sort
                       end ].
+  all: lazymatch goal with
+       | [ |- isType _ _ _ ] => cbn; econstructor
+       | [ |- wf_universe _ _ ] => idtac
+       | _ => cbn
+       end.
+  all: repeat
+         repeat first [ assumption
+                      | reflexivity
+                    | progress cbv [subst1] in *
+                    | rewrite subst_closedn
+                    | progress cbn [List.app ind_type]
+                    | progress cbn [subst_instance subst_instance_constr subst_instance_univ]
+                    | progress cbn [type_of_constructor]
+                    | progress cbv [PCUICLookup.declared_minductive_gen]
+                    | match goal with
+                      | [ |- context[tApp ?f ?x] ]
+                        => change (tApp f x) with (mkApps f [x])
+                      | [ |- context[mkApps (mkApps ?f ?x) ?y] ]
+                        => change (mkApps (mkApps f x) y) with (mkApps f (x ++ y))
+                      | [ |- _;;;_ |- mkApps _ _ : _ ]
+                        => eapply type_mkApps
+                      | [ |- _;;;_ |- tInd _ _ : _ ] => eapply type_Ind
+                      | [ |- _;;;_ |- tConstruct _ _ _ : _ ] => eapply type_Construct
+                      | [ |- _;;;_ |- tRel _ : _ ] => (idtac + eapply type_Cumul); [ eapply type_Rel | .. ]
+                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
+                        => (idtac + eapply type_Cumul); [ eapply H | .. ]
+                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- is_true (closedn 0 ?qP) ]
+                        => eapply @subject_closed with (Γ:=[]); [ | eapply H ]; tea
+                      | [ |- wf_local _ [] ] => constructor
+                      | [ |- wf_local _ (_ ,, _) ] => constructor
+                      | [ |- _;;;_ |- tProd _ _ _ : _ ] => eapply type_Prod
+                      | [ |- _;;;_ |- tSort _ : _ ] => eapply type_Sort
+                      | [ |- lift_typing _ _ _ _ _ ] => hnf; try eexists
+                      | [ |- PCUICArities.typing_spine _ _ _ _ _ ]
+                        => econstructor
+                      | [ |- declared_inductive _ _ _ _ ] => eapply declared_inductive_from_gen; constructor; hnf
+                      | [ |- declared_constructor _ _ _ _ _ ] => eapply declared_constructor_from_gen; repeat apply conj
+                      | [ |- isType _ _ (tProd _ _ _) ] => apply isType_tProd; split
+                      | [ |- isType _ _ (tSort _) ] => apply isType_Sort
+                      | [ |- _ = _ ] => eassumption
+                      | [ |- _;;;_ |- tSort _ <=s tSort _ ] => apply cumul_Sort
+                      end ].
+
+  all: lazymatch goal with
+       | [ |- isType _ _ _ ] => cbn; econstructor
+       | [ |- wf_universe _ _ ] => idtac
+       | _ => cbn
+       end.
+  all: repeat
+         repeat first [ assumption
+                      | reflexivity
+                    | progress cbv [subst1] in *
+                    | rewrite subst_closedn
+                    | progress cbn [List.app ind_type]
+                    | progress cbn [subst_instance subst_instance_constr subst_instance_univ]
+                      | progress cbn [type_of_constructor]
+                      | progress cbn [lift0 decl_type vass]
+                    | progress cbv [PCUICLookup.declared_minductive_gen]
+                    | match goal with
+                      | [ |- context[tApp ?f ?x] ]
+                        => change (tApp f x) with (mkApps f [x])
+                      | [ |- context[mkApps (mkApps ?f ?x) ?y] ]
+                        => change (mkApps (mkApps f x) y) with (mkApps f (x ++ y))
+                      | [ |- _;;;_ |- mkApps _ _ : _ ]
+                        => eapply type_mkApps
+                      | [ |- _;;;_ |- tInd _ _ : _ ] => (idtac + eapply type_Cumul); [ eapply type_Ind | .. ]
+                      | [ |- _;;;_ |- tConstruct _ _ _ : _ ] => eapply type_Construct
+                      | [ |- _;;;_ |- tRel _ : _ ] => (idtac + eapply type_Cumul); [ eapply type_Rel | .. ]
+                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
+                        => (idtac + eapply type_Cumul); [ eapply H | .. ]
+                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- is_true (closedn 0 ?qP) ]
+                        => eapply @subject_closed with (Γ:=[]); [ | eapply H ]; tea
+                      | [ |- wf_local _ [] ] => constructor
+                      | [ |- wf_local _ (_ ,, _) ] => constructor
+                      | [ |- _;;;_ |- tProd _ _ _ : _ ] => eapply type_Prod
+                      | [ |- _;;;_ |- tSort _ : _ ] => eapply type_Sort
+                      | [ |- lift_typing _ _ _ _ _ ] => hnf; try eexists
+                      | [ |- PCUICArities.typing_spine _ _ _ _ _ ]
+                        => econstructor
+                      | [ |- declared_inductive _ _ _ _ ] => eapply declared_inductive_from_gen; constructor; hnf
+                      | [ |- declared_constructor _ _ _ _ _ ] => eapply declared_constructor_from_gen; repeat apply conj
+                      | [ |- isType _ _ (tProd _ _ _) ] => apply isType_tProd; split
+                      | [ |- isType _ _ (tSort _) ] => apply isType_Sort
+                      | [ |- _ = _ ] => eassumption
+                      | [ |- _;;;_ |- tSort _ <=s tSort _ ] => apply cumul_Sort
+                      end ].
+  all: lazymatch goal with
+       | [ |- wf_universe _ _ ] => shelve
+       | _ => idtac
+       end.
+  2: { constructor 1; try refine (@eq_refl bool true).
+       2: { hnf.
+            Print PCUICEquality.eq_term_upto_univ_napp.
+             reflexivity.
+             constructor.
+             reflexivity.
+        cbn.
+       refine (eq_refl true).
+        cbn.
+  2: { match goal with
+  match goal
+  all: match goal with |- _ ;;; _ |- ?e : _ => is_evar e; shelve | _ => idtac end.
+  4: {
+  match goal with
+  all: try apply cumul_Sort.
+  Print cumulSpec0.
+Set Printing All.
+
+  all:
+  21: { cbv [type_of_constructor inductive_mind fst snd cstr_type ind_bodies subst0 inds List.length subst_instance subst_instance_constr].
+  all: lazymatch goal with
+       | [ |- isType _ _ _ ] => econstructor
+       | _ => idtac
+       end.
+    end ].
+  all: cbn.
+  Search isType tApp.
+  47: {
+  all: cbn.
+  53: { cbv [PCUICLookup.declared_minductive_gen].
+  Search isType tRel.
+  cbn -[wf_universe].
+  cbv [subst_instance subst_instance_univ0 NonEmptySetFacts.map].
+  Set Printing All.
+  Search isType tSort.
+  lazymatch goal with
+  end.
+  Search isType tProd.
+  all: repeat first [ progress cbn [type_of_constructor ind_type ind_bodies inductive_ind nth_error]
+                    | eassumption
+                    | reflexivity
+                    | match goal with
+                      | [ |- declared_inductive _ _ _ _ ] => eapply declared_inductive_from_gen; constructor; hnf
+                      | [ |- declared_constructor _ _ _ _ _ ] => eapply declared_constructor_from_gen; repeat apply conj
+                      end ].
+  all: repeat first [ progress cbn [type_of_constructor ind_type ind_bodies inductive_ind nth_error]
+                    | progress cbv [type_of_constructor ind_type]
+                    | eassumption
+                    | reflexivity
+                    | match goal with
+                      | [ |- declared_inductive _ _ _ _ ] => eapply declared_inductive_from_gen; constructor; hnf
+                      | [ |- declared_constructor _ _ _ _ _ ] => eapply declared_constructor_from_gen; repeat apply conj
+                      | [ |- isType _ _ _ ] => eexists
+                      end ].
+  all: cbn.
+  all: repeat first [ reflexivity
+                    | eassumption
+                    | match goal with
+                      | [ |- _;;;_ |- tProd _ _ _ : _ ] => eapply type_Prod
+                      | [ |- _;;;_ |- tSort _ : _ ] => eapply type_Sort
+                      | [ |- _;;;_ |- tRel _ : _ ] => (idtac + eapply type_Cumul); [ eapply type_Rel | .. ]
+                      | [ |- _;;;_ |- tInd _ _ : _ ] => (idtac + eapply type_Cumul); [ eapply type_Ind | .. ]
+                      | [ |- wf_local _ [] ] => constructor
+                      | [ |- wf_local _ [] ] => constructor
+                      | [ |- wf_local _ (_ ,, _) ] => constructor
+                      | [ |- lift_typing _ _ _ _ _ ] => hnf; try eexists
+                      | [ |- declared_inductive _ _ _ _ ] => eapply declared_inductive_from_gen; constructor; hnf
+                      | [ |- declared_constructor _ _ _ _ _ ] => eapply declared_constructor_from_gen; repeat apply conj
+                      end ].
+  all: match goal with |- wf_universe _ _ => shelve | _ => idtac end.
+  all: cbn.
+  cbn.
+  Search wf_universe.
+  2: {  Set Printing All.
+                      | [ |- _;;;_ |- tInd _ _ : _ ] => eapply type_Ind
+                      | [ |- _;;;_ |- tConstruct _ _ _ : _ ] => eapply type_Construct
+Print type_of_constructor.
+  hnf.
+  Print isType.
+  cbn [ind_type].
+  all: lazymatch goal with
+       | _ => idtac
+       end.
+  { constructor.
+    hnf.
+    eassumption.
+  match goal with
+  end.
+  Search declared_inductive lookup_env.
+  Set Printing Implicit.
+  { repeat match goal with
+           end.
+    Search eqb.
+    match goal with
+    end.
+
+  24: {
+  Locate weaken_ctx.
+  Check weaken_ctx.
   HERE
   3: { cbn.
        match goal with
