@@ -1,7 +1,7 @@
 From MetaCoq.Utils Require Export bytestring.
 From MetaCoq.Utils Require Import utils MCList.
 From MetaCoq.Common Require Import MonadBasicAst.
-From MetaCoq.PCUIC Require Import PCUICMonadAst PCUICAst PCUICTyping Typing.PCUICWeakeningTyp.
+From MetaCoq.PCUIC Require Import PCUICMonadAst PCUICAst PCUICTyping Typing.PCUICWeakeningTyp Syntax.PCUICLiftSubst Syntax.PCUICClosed Typing.PCUICClosedTyp PCUICSpine.
 From MetaCoq.TemplatePCUIC Require Import PCUICTemplateMonad Loader.
 From MetaCoq.Quotation Require Export CommonUtils.
 From MetaCoq.Quotation.ToPCUIC Require Export Init.
@@ -30,7 +30,7 @@ Module config.
        ; global_env_ext_constraint : global_env_ext -> bool }.
 End config.
 
-Class quotation_of_well_typed {Pcf : config.typing_restriction} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} := typing_quoted_term_of : forall cf Σ Γ, config.checker_flags_constraint cf -> config.global_env_ext_constraint Σ -> wf_local Σ Γ -> Σ ;;; Γ |- qt : qT.
+Class quotation_of_well_typed {Pcf : config.typing_restriction} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} := typing_quoted_term_of : forall cf Σ Γ, config.checker_flags_constraint cf -> config.global_env_ext_constraint Σ -> wf Σ -> wf_local Σ Γ -> Σ ;;; Γ |- qt : qT.
 Class ground_quotable_well_typed {Pcf : config.typing_restriction} T {qT : quotation_of T} {quoteT : ground_quotable T} := typing_quote_ground : forall t : T, quotation_of_well_typed t.
 
 Inductive dynlist := dnil | dcons {T} (t : T) (tl : dynlist).
@@ -92,64 +92,104 @@ Module Export Instances.
   #[export] Existing Instance typing_quote_ground.
 End Instances.
 
+Lemma weakening_typing_from_empty {cf Σ Γ t T}
+  : @typing cf Σ [] t T -> wf Σ -> wf_local Σ Γ -> @typing cf Σ Γ t T.
+Proof.
+  intros Hty Hwf HΓ.
+  replace Γ with ([],,, Γ,,, lift_context #|Γ| 0 []);
+    [ replace t with (lift #|Γ| 0 t) | .. ];
+    [ replace T with (lift #|Γ| 0 T) | .. ].
+  { eapply (@weakening_typing cf Σ Hwf [] [] Γ);
+      rewrite ?app_context_nil_l; tea. }
+  all: rewrite ?app_context_nil_l.
+  all: try now generalize (lift_context_length #|Γ| 0 []); destruct lift_context; cbn; congruence.
+  all: rewrite lift_closed; try reflexivity.
+  all: change 0 with #|[]:context|.
+  all: unshelve ((eapply type_closed + eapply subject_closed); eassumption).
+  all: assumption.
+Qed.
+
 #[export] Instance well_typed_ground_quotable_of_bp {b P} (H : b = true -> P) {qH : quotation_of H} (H_for_safety : P -> b = true) {qP : quotation_of P} {Pcf : config.typing_restriction} {qtyH : quotation_of_well_typed H} {qtyP : quotation_of_well_typed P} : @ground_quotable_well_typed Pcf _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
 Proof.
-  intros t cf Σ Γ Hcf HΣ HΓ.
+  intros t cf Σ Γ Hcf HΣ Hwf HΓ.
   cbv [quote_ground ground_quotable_of_bp Init.quote_bool] in *.
   specialize (H_for_safety t); subst.
-
-
-  hnf in qtyH.
-  hnf in qtyP.
-  specialize (qtyH _ Σ [] ltac:(eassumption) ltac:(eassumption) ltac:(constructor)).
-  specialize (qtyP _ Σ [] ltac:(eassumption) ltac:(eassumption) ltac:(constructor)).
-  clear Hcf.
-  revert qtyP qtyH.
-  specialize (H_for_safety ltac:(assumption)).
-  subst.
-  revert HΓ.
-  revert Γ.
-   forall Γ : context,
-  wf_local Σ Γ ->
-  Σ;;; [] |- qP
-  : tSort
-      (Universe.lType
-         {|
-           t_set :=
-             {|
-               LevelExprSet.this := [(Level.level "MetaCoq.Quotation.ToPCUIC.Init.Typing.547", 0)];
-               LevelExprSet.is_ok := LevelExprSet.Raw.singleton_ok (Level.level "MetaCoq.Quotation.ToPCUIC.Init.Typing.547", 0)
-             |};
-           t_ne := eq_refl
-         |}) ->
-  Σ;;; [] |- qH
-  : tProd {| binder_name := nAnon; binder_relevance := Relevant |}
-      (tApp
-         (tApp
-            (tApp (tInd {| inductive_mind := (MPfile ["Logic"; "Init"; "Coq"], "eq"); inductive_ind := 0 |} [])
-               (tInd {| inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool"); inductive_ind := 0 |} []))
-            (tConstruct {| inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool"); inductive_ind := 0 |} 0 []))
-         (tConstruct {| inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool"); inductive_ind := 0 |} 0 [])) qP ->
-  Σ;;; Γ
-  |- tApp qH
-       (tApp
-          (tApp (tConstruct {| inductive_mind := (MPfile ["Logic"; "Init"; "Coq"], "eq"); inductive_ind := 0 |} 0 [])
-             (tInd {| inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool"); inductive_ind := 0 |} []))
-          (tConstruct {| inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool"); inductive_ind := 0 |} 0 [])) : qP
-
+  eapply weakening_typing_from_empty; [ | assumption .. ].
   exactly_once econstructor.
   repeat first [ assumption
                | match goal with
                  | [ |- _;;;_ |- tApp _ _ : _ ] => eapply type_App
                  | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
                    => (idtac + eapply type_Cumul); [ eapply H | .. ]
+                 | [ |- wf_local _ [] ] => constructor
                  end ].
+  all: repeat first [ assumption
+                    | now constructor
+                    | progress cbv [subst1] in *
+                    | rewrite subst_closedn
+                    | progress cbn [List.app]
+                    | match goal with
+                      | [ |- _;;;_ |- tApp _ _ : _ ] => eapply type_App
+                      | [ |- _;;;_ |- tInd _ _ : _ ] => eapply type_Ind
+                      | [ |- _;;;_ |- tConstruct _ _ _ : _ ] => eapply type_Construct
+                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
+                        => (idtac + eapply type_Cumul); [ eapply H | .. ]
+                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- is_true (closedn 0 ?qP) ]
+                        => eapply @subject_closed with (Γ:=[]); [ | eapply H ]; tea
+                      | [ |- wf_local _ [] ] => constructor
+                      | [ |- wf_local _ (_ ,, _) ] => constructor
+                      | [ |- _;;;_ |- tProd _ _ _ : _ ] => eapply type_Prod
+                      | [ |- lift_typing _ _ _ _ _ ] => hnf; try eexists
+                      | [ |- context[tApp ?f ?x] ]
+                        => change (tApp f x) with (mkApps f [x])
+                      | [ |- context[mkApps (mkApps ?f ?x) ?y] ]
+                        => change (mkApps (mkApps f x) y) with (mkApps f (x ++ y))
+                      | [ |- _;;;_ |- mkApps _ _ : _ ]
+                        => eapply type_mkApps
+                      | [ |- PCUICArities.typing_spine _ _ _ _ _ ]
+                        => econstructor
+                      end ].
+  HERE
+  3: { cbn.
+       match goal with
+       end.
+  7: {
+    match goal with
+   end.
+
+  eapply type_Ind.
+  eapply type_mkApps.
+  match goal with
+  end.
+  eapply type_App.
+  2: {
+    match goal with
+    cbn [lift_typing].
+  2: constructor.
+  3: { lazymatch goal with
+    end.
+           (idtac + eapply type_Cumul); [ eapply H | .. ]
+                                         ; eassumption
+
+        constructor 3
   all: repeat first [ assumption
                     | match goal with
                       | [ |- _;;;_ |- tApp _ _ : _ ] => eapply type_App
                       | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
                         => (idtac + eapply type_Cumul); [ eapply H | .. ]
                       end ].
+  2: {
+  all: repeat first [ assumption
+                    | match goal with
+                      | [ |- _;;;_ |- tApp _ _ : _ ] => eapply type_App
+                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
+                        => (idtac + eapply type_Cumul); [ eapply H | .. ]
+                      end ].
+  2: { match goal with
+                      | [ |- _;;;_ |- tApp _ _ : _ ] => eapply type_App
+                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
+                        => (idtac + eapply type_Cumul); [ eapply H | .. ]
+                      end.
   eapply type_Prod.
   3: {
   all: repeat first [ assumption
