@@ -95,8 +95,48 @@ End Instances.
 #[export] Instance well_typed_ground_quotable_of_bp {b P} (H : b = true -> P) {qH : quotation_of H} (H_for_safety : P -> b = true) {qP : quotation_of P} {Pcf : config.typing_restriction} {qtyH : quotation_of_well_typed H} {qtyP : quotation_of_well_typed P} : @ground_quotable_well_typed Pcf _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
 Proof.
   intros t cf Σ Γ Hcf HΣ HΓ.
-  destruct Γ; [ | admit ].
-  cbv [quote_ground ground_quotable_of_bp].
+  cbv [quote_ground ground_quotable_of_bp Init.quote_bool] in *.
+  specialize (H_for_safety t); subst.
+
+
+  hnf in qtyH.
+  hnf in qtyP.
+  specialize (qtyH _ Σ [] ltac:(eassumption) ltac:(eassumption) ltac:(constructor)).
+  specialize (qtyP _ Σ [] ltac:(eassumption) ltac:(eassumption) ltac:(constructor)).
+  clear Hcf.
+  revert qtyP qtyH.
+  specialize (H_for_safety ltac:(assumption)).
+  subst.
+  revert HΓ.
+  revert Γ.
+   forall Γ : context,
+  wf_local Σ Γ ->
+  Σ;;; [] |- qP
+  : tSort
+      (Universe.lType
+         {|
+           t_set :=
+             {|
+               LevelExprSet.this := [(Level.level "MetaCoq.Quotation.ToPCUIC.Init.Typing.547", 0)];
+               LevelExprSet.is_ok := LevelExprSet.Raw.singleton_ok (Level.level "MetaCoq.Quotation.ToPCUIC.Init.Typing.547", 0)
+             |};
+           t_ne := eq_refl
+         |}) ->
+  Σ;;; [] |- qH
+  : tProd {| binder_name := nAnon; binder_relevance := Relevant |}
+      (tApp
+         (tApp
+            (tApp (tInd {| inductive_mind := (MPfile ["Logic"; "Init"; "Coq"], "eq"); inductive_ind := 0 |} [])
+               (tInd {| inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool"); inductive_ind := 0 |} []))
+            (tConstruct {| inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool"); inductive_ind := 0 |} 0 []))
+         (tConstruct {| inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool"); inductive_ind := 0 |} 0 [])) qP ->
+  Σ;;; Γ
+  |- tApp qH
+       (tApp
+          (tApp (tConstruct {| inductive_mind := (MPfile ["Logic"; "Init"; "Coq"], "eq"); inductive_ind := 0 |} 0 [])
+             (tInd {| inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool"); inductive_ind := 0 |} []))
+          (tConstruct {| inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool"); inductive_ind := 0 |} 0 [])) : qP
+
   exactly_once econstructor.
   repeat first [ assumption
                | match goal with
@@ -110,6 +150,7 @@ Proof.
                       | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
                         => (idtac + eapply type_Cumul); [ eapply H | .. ]
                       end ].
+  eapply type_Prod.
   3: {
   all: repeat first [ assumption
                     | match goal with
