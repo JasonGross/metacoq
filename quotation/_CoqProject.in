@@ -131,6 +131,7 @@ theories/ToTemplate/Coq/Bool.v
 theories/ToTemplate/Coq/FSets.v
 theories/ToTemplate/Coq/Floats.v
 theories/ToTemplate/Coq/Init.v
+theories/ToTemplate/Coq/Init/Typing.v
 theories/ToTemplate/Coq/Lists.v
 theories/ToTemplate/Coq/MSets.v
 theories/ToTemplate/Coq/Numbers.v
@@ -139,6 +140,7 @@ theories/ToTemplate/Coq/ssr.v
 theories/ToTemplate/Equations.v
 theories/ToTemplate/Equations/Type.v
 theories/ToTemplate/Init.v
+theories/ToTemplate/Init/Typing.v
 theories/ToTemplate/QuotationOf/Common/Environment/Sig.v
 theories/ToTemplate/QuotationOf/Common/EnvironmentTyping/Sig.v
 theories/ToTemplate/QuotationOf/Common/Kernames/Instances.v
