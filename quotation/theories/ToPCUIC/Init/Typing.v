@@ -47,6 +47,11 @@ Export config.Notations.
 Class quotation_of_well_typed {Pcf : config.typing_restriction} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} := typing_quoted_term_of : forall cf Σ Γ, config.checker_flags_constraint cf -> config.global_env_ext_constraint Σ -> wf Σ -> wf_local Σ Γ -> Σ ;;; Γ |- qt : qT.
 Class ground_quotable_well_typed {Pcf : config.typing_restriction} T {qT : quotation_of T} {quoteT : ground_quotable T} := typing_quote_ground : forall t : T, quotation_of_well_typed t.
 
+Class infer_quotation_of_well_typed {T} {t : T} (qt : quotation_of t)
+  := { wt_config : config.typing_restriction
+     ; wt_qT : quotation_of T
+     ; wt_q : @quotation_of_well_typed wt_config T t _ _ }.
+
 Inductive dynlist := dnil | dcons {T} (t : T) (tl : dynlist).
 Declare Scope dynlist_scope.
 Delimit Scope dynlist_scope with dynlist.
@@ -110,6 +115,9 @@ Notation typing_restriction_for_globals ls
 
 
 Module Export Instances.
+  #[export] Existing Instance Build_infer_quotation_of_well_typed.
+  (* #[export] *)
+  Coercion wt_q : infer_quotation_of_well_typed >-> quotation_of_well_typed.
   #[export] Instance default_typing_restriction : config.typing_restriction | 1000
     := {| config.checker_flags_constraint cf := true
        ; config.global_env_ext_constraint Σ := true |}.
@@ -206,6 +214,10 @@ Proof.
          | [ H : is_true (andb _ _) |- _ ] => apply andb_andI in H; destruct H
          | [ H : is_true (_ == _) |- _ ] => apply eqb_eq in H
          end.
+
+  let G := match goal with
+           | [ |- @typing ?cf ?Σ ?Γ ?t ?T ]
+             =>
 
   Search typing subst.
   Set Printing Implicit.
