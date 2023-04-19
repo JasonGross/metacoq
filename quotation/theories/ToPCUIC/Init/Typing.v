@@ -1,7 +1,7 @@
 From MetaCoq.Utils Require Export bytestring.
 From MetaCoq.Utils Require Import utils MCList.
 From MetaCoq.Common Require Import MonadBasicAst.
-From MetaCoq.PCUIC Require Import PCUICMonadAst PCUICAst PCUICTyping Typing.PCUICWeakeningTyp Syntax.PCUICLiftSubst Syntax.PCUICClosed Typing.PCUICClosedTyp PCUICSpine PCUICArities.
+From MetaCoq.PCUIC Require Import PCUICMonadAst PCUICAst PCUICTyping Typing.PCUICWeakeningTyp Syntax.PCUICLiftSubst Syntax.PCUICClosed Typing.PCUICClosedTyp PCUICSpine PCUICArities PCUICSubstitution Syntax.PCUICInduction.
 From MetaCoq.TemplatePCUIC Require Import PCUICTemplateMonad Loader.
 From MetaCoq.Quotation Require Export CommonUtils.
 From MetaCoq.Quotation.ToPCUIC Require Export Init.
@@ -116,6 +116,66 @@ Module Export Instances.
   #[export] Existing Instance typing_quote_ground.
 End Instances.
 
+Definition subst_nolift : list term -> nat -> term -> term.
+Proof.
+  let v := (eval cbv delta [subst] in subst) in
+  let v := lazymatch (eval pattern (@lift) in v) with
+           | ?f _ => f
+           end in
+  let v := (eval cbv beta in (v (fun _ _ x => x))) in
+  exact v.
+Defined.
+Print subst.
+Lemma closed_subst_nolift {cf : config.checker_flags} {Σ}
+  (s : list term)
+  (Γ' : list term)
+  (Hs : All2 (fun t T => Σ ;;; [] |- t : T) s Γ')
+  (wfΣ : wf Σ)
+  : forall u k, subst s k u = subst_nolift s k u.
+Proof.
+  induction u using term_forall_list_ind; intros.
+  all: cbn [subst subst_nolift].
+  all: f_equal.
+  all: repeat first [ progress intros
+                    | progress hnf in *
+                    | progress destruct_head'_prod
+                    | reflexivity
+                    | solve [ eauto ]
+                    | match goal with
+                      | [ H : All _ ?x |- context[map _ ?x] ] => induction H; cbn [map]; congruence
+                      end ].
+  FIXME
+  2: { Print map_predicate_k.
+  2: {
+
+  2: .
+  all: try reflexivity.
+  all: try apply IH.
+  Search map_predicate_k eq.
+  Print subst_predicate.
+  induction u using; cbn [subst subst_nolift].
+  : Σ ;;; [] |- subst0 s t : subst0 s T.
+Proof.
+
+Lemma closed_substitution {cf : config.checker_flags} {Σ}
+  (s : list term)
+  (Γ' : list term)
+  (t T : term)
+  (Hs : All2 (fun t T => Σ ;;; [] |- t : T) s Γ')
+  (wfΣ : wf Σ)
+  (Γ'' := List.map (fun ty => {| BasicAst.decl_name := {| binder_name := nAnon; binder_relevance := Relevant |} ; BasicAst.decl_body := None ; BasicAst.decl_type := ty |}) Γ')
+  (Ht : Σ ;;; Γ'' |- t : T)
+  : Σ ;;; [] |- subst0 s t : subst0 s T.
+Proof.
+  apply (@substitution cf Σ wfΣ [] Γ'' s [] t T);
+    try (cbn; rewrite app_context_nil_l; assumption).
+  clear Ht t T.
+  subst Γ''; induction Hs; cbn [List.map]; constructor; trivial.
+  { rewrite subst_closedn; [ assumption | ].
+    change 0 with #|[]:context|.
+    eapply @type_closed; eassumption. }
+Qed.
+
 #[export] Instance well_typed_ground_quotable_of_bp {b P} (H : b = true -> P) {qH : quotation_of H} (H_for_safety : P -> b = true) {qP : quotation_of P} {Pcf : config.typing_restriction} {qtyH : quotation_of_well_typed H} {qtyP : quotation_of_well_typed P} : @ground_quotable_well_typed (Pcf && typing_restriction_for_globals [bool; @eq bool]) _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
 Proof.
   intros t cf Σ Γ Hcf HΣ Hwf HΓ.
@@ -130,6 +190,70 @@ Proof.
          | [ H : is_true (andb _ _) |- _ ] => apply andb_andI in H; destruct H
          | [ H : is_true (_ == _) |- _ ] => apply eqb_eq in H
          end.
+  Search typing subst.
+  Set Printing Implicit.
+  Print context_decl.
+  Print BasicAst.context_decl.
+  Print aname.
+  Print binder_annot.
+  Check @substitution.
+  epose (@substitution cf Σ Hwf []
+           [{| BasicAst.decl_name := {| binder_name := nAnon; binder_relevance := Relevant |} ; BasicAst.decl_body := None ; BasicAst.decl_type := ltac:(lazymatch type of qtyH with @quotation_of_well_typed _ _ _ ?T _ => exact T end) |};
+            {| BasicAst.decl_name := {| binder_name := nAnon; binder_relevance := Relevant |} ; BasicAst.decl_body := None ; BasicAst.decl_type := ltac:(lazymatch type of qtyP with @quotation_of_well_typed _ _ _ ?T _ => exact T end) |}] [qH; qP] []
+        (tApp (tRel 0)
+       (tApp
+          (tApp
+             (tConstruct
+                {|
+                  inductive_mind := (MPfile ["Logic"; "Init"; "Coq"], "eq");
+                  inductive_ind := 0
+                |} 0 [])
+             (tInd
+                {|
+                  inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool");
+                  inductive_ind := 0
+                |} []))
+          (tConstruct
+             {|
+               inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool");
+               inductive_ind := 0
+             |} 0 [])))
+        (tRel 1)
+        ) as v.
+  clearbody v.
+  cbn in v.
+  rewrite !lift_closed in v.
+  cbv [subst_context] in v.
+  cbv [fold_context_k] in v.
+  cbn in v.
+  apply v.
+  { constructor.
+    constructor.
+    constructor.
+    all: rewrite !subst_closedn.
+    3: apply qtyH.
+    1:apply qtyP.
+    all: try assumption.
+    all: try solve [ constructor ].
+    change (closedn 0) with (closedn #|[]:context|).
+    eapply type_closed.
+    eapply qtyH.
+    all: try eassumption.
+    now constructor. }
+    apply closedn_
+            eapply
+    3: { move qtyH at bottom.
+         hnf in qtyH.
+         Unset Printing Implicit.
+    2: apply qtyH.
+    all: cbv [subst0]; cbn.
+    2: {
+  Unset Printing Implicit.
+  Print aname.
+  Check {| binder_name := nAnon; binder_relevance := Relevant |} : aname.
+  Check nAnon.
+  Search closedn lift.
+  Print lift0.
   all: repeat
          repeat first [ assumption
                     | now constructor
