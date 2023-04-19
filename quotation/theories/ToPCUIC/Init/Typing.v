@@ -200,6 +200,35 @@ Proof.
   now eapply @closed_substitution.
 Qed.
 
+(* generates new version of [t * s], where [s] holds (de Bruijn index, quoted term, unquoted term) *)
+Fixpoint collect_constants (qt : term) (ts : term * list (nat * term * term)) {struct qt} : term * list (nat * term * term)
+  := let '(t, s) := ts in
+     match qt with
+     | tRel _
+     | tVar _
+     | tEvar _ _
+     | tConst _ _
+       => match find (fun '(i, qv, v) => qt == qv) s with
+          | Some (i, qv, v) => (tRel i, s)
+          | None
+            => let i := List.length s in
+               (tRel i, (i, qt, t) :: s)
+          end
+     | tSort _
+     | tProd _ _ _
+     | tLambda _ _ _
+     | tInd _ _
+     | tConstruct _ _ _
+     | tProj _ _
+     | tPrim _
+       => (t, s)
+     | tLetIn na b B t => _
+     | tApp u v => _
+     | tCase indn p c brs => _
+     | tFix mfix idx => _
+     | tCoFix mfix idx => _
+     end
+
 #[export] Instance well_typed_ground_quotable_of_bp {b P} (H : b = true -> P) {qH : quotation_of H} (H_for_safety : P -> b = true) {qP : quotation_of P} {Pcf : config.typing_restriction} {qtyH : quotation_of_well_typed H} {qtyP : quotation_of_well_typed P} : @ground_quotable_well_typed (Pcf && typing_restriction_for_globals [bool; @eq bool]) _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
 Proof.
   intros t cf Σ Γ Hcf HΣ Hwf HΓ.
@@ -214,6 +243,7 @@ Proof.
          | [ H : is_true (andb _ _) |- _ ] => apply andb_andI in H; destruct H
          | [ H : is_true (_ == _) |- _ ] => apply eqb_eq in H
          end.
+
 
   let G := match goal with
            | [ |- @typing ?cf ?Σ ?Γ ?t ?T ]
