@@ -125,7 +125,7 @@ Proof.
   let v := (eval cbv beta in (v (fun _ _ x => x))) in
   exact v.
 Defined.
-Print subst.
+
 Lemma closed_subst_nolift {cf : config.checker_flags} {Σ}
   (s : list term)
   (Γ' : list term)
@@ -136,26 +136,28 @@ Proof.
   induction u using term_forall_list_ind; intros.
   all: cbn [subst subst_nolift].
   all: f_equal.
-  all: repeat first [ progress intros
-                    | progress hnf in *
-                    | progress destruct_head'_prod
-                    | reflexivity
-                    | solve [ eauto ]
-                    | match goal with
-                      | [ H : All _ ?x |- context[map _ ?x] ] => induction H; cbn [map]; congruence
-                      end ].
-  FIXME
-  2: { Print map_predicate_k.
-  2: {
-
-  2: .
-  all: try reflexivity.
-  all: try apply IH.
-  Search map_predicate_k eq.
-  Print subst_predicate.
-  induction u using; cbn [subst subst_nolift].
-  : Σ ;;; [] |- subst0 s t : subst0 s T.
-Proof.
+  all: repeat
+         unshelve
+         first [ progress intros
+               | progress hnf in *
+               | progress destruct_head'_prod
+               | reflexivity
+               | solve [ eauto ]
+               | progress destruct ?
+               | apply lift_closed
+               | apply map_def_eq_spec
+               | apply map_predicate_k_eq_spec
+               | apply map_branch_k_eq_spec
+               | now change 0 with #|[]:context|; eapply subject_closed
+               | match goal with
+                 | [ H : All _ ?x |- context[map _ ?x] ] => induction H; cbn [map]; congruence
+                 | [ H : All _ ?x |- map (map_def (subst _ _) (subst _ ?k')) ?x = _ ]
+                   => generalize k'; intro; induction H; cbn [map]; f_equal; try congruence
+                 | [ H : nth_error ?s _ = Some _, H' : All2 _ ?s _ |- closedn _ _ = true ]
+                   => eapply All2_nth_error_Some in H; [ | eassumption ]; destruct H as [? [_ ?]]
+                 | [ H : All _ ?x |- context[map _ ?x] ] => induction H; cbn [map]; f_equal; try congruence
+                 end ].
+Qed.
 
 Lemma closed_substitution {cf : config.checker_flags} {Σ}
   (s : list term)
@@ -176,6 +178,20 @@ Proof.
     eapply @type_closed; eassumption. }
 Qed.
 
+Lemma closed_substitution_nolift {cf : config.checker_flags} {Σ}
+  (s : list term)
+  (Γ' : list term)
+  (t T : term)
+  (Hs : All2 (fun t T => Σ ;;; [] |- t : T) s Γ')
+  (wfΣ : wf Σ)
+  (Γ'' := List.map (fun ty => {| BasicAst.decl_name := {| binder_name := nAnon; binder_relevance := Relevant |} ; BasicAst.decl_body := None ; BasicAst.decl_type := ty |}) Γ')
+  (Ht : Σ ;;; Γ'' |- t : T)
+  : Σ ;;; [] |- subst_nolift s 0 t : subst_nolift s 0 T.
+Proof.
+  erewrite <- !closed_subst_nolift by eassumption.
+  now eapply @closed_substitution.
+Qed.
+
 #[export] Instance well_typed_ground_quotable_of_bp {b P} (H : b = true -> P) {qH : quotation_of H} (H_for_safety : P -> b = true) {qP : quotation_of P} {Pcf : config.typing_restriction} {qtyH : quotation_of_well_typed H} {qtyP : quotation_of_well_typed P} : @ground_quotable_well_typed (Pcf && typing_restriction_for_globals [bool; @eq bool]) _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
 Proof.
   intros t cf Σ Γ Hcf HΣ Hwf HΓ.
@@ -190,6 +206,7 @@ Proof.
          | [ H : is_true (andb _ _) |- _ ] => apply andb_andI in H; destruct H
          | [ H : is_true (_ == _) |- _ ] => apply eqb_eq in H
          end.
+
   Search typing subst.
   Set Printing Implicit.
   Print context_decl.
