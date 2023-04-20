@@ -308,7 +308,9 @@ Fixpoint collect_constants_k' (offset : nat) (t : term)
 Definition collect_constants_k : nat -> term -> StateT (list (nat * term * term)) TemplateMonad term
   := precollect_constants_k collect_constants_k'.
 Notation collect_constants := (collect_constants_k 0).
-FIXME
+
+
+
 Definition replace_typing_for_safechecker (cf : config.checker_flags) Σ t T
   : TemplateMonad (@typing cf Σ [] t T).
   Print infer_quotation_of_well_typed.
