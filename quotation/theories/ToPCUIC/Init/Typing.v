@@ -1,10 +1,10 @@
 From MetaCoq.Utils Require Export bytestring.
 From MetaCoq.Utils Require Import utils MCList.
 From MetaCoq.Common Require Import MonadBasicAst.
-From MetaCoq.PCUIC Require Import PCUICMonadAst PCUICAst PCUICTyping PCUICSpine PCUICArities PCUICSubstitution.
-From MetaCoq.PCUIC.Typing Require Import PCUICWeakeningTyp PCUICClosedTyp.
-From MetaCoq.PCUIC.Syntax Require Import PCUICLiftSubst PCUICClosed PCUICInduction.
 From MetaCoq.PCUIC.utils Require Import PCUICAstUtils.
+From MetaCoq.PCUIC Require Import PCUICMonadAst PCUICAst PCUICTyping PCUICSpine PCUICArities PCUICSubstitution.
+From MetaCoq.PCUIC.Typing Require Import PCUICWeakeningTyp PCUICWeakeningConfigTyp PCUICWeakeningEnvTyp PCUICClosedTyp.
+From MetaCoq.PCUIC.Syntax Require Import PCUICLiftSubst PCUICClosed PCUICInduction PCUICReflect.
 From MetaCoq.TemplatePCUIC Require Import PCUICTemplateMonad Loader.
 From MetaCoq.Quotation Require Export CommonUtils.
 From MetaCoq.Quotation.ToPCUIC Require Export Init.
@@ -14,6 +14,7 @@ Require Import Coq.Lists.List.
 Export TemplateMonad.Common (export, local, global).
 Import ListNotations.
 Import MCMonadNotation.
+Import PCUICEnvironmentReflect.
 (*
 From MetaCoq.Template Require Import MonadBasicAst MonadAst All utils.
 From MetaCoq.Template Require Import Typing utils.bytestring TermEquality ReflectAst Ast Reflect.
@@ -30,7 +31,7 @@ Import MCMonadNotation.
 Local Set Universe Polymorphism.
 Local Unset Universe Minimization ToSet.
 Local Set Polymorphic Inductive Cumulativity.
-
+(*
 Module config.
   Class typing_restriction
     := { checker_flags_constraint : config.checker_flags -> bool
@@ -50,17 +51,42 @@ Module config.
   End Notations.
 End config.
 Export config.Notations.
+*)
+(* TODO: Right now, quotation / translation always claims constants are monomorphic; if there's eventually support for polymorphic quotation, we may want to not restrict typing to be monomorphic here *)
+Class quotation_of_well_typed {cf : config.checker_flags} (Σ : global_env) {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} := typing_quoted_term_of : wf Σ -> (Σ, Monomorphic_ctx) ;;; [] |- qt : qT.
+Class ground_quotable_well_typed {cf : config.checker_flags} (Σ : global_env) T {qT : quotation_of T} {quoteT : ground_quotable T} := typing_quote_ground : forall t : T, quotation_of_well_typed Σ t.
 
+Definition typing_quoted_term_of_general
+  {cf : config.checker_flags} {Σ : global_env} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t}
+  {qty : @quotation_of_well_typed cf Σ T t _ _}
+  {cf' : config.checker_flags} {Σ' : global_env} {Γ}
+  : @wf cf Σ -> @wf cf' Σ' -> (let _ := cf' in wf_local (Σ', Monomorphic_ctx) Γ) -> extends Σ Σ' -> config.impl cf cf' -> @typing cf' (Σ', Monomorphic_ctx) Γ qt qT.
+Proof.
+  intros wfΣ wfΣ' wfΓ Hext Hcf.
+  specialize (qty wfΣ).
+  replace Γ with ([],,,Γ) by now rewrite app_context_nil_l.
+  erewrite <- (@lift_closed _ _ qt), <- (@lift_closed _ _ qT).
+  { eapply weakening; rewrite ?app_context_nil_l; try eassumption.
+    eapply (@weakening_env cf' (Σ, _)); try eassumption.
+    all: try now eapply (@weakening_config_wf cf cf'); assumption.
+    eapply (@weakening_config cf cf'); assumption. }
+  all: change 0 with #|[]:context|.
+  all: try (eapply (@subject_closed cf (_, _)); eassumption).
+  all: try (eapply (@type_closed cf (_, _)); eassumption).
+Qed.
+
+(*
 Class quotation_of_well_typed {Pcf : config.typing_restriction} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} := typing_quoted_term_of : forall cf Σ Γ, config.checker_flags_constraint cf -> config.global_env_ext_constraint Σ -> wf Σ -> wf_local Σ Γ -> Σ ;;; Γ |- qt : qT.
 Class ground_quotable_well_typed {Pcf : config.typing_restriction} T {qT : quotation_of T} {quoteT : ground_quotable T} := typing_quote_ground : forall t : T, quotation_of_well_typed t.
-
+*)
 Class infer_quotation_of_well_typed (qt : term)
-  := { wt_config : config.typing_restriction
+  := { wt_cf : config.checker_flags
+     ; wt_Σ : global_env
      ; wt_T : Type
      ; wt_t : wt_T
      ; wt_qT : quotation_of wt_T
      ; wt_qt : quotation_of wt_t := qt
-     ; wt_q : @quotation_of_well_typed wt_config wt_T wt_t _ _ }.
+     ; wt_q : @quotation_of_well_typed wt_cf wt_Σ wt_T wt_t _ _ }.
 
 Inductive dynlist := dnil | dcons {T} (t : T) (tl : dynlist).
 Declare Scope dynlist_scope.
@@ -71,6 +97,7 @@ Notation "[ ]" := dnil : dynlist_scope.
 Notation "[ x ]" := (dcons x dnil) : dynlist_scope.
 Notation "[ x ; y ; .. ; z ]" :=  (dcons x (dcons y .. (dcons z dnil) ..)) : dynlist_scope.
 
+(*
 Fixpoint quote_dynlist (d : dynlist) : TemplateMonad (list term)
   := match d with
      | dnil => ret []
@@ -88,16 +115,23 @@ Definition constraint_for_globals (globals : dynlist) : TemplateMonad (global_en
                                   end) qts;;
      ret (fun Σ : global_env_ext
           => List.fold_right andb true (List.map (fun '(mind, ind) => lookup_env Σ.1 mind == Some (InductiveDecl ind)) inds)).
+ *)
+(* don't use [dynlist] inductive when quoting *)
+Definition erase_dynlist (globals : dynlist)
+  := Eval cbv [dynlist_ind] in fun P n c => dynlist_ind (fun _ => P) n (fun T t _ r => c T t r) globals.
+Definition env_for_globals (globals : forall P : Prop, P -> (forall x : Type, x -> P -> P) -> P) : TemplateMonad global_env_ext
+  := qglobals <- tmQuoteRec globals;;
+     ret (PCUICProgram.global_env_ext_map_global_env_ext (fst (qglobals:PCUICProgram.pcuic_program))).
 
 Notation ground_quotable_well_typed_using ls T
   := (match ls%dynlist, T return _ with
       | globals, T'
         => ltac:(let T' := (eval cbv delta [T'] in T') in
+                 let globals := (eval cbv [erase_dynlist globals] in (erase_dynlist globals)) in
                  run_template_program
-                   (constraint_for_globals globals)
-                   (fun c => refine (@ground_quotable_well_typed
-                                       {| config.checker_flags_constraint := _.(config.checker_flags_constraint)
-                                       ; config.global_env_ext_constraint := c |}
+                   (env_for_globals globals)
+                   (fun Σ => refine (@ground_quotable_well_typed
+                                       _ Σ
                                        T' _ _)))
       end)
        (only parsing).
@@ -105,21 +139,21 @@ Notation quotation_of_well_typed_using ls t
   := (match ls%dynlist, t return _ with
       | globals, t'
         => ltac:(let t' := (eval cbv delta [t'] in t') in
+                 let globals := (eval cbv [erase_dynlist globals] in (erase_dynlist globals)) in
                  run_template_program
-                   (constraint_for_globals globals)
-                   (fun c => refine (@quotation_of_well_typed
-                                       {| config.checker_flags_constraint := _.(config.checker_flags_constraint)
-                                       ; config.global_env_ext_constraint := c |}
+                   (env_for_globals globals)
+                   (fun Σ => refine (@quotation_of_well_typed
+                                       _ Σ
                                        _ t' _ _)))
       end)
        (only parsing).
 Notation typing_restriction_for_globals ls
   := (match ls%dynlist return _ with
       | globals
-        => ltac:(run_template_program
-                   (constraint_for_globals globals)
-                   (fun c => refine ({| config.checker_flags_constraint := _.(config.checker_flags_constraint)
-                                     ; config.global_env_ext_constraint := c |})))
+        => ltac:(let globals := (eval cbv [erase_dynlist globals] in (erase_dynlist globals)) in
+                 run_template_program
+                   (env_for_globals globals)
+                   (fun Σ => refine Σ))
       end)
        (only parsing).
 
@@ -128,9 +162,9 @@ Module Export Instances.
   #[export] Existing Instance Build_infer_quotation_of_well_typed.
   (* #[export] *)
   Coercion wt_q : infer_quotation_of_well_typed >-> quotation_of_well_typed.
-  #[export] Instance default_typing_restriction : config.typing_restriction | 1000
+  (*#[export] Instance default_typing_restriction : config.typing_restriction | 1000
     := {| config.checker_flags_constraint cf := true
-       ; config.global_env_ext_constraint Σ := true |}.
+       ; config.global_env_ext_constraint Σ := true |}.*)
   #[export] Existing Instance typing_quote_ground.
 End Instances.
 
@@ -210,21 +244,6 @@ Proof.
   now eapply @closed_substitution.
 Qed.
 
-
-Module State.
-
-Set Universe Polymorphism.
-Set Polymorphic Inductive Cumulativity.
-Unset Universe Minimization ToSet.
-Definition get {S T} {TM : Monad T} : StateT S T S
-    := fun s => ret (s, s).
-  Definition update {S T} {TM : Monad T} (f : S -> S) : StateT S T unit
-    := fun s => ret (tt, f s).
-  Definition set {S T} {TM : Monad T} (s : S) : StateT S T unit
-    := update (fun _ => s).
-  Definition lift {S T} {TM : Monad T} {A} (m : T A) : StateT S T A
-    := fun s => v <- m;; ret (v, s).
-End State.
 
 (* generates new version of [t * s], where [s] holds (de Bruijn index, quoted term, unquoted term) *)
 Definition precollect_constants_k
@@ -309,7 +328,7 @@ Definition collect_constants_k : nat -> term -> StateT (list (nat * term * term)
   := precollect_constants_k collect_constants_k'.
 Notation collect_constants := (collect_constants_k 0).
 
-
+(*
 
 Definition replace_typing_for_safechecker (cf : config.checker_flags) Σ t T
   : TemplateMonad (@typing cf Σ [] t T).
@@ -331,21 +350,15 @@ Definition replace_typing_for_safechecker (cf : config.checker_flags) Σ t T
           _).
 
   infer_quotation_of_well_typed
+ *)
 
-#[export] Instance well_typed_ground_quotable_of_bp {b P} (H : b = true -> P) {qH : quotation_of H} (H_for_safety : P -> b = true) {qP : quotation_of P} {Pcf : config.typing_restriction} {qtyH : quotation_of_well_typed H} {qtyP : quotation_of_well_typed P} : @ground_quotable_well_typed (Pcf && typing_restriction_for_globals [bool; @eq bool]) _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
+#[export] Instance well_typed_ground_quotable_of_bp {b P} (H : b = true -> P) {qH : quotation_of H} (H_for_safety : P -> b = true) {qP : quotation_of P} {cfH cfP : config.checker_flags} {ΣH ΣP} {qtyH : quotation_of_well_typed (cf:=cfH) ΣH H} {qtyP : quotation_of_well_typed (cf:=cfP) ΣP P} (Σ := merge_global_envs (typing_restriction_for_globals [bool; @eq bool]) (merge_global_envs ΣH ΣP)) : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) Σ _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
 Proof.
-  intros t cf Σ Γ Hcf HΣ Hwf HΓ.
-  apply andb_andI in Hcf; apply andb_andI in HΣ.
-  destruct Hcf, HΣ.
-  cbn [config.checker_flags_constraint config.global_env_ext_constraint map fold_right] in *.
+  intros t wfΣ.
+  cbv [PCUICProgram.global_env_ext_map_global_env_ext] in *.
+  cbn [PCUICProgram.trans_env_env fst] in *.
   cbv [quote_ground ground_quotable_of_bp Init.quote_bool] in *.
   specialize (H_for_safety t); subst.
-  eapply @weaken_ctx with (Γ := nil); [ assumption .. | ].
-  repeat match goal with
-         | [ H : andb _ _ = true |- _ ] => apply andb_andI in H; destruct H
-         | [ H : is_true (andb _ _) |- _ ] => apply andb_andI in H; destruct H
-         | [ H : is_true (_ == _) |- _ ] => apply eqb_eq in H
-         end.
   lazymatch goal with
   | [ |- @typing ?cf ?Σ ?Γ ?t ?T ]
     => pose (collect_constants t []) as p
