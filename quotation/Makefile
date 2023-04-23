@@ -6,6 +6,7 @@ _CoqProject: _CoqProject.in metacoq-config
 
 Makefile.quotation: _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.quotation $(DEPS)
+	sed -i 's/ --no-print-directory / /g' $@
 
 theory: Makefile.quotation
 	$(MAKE) -f Makefile.quotation

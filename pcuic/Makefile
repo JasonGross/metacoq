@@ -6,6 +6,7 @@ _CoqProject: _CoqProject.in metacoq-config
 
 Makefile.coq: _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
+	sed -i 's/ --no-print-directory / /g' $@
 
 coq: Makefile.coq
 	$(MAKE) -f Makefile.coq

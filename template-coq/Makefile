@@ -15,14 +15,17 @@ _TemplateCoqProject: _TemplateCoqProject.in metacoq-config
 
 Makefile.coq: _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
+	sed -i 's/ --no-print-directory / /g' $@
 
 Makefile.plugin: _PluginProject
 	coq_makefile -f _PluginProject -o Makefile.plugin
+	sed -i 's/ --no-print-directory / /g' $@
 # Avoid conflicting dependency file creation for the template plugin
 	sed -e s/coqdeps/coqdeps.plugin/g Makefile.plugin > Makefile.plugin.tmp && mv -f Makefile.plugin.tmp Makefile.plugin
 
 Makefile.template: _TemplateCoqProject
 	coq_makefile -f _TemplateCoqProject -o Makefile.template
+	sed -i 's/ --no-print-directory / /g' $@
 # Avoid conflicting dependency file creation for the template plugin
 	sed -e s/coqdeps/coqdeps.template/g Makefile.template > Makefile.template.tmp && mv -f Makefile.template.tmp Makefile.template
 

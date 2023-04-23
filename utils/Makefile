@@ -22,6 +22,7 @@ mrproper:
 
 Makefile.coq: _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
+	sed -i 's/ --no-print-directory / /g' $@
 
 .merlin:
 	$(MAKE) -f $< $@

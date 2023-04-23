@@ -6,6 +6,7 @@ _CoqProject: _CoqProject.in metacoq-config
 
 Makefile.erasure: _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.erasure $(DEPS)
+	sed -i 's/ --no-print-directory / /g' $@
 
 theory: Makefile.erasure
 	$(MAKE) -f Makefile.erasure

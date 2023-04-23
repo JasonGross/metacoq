@@ -6,6 +6,7 @@ _CoqProject: _CoqProject.in metacoq-config
 
 Makefile.templatepcuic: _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.templatepcuic $(DEPS)
+	sed -i 's/ --no-print-directory / /g' $@
 
 theory: Makefile.templatepcuic
 	$(MAKE) -f Makefile.templatepcuic

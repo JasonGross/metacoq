@@ -129,6 +129,22 @@ mrproper:
 	$(MAKE) -C erasure .merlin
 	$(MAKE) -C erasure-plugin .merin
 
+.PHONY: all-seq
+all-seq:
+	$(MAKE) -f $(SELF) utils
+	$(MAKE) -f $(SELF) common
+	$(MAKE) -f $(SELF) template-coq
+	$(MAKE) -f $(SELF) pcuic
+	$(MAKE) -f $(SELF) safechecker
+	$(MAKE) -f $(SELF) template-pcuic
+	$(MAKE) -f $(SELF) quotation
+	$(MAKE) -f $(SELF) erasure
+	$(MAKE) -f $(SELF) erasure-plugin
+	$(MAKE) -f $(SELF) examples
+	$(MAKE) -f $(SELF) test-suite
+	$(MAKE) -f $(SELF) translations
+	$(MAKE) -f $(SELF) all
+
 utils:
 	$(MAKE) -C utils
 
