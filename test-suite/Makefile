@@ -7,7 +7,6 @@ bugs: Makefile.coq
 
 Makefile.coq: Makefile _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
-	sed -i 's/ --no-print-directory / /g' $@
 
 _CoqProject: _CoqProject.in metacoq-config
 	cat metacoq-config > _CoqProject

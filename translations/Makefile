@@ -2,12 +2,11 @@ all: Makefile.coq
 	$(MAKE) -f Makefile.coq TIMED=$(TIMED)
 
 _CoqProject: _CoqProject.in metacoq-config
-	cat metacoq-config > _CoqProject
+	cat metacoq-config > _CoqProject 
 	cat _CoqProject.in >> _CoqProject
 
 Makefile.coq: _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
-	sed -i 's/ --no-print-directory / /g' $@
 
 clean: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
