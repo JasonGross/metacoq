@@ -6,6 +6,7 @@ From MetaCoq.PCUIC Require Import PCUICMonadAst PCUICAst PCUICTyping PCUICSpine 
 From MetaCoq.PCUIC.Typing Require Import PCUICWeakeningTyp PCUICWeakeningConfigTyp PCUICWeakeningEnvTyp PCUICClosedTyp.
 From MetaCoq.PCUIC.Syntax Require Import PCUICLiftSubst PCUICClosed PCUICInduction PCUICReflect.
 From MetaCoq.TemplatePCUIC Require Import PCUICTemplateMonad Loader.
+From MetaCoq.SafeChecker Require Import PCUICSafeChecker.
 From MetaCoq.Quotation Require Export CommonUtils.
 From MetaCoq.Quotation.ToPCUIC Require Export Init.
 From MetaCoq.Quotation.ToPCUIC Require Import (hints) Coq.Init.
@@ -776,6 +777,13 @@ Proof.
          => destruct (@compatibleP x y); [ assumption | clear -H; try congruence ]
        | _ => idtac
        end.
+  pose (@typecheck_program).
+     EnvCheck_X_env_ext_type X_impl
+       (∑ A : term,
+          {X : X_env_ext_type X_impl
+          | ∥ PCUICWfEnv.abstract_env_ext_rel X (p.1, φ)
+              × wf_ext (p.1, φ) × BDTyping.infering (p.1, φ) [] p.2 A ∥})
+
   let cf := match goal with |- @typing ?cf _ _ _ _ => cf end in
   eapply (@weakening_env cf Σ0); tea.
   all: try eapply (@weakening_config_wf config.strictest_checker_flags).
