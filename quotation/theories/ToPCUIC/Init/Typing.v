@@ -6,7 +6,7 @@ From MetaCoq.PCUIC Require Import PCUICMonadAst PCUICAst PCUICTyping PCUICSpine 
 From MetaCoq.PCUIC.Typing Require Import PCUICWeakeningTyp PCUICWeakeningConfigTyp PCUICWeakeningEnvTyp PCUICClosedTyp.
 From MetaCoq.PCUIC.Syntax Require Import PCUICLiftSubst PCUICClosed PCUICInduction PCUICReflect.
 From MetaCoq.TemplatePCUIC Require Import PCUICTemplateMonad Loader.
-From MetaCoq.SafeChecker Require Import PCUICSafeChecker.
+From MetaCoq.SafeChecker Require Import PCUICErrors PCUICTypeChecker PCUICSafeChecker PCUICWfEnvImpl PCUICWfEnv.
 From MetaCoq.Quotation Require Export CommonUtils.
 From MetaCoq.Quotation.ToPCUIC Require Export Init.
 From MetaCoq.Quotation.ToPCUIC Require Import (hints) Coq.Init.
@@ -632,12 +632,12 @@ Fixpoint redo_types_and_indices' (ls : list (nat * term * term * term))
           ret ((0, qv, v, vT) :: ls)
      end.
 
-Definition run_drop_state {S M T} {TM : Monad M} (p : StateT S M T) (st : S) : M T
+Definition evalStateT {S M T} {TM : Monad M} (p : StateT S M T) (st : S) : M T
   := '(v, st) <- p st;;
      ret v.
-
+Fail Check State.evalStateT.
 Definition redo_types_and_indices (ls : list (nat * term * term * term)) : TemplateMonad (list (nat * term * term * term))
-  := run_drop_state (redo_types_and_indices' ls) ls.
+  := evalStateT (redo_types_and_indices' ls) ls.
 
 Definition collect_constants_build_substituition (t : term) (T : term)
   : TemplateMonad (term (* t *) * term (* T *) * list term (* s *) * list term (* Γ *) )
@@ -654,12 +654,12 @@ Definition collect_constants_build_substituition (t : term) (T : term)
      '(T', st) <- collect_constants T [];;
      '(t', st) <- collect_constants t st;;
      st <- redo_types_and_indices st;;
-     T' <- run_drop_state (collect_constants T) st;;
-     t' <- run_drop_state (collect_constants t) st;;
+     T' <- evalStateT (collect_constants T) st;;
+     t' <- evalStateT (collect_constants t) st;;
      T' <- tmEval cbv T';;
      t' <- tmEval cbv t';;
      st <- tmEval hnf st;;
-     tmPrint st;;
+     (*tmPrint st;;*)
      s <- tmEval (unfold qmap) (List_map_alt (fun '(i, qv, v, vT) => v) st);;
      Γ <- tmEval (unfold qmap) (List_map_alt (fun '(i, qv, v, vT) => vT) st);;
      ret (t', T', s, Γ).
@@ -699,32 +699,90 @@ Definition replace_typing_for_safechecker (cf : config.checker_flags) Σ t T
 
   infer_quotation_of_well_typed
  *)
+(*From MetaCoq.PCUIC Require Import PCUICEquality PCUICAst PCUICReflect PCUICSafeLemmata PCUICTyping PCUICNormal PCUICAstUtils PCUICSN.
 
-#[export] Instance well_typed_ground_quotable_of_bp
-  {b P} (H : b = true -> P)
-  {qH : quotation_of H} (H_for_safety : P -> b = true)
-  {qP : quotation_of P}
-  {cfH cfP : config.checker_flags} {ΣH ΣP}
-  {qtyH : quotation_of_well_typed (cf:=cfH) ΣH H} {qtyP : quotation_of_well_typed (cf:=cfP) ΣP P}
-  (Σ0 := typing_restriction_for_globals [bool; @eq bool])
-  (Σ := merge_global_envs Σ0 (merge_global_envs ΣH ΣP))
-  {Hc : Is_true (compatibleb ΣH ΣP && compatibleb Σ0 (merge_global_envs ΣH ΣP))}
-  (HwfP : @wf cfP ΣP)
-  (HwfH : @wf cfH ΣH)
-  : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) Σ _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
+From MetaCoq.SafeChecker Require Import PCUICEqualityDec PCUICWfReduction PCUICErrors PCUICSafeReduce PCUICTypeChecker PCUICSafeChecker PCUICWfEnv PCUICWfEnvImpl PCUICSafeConversion.
+Locate Module PCUICWfEnvImpl.
+
+*)
+#[local,program] Instance quotation_fake_abstract_guard_impl : PCUICWfEnvImpl.abstract_guard_impl :=
+  {
+    guard_impl := PCUICWfEnvImpl.fake_guard_impl
+  }.
+Next Obligation. todo "this axiom is inconsitent, only used to make infer compute". Qed.
+#[local,program] Instance assume_normalization {cf nor} : @PCUICSN.Normalization cf nor.
+Next Obligation. todo "we should write a Template Monad program to prove normalization for the particular program being inferred, rather than axiomatizing it". Qed.
+#[local] Existing Instance PCUICSN.normalization.
+
+Check @check.
+Print typing_result_comp.
+
+Variant quotation_check_error :=
+  | QTypeError (_ : type_error)
+  | QConfigNotNormalizing (cf : config.checker_flags)
+  | QEnvError (*(_ : wf_env_ext)*) (_ : env_error)
+  | QContextTypeError (_ : type_error)
+.
+
+(* TODO: move? *)
+Definition dec_normalizing cf : {@PCUICSN.normalizing_flags cf} + {~@PCUICSN.normalizing_flags cf}.
 Proof.
-  intros t wfΣ.
-  apply Is_true_eq_true in Hc.
-  rewrite !Bool.andb_true_iff in Hc.
-  destruct_head'_and.
-  cbv [PCUICProgram.global_env_ext_map_global_env_ext] in *.
-  cbn [PCUICProgram.trans_env_env fst] in *.
-  cbv [quote_ground ground_quotable_of_bp Init.quote_bool] in *.
-  specialize (H_for_safety t); subst.
+  destruct cf.(config.check_univs) eqn:?; [ | right ].
+  all: try left.
+  all:
+    abstract
+      (first [ constructor | destruct 1 ]; destruct cf; cbv in *; subst; congruence).
+Defined.
+
+Definition quotation_check (cf : config.checker_flags) (Σ : global_env_ext) (Γ : context) (t T : term) : option quotation_check_error.
+Proof.
+  destruct (dec_normalizing cf); [ | exact (Some (QConfigNotNormalizing cf)) ].
+  simple refine (let cwf := @check_wf_ext cf _ optimized_abstract_env_impl Σ _ in
+                 match cwf with
+                 | CorrectDecl (exist A pf)
+                   => let wfΣ := abstract_env_ext_wf (abstract_env_prop:=optimized_abstract_env_prop) _ pf in
+                      let X := @build_wf_env_ext cf _ Σ wfΣ in
+                      let cwfΓ := @check_wf_local cf _ optimized_abstract_env_impl X _ Γ in
+                      match cwfΓ with
+                      | Checked wfΓ
+                        => let c := typing_error_forget (@check cf _ optimized_abstract_env_impl X _ Γ wfΓ t T) in
+                           match c with
+                           | Checked _ => None
+                           | TypeError t => Some (QTypeError t)
+                           end
+                      | TypeError t => Some (QContextTypeError t)
+                      end
+                 | EnvError st err
+                   => Some (QEnvError (*st*) err)
+                 end).
+Defined.
+Lemma quotation_check_valid {cf Σ Γ t T} : quotation_check cf Σ Γ t T = None -> @wf_ext cf Σ * wf_local Σ Γ * @typing cf Σ Γ t T.
+Proof.
+  cbv [quotation_check].
+  repeat destruct ?; subst;
+    lazymatch goal with
+    | [ |- None = None -> _ ] => intros _
+    | [ |- Some _ = None -> _ ] => congruence
+    end.
+  match goal with
+  | [ |- ?P ] => cut (∥ @wf_ext cf Σ * wf_local Σ Γ * @typing cf Σ Γ t T ∥)
+  end.
+  { todo "Find a way to get the safechecker to produce unsquashed judgments". }
+  lazymatch goal with
+  | [ H : _ = CorrectDecl _ (exist _ ?pf) |- _ ]
+    => pose proof (abstract_env_ext_wf (abstract_env_prop:=optimized_abstract_env_prop) _ pf)
+  end.
+  repeat match goal with
+         | [ H : _ |- _ ] => unique pose proof (H _ eq_refl)
+         end.
+  sq; auto.
+Qed.
+
+Ltac handle_typing_by_factoring _ :=
+  let H := fresh in
   lazymatch goal with
   | [ |- @typing ?cf ?Σ ?Γ ?t ?T ]
-    => let H := fresh "H'" in
-       run_template_program
+    => run_template_program
          (collect_constants_build_substituition t T)
          (fun v
           => lazymatch v with
@@ -733,72 +791,268 @@ Proof.
                   cbv [All2_fold_cps] in H
              | ?v => fail 0 "invalid collect_constants_build_substituition ret" v
              end)
+  end;
+  simple apply H; clear H; tea;
+  cbv [subst_nolift_opt presubst subst'_nolift subst_step] in *;
+  cbn [Nat.sub List.length nth_error Nat.leb] in *.
+
+Ltac handle_typing_by_tc _ :=
+  lazymatch goal with
+  | [ |- @typing ?cf (?Σ, Monomorphic_ctx) [] ?t ?T ]
+    => notypeclasses refine (@typing_quoted_term_of_general_empty_ctx _ _ _ _ T t _ cf Σ _ _ _ _);
+       [ typeclasses eauto | .. ]
+  | [ |- ?G ]
+    => fail 0 "Not typing goal" G
   end.
-  pose proof (@extends_strictly_on_decls_l_merge). (* XXX FIXME *)
-  simple apply H'; tea.
-  all: cbv [subst_nolift_opt presubst subst'_nolift subst_step Nat.sub List.length nth_error Nat.leb].
-  all: try match goal with
-         | [ |- @typing ?cf (?Σ, Monomorphic_ctx) [] ?t ?T ]
-           => notypeclasses refine (@typing_quoted_term_of_general_empty_ctx _ _ _ _ T t _ cf Σ _ _ _ _);
-              [ typeclasses eauto | .. ]
-         end.
-  all: subst Σ.
-  all: repeat match goal with
-         | [ |- extends ?x ?x ] => apply extends_refl
-         | [ |- extends ?x (merge_global_envs ?y ?z) ]
-           => lazymatch z with
-              | context[x] => transitivity z; [ | apply extends_r_merge ]
-              | _
-                => lazymatch y with
-                   | x => try exact _
-                   | context[x] => transitivity y; [ | try exact _ ]
-                   | _ => idtac
-                   end
-              end
-         | [ |- is_true (config.impl ?x ?x) ]
-           => apply config.impl_refl
-         | [ |- is_true (config.impl ?x (config.union_checker_flags ?y ?z)) ]
-           => lazymatch z with
-              | context[x]
-                => apply (@config.impl_trans x z (config.union_checker_flags y z));
-                   [ | apply config.union_checker_flags_spec ]
-              | _
-                => lazymatch y with
-                   | context[x]
-                     => apply (@config.impl_trans x y (config.union_checker_flags y z));
-                        [ | apply config.union_checker_flags_spec ]
-                   | _ => idtac
-                   end
-              end
-         end.
-  all: lazymatch goal with
-       | [ |- wf _ ] => try assumption
-       | [ H : context[compatibleb ?x ?y] |- compatible ?x ?y ]
-         => destruct (@compatibleP x y); [ assumption | clear -H; try congruence ]
-       | _ => idtac
-       end.
-  pose (@typecheck_program).
-     EnvCheck_X_env_ext_type X_impl
-       (∑ A : term,
-          {X : X_env_ext_type X_impl
-          | ∥ PCUICWfEnv.abstract_env_ext_rel X (p.1, φ)
-              × wf_ext (p.1, φ) × BDTyping.infering (p.1, φ) [] p.2 A ∥})
 
+Ltac handle_typing_tc_side_conditions_step _ :=
+  match goal with
+  | [ |- extends ?x ?x ] => apply extends_refl
+  | [ |- extends ?x (merge_global_envs ?y ?z) ]
+    => lazymatch z with
+       | context[x] => transitivity z; [ | apply extends_r_merge ]
+       | _
+         => lazymatch y with
+            | x => try exact _
+            | context[x] => transitivity y; [ | apply extends_l_merge ]
+            | _ => idtac
+            end
+       end
+  | [ |- is_true (config.impl ?x ?x) ]
+    => apply config.impl_refl
+  | [ |- is_true (config.impl ?x (config.union_checker_flags ?y ?z)) ]
+    => lazymatch z with
+       | context[x]
+         => apply (@config.impl_trans x z (config.union_checker_flags y z));
+            [ | apply config.union_checker_flags_spec ]
+       | _
+         => lazymatch y with
+            | context[x]
+              => apply (@config.impl_trans x y (config.union_checker_flags y z));
+                 [ | apply config.union_checker_flags_spec ]
+            | _ => idtac
+            end
+       end
+  | [ |- wf _ ] => try assumption
+  | [ H : context[compatibleb ?x ?y] |- compatible ?x ?y ]
+    => destruct (@compatibleP x y); [ assumption | clear -H; try congruence ]
+  end.
+Ltac handle_typing_tc_side_conditions _ := repeat handle_typing_tc_side_conditions_step ().
+
+Ltac handle_typing_by_safechecker0 cf0 Σ0 :=
+  lazymatch goal with
+  | [ |- @typing ?cf ?Σ ?Γ ?t ?T ]
+    => destruct (@quotation_check_valid cf0 Σ0 Γ t T)
+  | [ |- ?G ] => fail 0 "Not a typing goal:" G
+  end;
+  [ | destruct_head'_prod ].
+Ltac handle_typing_by_safechecker_sc1 := vm_compute; try reflexivity.
+Ltac handle_typing_by_safechecker_sc2 cf0 Σ0 :=
   let cf := match goal with |- @typing ?cf _ _ _ _ => cf end in
-  eapply (@weakening_env cf Σ0); tea.
-  all: try eapply (@weakening_config_wf config.strictest_checker_flags).
-  all: try eapply (@weakening_config config.strictest_checker_flags).
-  all: try apply config.strictest_checker_flags_strictest.
-  4: transitivity Σ0; try exact _; try apply extends_refl.
-  all: try apply wf_ext_wf.
+  eapply (@weakening_env cf Σ0); tea;
+  try eapply (@weakening_config_wf cf0);
+  try eapply (@weakening_config cf0);
+  try apply config.strictest_checker_flags_strictest; (* heuristic *)
+  try apply wf_ext_wf;
+  try assumption;
+  try exact _.
 
-  2: { vm_compute.
+Ltac handle_typing_by_safechecker' cf0 Σ0 :=
+  handle_typing_by_safechecker0 cf0 Σ0;
+  [ | handle_typing_by_safechecker_sc2 cf0 Σ0 ].
 
-            Check typecheck_program.
-       4: { exact wfΣ.
+Ltac handle_typing_by_safechecker cf0 Σ0 :=
+  handle_typing_by_safechecker0 cf0 Σ0;
+  [ handle_typing_by_safechecker_sc1
+  | handle_typing_by_safechecker_sc2 cf0 Σ0 ].
 
-  Set Printing All.
-Search config.impl config.union_checker_flags.
+Definition universes_of_Instance (t : Instance.t) (acc : LevelSet.t) : LevelSet.t
+  := fold_right LevelSet.add acc t.
+Definition universes_of_LevelExprSet (t : LevelExprSet.t) (acc : LevelSet.t) : LevelSet.t
+  := fold_right LevelSet.add acc (List.map fst (LevelExprSet.elements t)).
+Definition universes_of_LevelAlgExpr (t : LevelAlgExpr.t) (acc : LevelSet.t) : LevelSet.t
+  := universes_of_LevelExprSet (t.(t_set)) acc.
+Definition universes_of_universe (t : Universe.t) (acc : LevelSet.t) : LevelSet.t
+  := match t with
+     | Universe.lProp => acc
+     | Universe.lSProp => acc
+     | Universe.lType l => universes_of_LevelAlgExpr l acc
+     end.
+
+Definition universes_of_prim_model {A} (universes_of_term' : A -> StateT LevelSet.t TemplateMonad A) {tg} (t : PCUICPrimitive.prim_model A tg) : StateT LevelSet.t TemplateMonad (PCUICPrimitive.prim_model A tg)
+  := match t with
+     | primIntModel _
+     | primFloatModel _
+       => ret t
+     end.
+Definition universes_of_prim_val {A} (universes_of_term' : A -> StateT LevelSet.t TemplateMonad A) (t : PCUICPrimitive.prim_val A) : StateT LevelSet.t TemplateMonad (PCUICPrimitive.prim_val A)
+  := _ <- universes_of_prim_model universes_of_term' t.π2;;
+     ret t.
+
+Definition preuniverses_of_partial_term
+  (universes_of_term : term -> StateT LevelSet.t TemplateMonad term)
+  (t : term)
+  : StateT LevelSet.t TemplateMonad term
+  := qt <- State.lift (tmQuote t);;
+     let '(qh, qargs) := decompose_app qt in
+     rv <- match qh, qargs with
+           | tRel _, _
+           | tVar _, _
+           | tEvar _ _, _
+           | tConst _ _, _
+             => ret (Some t)
+           | tApp _ _, _
+             => State.lift (tmPrint qt;; tmFail "preuniverses_of_partial_term: decompose_app should not return tApp")
+           | tConstruct _ _ _, _
+             => ret None
+           | _, _
+             => State.lift (tmPrint qt;; tmPrint (qh, qargs);; tmFail "preuniverses_of_partial_term: requires constructor tree or tRel, tVar, tEvar, tConst")
+           end;;
+     match rv with
+     | Some rv => ret rv
+     | None
+       => universes_of_term t
+     end.
+
+Definition visit_universes (univs : LevelSet.t) : StateT LevelSet.t TemplateMonad unit
+  := State.update (fun acc => LevelSet.union acc univs).
+
+Definition monad_map_universes {A} (f : A -> LevelSet.t -> LevelSet.t) (t : A) : StateT LevelSet.t TemplateMonad A
+  := acc <- State.get;;
+     State.set (f t acc);;
+     ret t.
+
+Fixpoint universes_of_term' (t : term) : StateT LevelSet.t TemplateMonad term
+  := let universes_of_term := preuniverses_of_partial_term universes_of_term' in
+     match t with
+     | tRel _
+     | tVar _
+       => ret t
+     | tEvar _ l
+       => _ <- monad_map universes_of_term l;;
+          ret t
+     | tSort u
+       => _ <- monad_map_universes universes_of_universe u;;
+          ret t
+     | tProj _ c
+       => _ <- universes_of_term c;;
+          ret t
+     | tProd _ A B
+     | tLambda _ A B
+     | tApp A B
+       => _ <- universes_of_term A;;
+          _ <- universes_of_term B;;
+          ret t
+     | tLetIn _ A B C
+       => _ <- universes_of_term A;;
+          _ <- universes_of_term B;;
+          _ <- universes_of_term C;;
+          ret t
+     | tConst _ ui
+     | tInd _ ui
+     | tConstruct _ _ ui
+       => _ <- monad_map_universes universes_of_Instance ui;;
+          ret t
+     | tFix mfix _
+     | tCoFix mfix _
+       => _ <- monad_map (monad_map_def universes_of_term universes_of_term) mfix;;
+          ret t
+     | tPrim prim
+       => _ <- universes_of_prim_val universes_of_term prim;;
+          ret t
+     | tCase _ p c brs
+       => _ <- monad_map_predicate
+                 (monad_map_universes universes_of_Instance)
+                 universes_of_term universes_of_term
+                 (monad_map_context universes_of_term)
+                 p;;
+          _ <- universes_of_term c;;
+          _ <- monad_map_branches universes_of_term (monad_map_context universes_of_term) brs;;
+          ret t
+     end.
+
+Definition universes_of_partial_term (t : term) : StateT LevelSet.t TemplateMonad LevelSet.t
+  := preuniverses_of_partial_term universes_of_term' t;; State.get.
+
+Definition get_universes_of_partial_term (t : term) : TemplateMonad LevelSet.t
+  := evalStateT (universes_of_partial_term t) LevelSet.empty.
+
+Definition universes_of_type_of_quotation_of_well_typed' {cf Σ T t qT qt} (_ : @quotation_of_well_typed cf Σ T t qT qt) : TemplateMonad LevelSet.t
+  := v <- evalStateT (universes_of_partial_term qT;; universes_of_partial_term qt) LevelSet.empty;;
+     tmEval cbv v.
+Notation universes_of_type_of_quotation_of_well_typed qty
+  := (match qty return _ with
+      | qtyv
+        => ltac:(run_template_program (universes_of_type_of_quotation_of_well_typed' qtyv) (fun v => exact v))
+      end) (only parsing).
+
+Definition merge_universes_env (Σ : global_env) (univs : ContextSet.t) : global_env
+  := {| universes := ContextSet.union Σ.(universes) univs
+     ; declarations := Σ.(declarations)
+     ; retroknowledge := Σ.(retroknowledge) |}.
+
+Definition merge_universe_levels_env (Σ : global_env) (univs : LevelSet.t) : global_env
+  := {| universes := (LevelSet.union Σ.(universes).1 univs, Σ.(universes).2)
+     ; declarations := Σ.(declarations)
+     ; retroknowledge := Σ.(retroknowledge) |}.
+
+Definition merge_universes (Σ : global_env_ext) (univs : ContextSet.t) : global_env_ext
+  := (merge_universes_env Σ univs, Σ.2).
+Definition merge_universe_levels (Σ : global_env_ext) (univs : LevelSet.t) : global_env_ext
+  := (merge_universe_levels_env Σ univs, Σ.2).
+Axiom proof_admitted : False.
+Ltac admit := abstract case proof_admitted.
+#[export] Instance well_typed_ground_quotable_of_bp
+  {b P} (H : b = true -> P)
+  {qH : quotation_of H} (H_for_safety : P -> b = true)
+  {qP : quotation_of P}
+  {cfH cfP : config.checker_flags} {ΣH ΣP}
+  {qtyH : quotation_of_well_typed (cf:=cfH) ΣH H} {qtyP : quotation_of_well_typed (cf:=cfP) ΣP P}
+  (Σ0' := typing_restriction_for_globals [bool; @eq bool])
+  (Σ0 := merge_universe_levels
+           Σ0'
+           (LevelSet.union
+              (universes_of_type_of_quotation_of_well_typed qtyH)
+              (universes_of_type_of_quotation_of_well_typed qtyP)))
+  (Σ := merge_global_envs Σ0 (merge_global_envs ΣH ΣP))
+  {Hc : Is_true (compatibleb ΣH ΣP && compatibleb Σ0 (merge_global_envs ΣH ΣP))}
+  (HwfP : @wf cfP ΣP)
+  (HwfH : @wf cfH ΣH)
+  : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) Σ _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
+Proof.
+  subst Σ0'.
+  intros t wfΣ.
+  apply Is_true_eq_true in Hc.
+  rewrite !Bool.andb_true_iff in Hc.
+  destruct_head'_and.
+  cbv [PCUICProgram.global_env_ext_map_global_env_ext] in *.
+  cbn [PCUICProgram.trans_env_env fst] in *.
+  cbv [quote_ground ground_quotable_of_bp Init.quote_bool] in *.
+  specialize (H_for_safety t); subst.
+  handle_typing_by_factoring ().
+  all: [ > handle_typing_by_tc () .. | ].
+  all: subst Σ.
+  all: [ > handle_typing_tc_side_conditions () .. | ].
+  all: [ > ].
+  repeat match goal with H : _ |- _ => revert H end.
+  match goal with |- ?T => refine (@id T _) end.
+  Time  (intros; lazymatch goal with |- @typing ?cf ?Σ ?Γ ?t ?T => pose proof (@quotation_check_valid config.strictest_checker_flags Σ0 Γ t T) as H' end; clear H'; admit). Time Timeout 1 Qed.
+Finished transaction in 0.161 secs (0.161u,0.s) (successful)
+                              Finished transaction in 0.2 secs (0.2u,0.s) (successful)
+Finished transaction in 0.195 secs (0.195u,0.s) (successful)
+                              Finished transaction in 7.062 secs (7.062u,0.s) (successful)
+Finished transaction in 0.116 secs (0.116u,0.s) (successful)
+
+         pose
+  Time admit. Time Qed.
+Finished transaction in 0.053 secs (0.053u,0.s) (successful)
+                              Finished transaction in 0.17 secs (0.17u,0.s) (successful)
+  Time abstract (intros; handle_typing_by_safechecker config.strictest_checker_flags Σ0).
+  Time Qed.
+  all: todo "foo". Qed.
+
+  todo "foo".
+Qed.
 
   Search compatible compatibleb.
   2: apply extends_refl.
