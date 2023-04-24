@@ -733,6 +733,7 @@ Proof.
              | ?v => fail 0 "invalid collect_constants_build_substituition ret" v
              end)
   end.
+  pose proof (@extends_strictly_on_decls_l_merge). (* XXX FIXME *)
   simple apply H'; tea.
   all: cbv [subst_nolift_opt presubst subst'_nolift subst_step Nat.sub List.length nth_error Nat.leb].
   all: try match goal with
@@ -745,8 +746,13 @@ Proof.
          | [ |- extends ?x ?x ] => apply extends_refl
          | [ |- extends ?x (merge_global_envs ?y ?z) ]
            => lazymatch z with
-              | context[x] => etransitivity; [ | apply extends_r_merge ]
-              | _ => idtac
+              | context[x] => transitivity z; [ | apply extends_r_merge ]
+              | _
+                => lazymatch y with
+                   | x => try exact _
+                   | context[x] => transitivity y; [ | try exact _ ]
+                   | _ => idtac
+                   end
               end
          | [ |- is_true (config.impl ?x ?x) ]
            => apply config.impl_refl
@@ -770,12 +776,15 @@ Proof.
          => destruct (@compatibleP x y); [ assumption | clear -H; try congruence ]
        | _ => idtac
        end.
-  2: { let cf := match goal with |- @typing ?cf _ _ _ _ => cf end in
-    eapply (@weakening_env cf Σ0); tea.
-       all: try eapply (@weakening_config_wf config.strictest_checker_flags).
-       all: try eapply (@weakening_config config.strictest_checker_flags).
-       all: try apply config.strictest_checker_flags_strictest.
-       2: { vm_compute.
+  let cf := match goal with |- @typing ?cf _ _ _ _ => cf end in
+  eapply (@weakening_env cf Σ0); tea.
+  all: try eapply (@weakening_config_wf config.strictest_checker_flags).
+  all: try eapply (@weakening_config config.strictest_checker_flags).
+  all: try apply config.strictest_checker_flags_strictest.
+  4: transitivity Σ0; try exact _; try apply extends_refl.
+  all: try apply wf_ext_wf.
+
+  2: { vm_compute.
 
             Check typecheck_program.
        4: { exact wfΣ.
