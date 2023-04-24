@@ -1022,13 +1022,7 @@ Ltac admit := abstract case proof_admitted.
 Proof.
   subst Σ0'.
   intros t wfΣ.
-  apply Is_true_eq_true in Hc.
-  rewrite !Bool.andb_true_iff in Hc.
-  destruct_head'_and.
-  cbv [PCUICProgram.global_env_ext_map_global_env_ext] in *.
-  cbn [PCUICProgram.trans_env_env fst] in *.
-  cbv [quote_ground ground_quotable_of_bp Init.quote_bool] in *.
-  specialize (H_for_safety t); subst.
+  Time  (intros; lazymatch goal with |- @typing ?cf ?Σ ?Γ ?t ?T => pose proof (@quotation_check_valid config.strictest_checker_flags Σ0 Γ t T) as H' end; clear H'; admit). Time Timeout 1 Qed.
   handle_typing_by_factoring ().
   all: [ > handle_typing_by_tc () .. | ].
   all: subst Σ.
@@ -1036,7 +1030,8 @@ Proof.
   all: [ > ].
   repeat match goal with H : _ |- _ => revert H end.
   match goal with |- ?T => refine (@id T _) end.
-  Time  (intros; lazymatch goal with |- @typing ?cf ?Σ ?Γ ?t ?T => pose proof (@quotation_check_valid config.strictest_checker_flags Σ0 Γ t T) as H' end; clear H'; admit). Time Timeout 1 Qed.
+
+
 Finished transaction in 0.161 secs (0.161u,0.s) (successful)
                               Finished transaction in 0.2 secs (0.2u,0.s) (successful)
 Finished transaction in 0.195 secs (0.195u,0.s) (successful)
