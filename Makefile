@@ -149,7 +149,7 @@ safechecker: pcuic
 template-pcuic: template-coq pcuic
 	$(MAKE) -C template-pcuic
 
-quotation: template-coq pcuic template-pcuic
+quotation: template-coq pcuic template-pcuic safechecker
 	$(MAKE) -C quotation
 
 safechecker-plugin: safechecker template-pcuic

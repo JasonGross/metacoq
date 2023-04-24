@@ -22,7 +22,7 @@ then
         PCUIC_DEPS="-R ../common/theories MetaCoq.Common"
         SAFECHECKER_DEPS="-R ../pcuic/theories MetaCoq.PCUIC"
         TEMPLATE_PCUIC_DEPS="-R ../pcuic/theories MetaCoq.PCUIC -R ../template-coq/theories MetaCoq.Template  -I ../template-coq"
-        QUOTATION_DEPS="-R ../template-pcuic/theories MetaCoq.TemplatePCUIC -R ../pcuic/theories MetaCoq.PCUIC -R ../template-coq/theories MetaCoq.Template"
+        QUOTATION_DEPS="-R ../template-pcuic/theories MetaCoq.TemplatePCUIC -R ../pcuic/theories MetaCoq.PCUIC -R ../template-coq/theories MetaCoq.Template -R ../safechecker/theories MetaCoq.SafeChecker"
         SAFECHECKER_PLUGIN_DEPS="-R ../template-pcuic/theories MetaCoq.TemplatePCUIC -R ../safechecker/theories MetaCoq.SafeChecker  -I ../template-coq"
         ERASURE_DEPS="-R ../safechecker-plugin/theories MetaCoq.SafeCheckerPlugin -R ../template-pcuic/theories MetaCoq.TemplatePCUIC -R ../template-coq/theories MetaCoq.Template -I ../template-coq -R ../safechecker/theories MetaCoq.SafeChecker"
         ERASURE_PLUGIN_DEPS="-R ../template-coq/theories MetaCoq.Template -I ../template-coq -R ../template-pcuic/theories MetaCoq.TemplatePCUIC -R ../erasure/theories MetaCoq.Erasure"
