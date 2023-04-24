@@ -87,6 +87,11 @@ Class infer_quotation_of_well_typed (qt : term)
      ; wt_qT : quotation_of wt_T
      ; wt_qt : quotation_of wt_t := qt
      ; wt_q : @quotation_of_well_typed wt_cf wt_Σ wt_T wt_t _ _ }.
+Class infer_type_of (qt : term) := qtype_of : term.
+Ltac infer_type_of qt
+  := lazymatch (eval hnf in (_ : infer_quotation_of_well_typed qt)) with
+     | {| wt_qT := ?qT |} => exact qT
+     end.
 
 Inductive dynlist := dnil | dcons {T} (t : T) (tl : dynlist).
 Declare Scope dynlist_scope.
@@ -160,6 +165,11 @@ Notation typing_restriction_for_globals ls
 
 Module Export Instances.
   #[export] Existing Instance Build_infer_quotation_of_well_typed.
+  #[export] Hint Extern 0 (infer_quotation_of_well_typed ?qt)
+  => simple notypeclasses refine (@Build_infer_quotation_of_well_typed qt _ _ _ _ _ _);
+     [ .. | typeclasses eauto ]
+       : typeclass_instances.
+  #[export] Hint Extern 0 (infer_type_of ?qt) => infer_type_of qt : typeclass_instances.
   (* #[export] *)
   Coercion wt_q : infer_quotation_of_well_typed >-> quotation_of_well_typed.
   (*#[export] Instance default_typing_restriction : config.typing_restriction | 1000
@@ -167,7 +177,7 @@ Module Export Instances.
        ; config.global_env_ext_constraint Σ := true |}.*)
   #[export] Existing Instance typing_quote_ground.
 End Instances.
-
+(*
 Definition subst_nolift : list term -> nat -> term -> term.
 Proof.
   let v := (eval cbv delta [subst] in subst) in
@@ -210,13 +220,13 @@ Proof.
                  | [ H : All _ ?x |- context[map _ ?x] ] => induction H; cbn [map]; f_equal; try congruence
                  end ].
 Qed.
-
-Lemma closed_substitution {cf : config.checker_flags} {Σ}
+*)
+Lemma closed_substitution {cf : config.checker_flags} {Σ : global_env_ext}
   (s : list term)
   (Γ' : list term)
   (t T : term)
-  (Hs : All2 (fun t T => Σ ;;; [] |- t : T) s Γ')
   (wfΣ : wf Σ)
+  (Hs : All2_fold (fun s0 Γ'0 t T => Σ ;;; [] |- t : subst0 s0 T) s Γ')
   (Γ'' := List.map (fun ty => {| BasicAst.decl_name := {| binder_name := nAnon; binder_relevance := Relevant |} ; BasicAst.decl_body := None ; BasicAst.decl_type := ty |}) Γ')
   (Ht : Σ ;;; Γ'' |- t : T)
   : Σ ;;; [] |- subst0 s t : subst0 s T.
@@ -225,11 +235,45 @@ Proof.
     try (cbn; rewrite app_context_nil_l; assumption).
   clear Ht t T.
   subst Γ''; induction Hs; cbn [List.map]; constructor; trivial.
-  { rewrite subst_closedn; [ assumption | ].
+  (*{ rewrite subst_closedn; [ assumption | ].
     change 0 with #|[]:context|.
-    eapply @type_closed; eassumption. }
+    eapply @type_closed; eassumption. }*)
 Qed.
 
+Fixpoint All2_fold_cps {A} (P : list A -> list A -> A -> A -> Type) (Q : Type) (l1 l2 : list A) {struct l1}
+  := match l1, l2 with
+     | [], [] => Q
+     | [], _ | _, [] => True
+     | x :: xs, y :: ys
+       => P xs ys x y -> All2_fold_cps P Q xs ys
+     end.
+
+#[local] Hint Constructors All2_fold : core.
+Lemma All2_fold_cps_id {A P Q l1 l2}
+  : @All2_fold_cps A P Q l1 l2 <~> (All2_fold P l1 l2 -> Q).
+Proof.
+  split; revert l2; induction l1 as [|?? IH], l2 as [|? l2]; cbn.
+  all: intros.
+  all: try match goal with H : All2_fold _ _ _ |- _ => inversion H; subst end.
+  all: intuition eauto.
+Qed.
+
+Lemma closed_substitution_cps {cf : config.checker_flags} {Σ : global_env_ext}
+  (s : list term)
+  (Γ' : list term)
+  (t T : term)
+  (wfΣ : wf Σ)
+  (Γ'' := List.map (fun ty => {| BasicAst.decl_name := {| binder_name := nAnon; binder_relevance := Relevant |} ; BasicAst.decl_body := None ; BasicAst.decl_type := ty |}) Γ')
+  : All2_fold_cps
+      (fun s0 Γ'0 t T => Σ ;;; [] |- t : subst0 s0 T)
+      ((Σ ;;; Γ'' |- t : T) -> (Σ ;;; [] |- subst0 s t : subst0 s T))
+      s Γ'.
+Proof.
+  apply All2_fold_cps_id; intros; eapply closed_substitution; eassumption.
+Qed.
+
+(*Check All2_fold.*)
+(*
 Lemma closed_substitution_nolift {cf : config.checker_flags} {Σ}
   (s : list term)
   (Γ' : list term)
@@ -243,13 +287,14 @@ Proof.
   erewrite <- !closed_subst_nolift by eassumption.
   now eapply @closed_substitution.
 Qed.
+*)
 
-
-(* generates new version of [t * s], where [s] holds (de Bruijn index, quoted term, unquoted term) *)
+(* generates new version of [t * s], where [s] holds (de Bruijn index, quoted term, unquoted term, unquoted type) *)
 Definition precollect_constants_k
-  (collect_constants_k : nat -> term -> StateT (list (nat * term * term)) TemplateMonad term)
+  (collect_constants_k : nat -> term -> StateT (list (nat * term * term * term)) TemplateMonad term)
+  (collect_constants_k_from_fix : nat -> term -> StateT (list (nat * term * term * term)) TemplateMonad term)
   (offset : nat) (t : term)
-  : StateT (list (nat * term * term)) TemplateMonad term
+  : StateT (list (nat * term * term * term)) TemplateMonad term
   := qt <- State.lift (tmQuote t);;
      let '(qh, qargs) := decompose_app qt in
      rv <- match qh, qargs with
@@ -258,12 +303,26 @@ Definition precollect_constants_k
            | tEvar _ _, _
            | tConst _ _, _
              => s <- State.get;;
-                match find (fun '(i, qv, v) => qt == qv) s with
-                | Some (i, qv, v) => ret (Some (tRel (offset + i)))
+                match find (fun '(i, qv, v, vT) => qt == qv) s with
+                | Some (i, qv, v, vT)
+                  => i' <- State.lift (tmEval cbv (offset + i));;
+                     ret (Some (tRel i'))
                 | None
-                  => let i := List.length s in
-                     State.set ((i, qt, t) :: s);;
-                     ret (Some (tRel (offset + i)))
+                  => vT <- State.lift (let tc := tmInferInstance None (infer_type_of t) in
+                                       inst <- tc;;
+                                       match inst with
+                                       | my_Some vT => ret vT
+                                       | my_None
+                                         => tmPrint (t, qt, qh, qargs);;
+                                            tmPrint tc;;
+                                            tmFail "precollect_constants_k: could not infer instance"
+                                       end);;
+                     _ <- collect_constants_k_from_fix 0 vT;;
+                     s <- State.get;;
+                     i <- State.lift (tmEval cbv (List.length s));;
+                     i' <- State.lift (tmEval cbv (offset + i));;
+                     State.set ((i, qt, t, vT) :: s);;
+                     ret (Some (tRel i'))
                 end
            | tApp _ _, _
              => State.lift (tmPrint qt;; tmFail "decompose_app should not return tApp")
@@ -279,9 +338,11 @@ Definition precollect_constants_k
      end.
 
 
-Fixpoint collect_constants_k' (offset : nat) (t : term)
-  : StateT (list (nat * term * term)) TemplateMonad term
-  := let collect_constants_k := precollect_constants_k collect_constants_k' in
+Fixpoint collect_constants_k'
+  (collect_constants_k_from_fix : nat -> term -> StateT _ TemplateMonad term)
+  (offset : nat) (t : term)
+  : StateT _ TemplateMonad term
+  := let collect_constants_k := precollect_constants_k (collect_constants_k' collect_constants_k_from_fix) collect_constants_k_from_fix in
      match t with
      | tRel _
      | tVar _
@@ -324,10 +385,45 @@ Fixpoint collect_constants_k' (offset : nat) (t : term)
        => mfix <- monad_map (monad_map_def (collect_constants_k offset) (collect_constants_k offset)) mfix;;
           ret (tCoFix mfix idx)
      end.
-Definition collect_constants_k : nat -> term -> StateT (list (nat * term * term)) TemplateMonad term
-  := precollect_constants_k collect_constants_k'.
+
+Definition collect_constants_k : nat -> term -> StateT (list (nat * term * term * term)) TemplateMonad term
+  := fun n t st
+     => tmFix (fun collect_constants_k_from_fix '(n, t, st)
+               => let collect_constants_k_from_fix n t st := collect_constants_k_from_fix (n, t, st) in
+                  precollect_constants_k (collect_constants_k' collect_constants_k_from_fix) collect_constants_k_from_fix n t st)
+              (n, t, st).
 Notation collect_constants := (collect_constants_k 0).
 
+Definition List_map_alt {A} {B} := Eval cbv in @List.map A B.
+
+Definition collect_constants_build_substituition (t : term) (T : term)
+  : TemplateMonad (term (* t *) * term (* T *) * list term (* s *) * list term (* Γ *) )
+  := qmap <- tmQuoteToGlobalReference (@List_map_alt);;
+     qmap <- match kername_of_global_reference qmap with
+             | Some kn => ret kn
+             | None => tmPrint qmap;; tmFail "no List_map_alt"
+             end;;
+     '(T', st) <- collect_constants T [];;
+     '(t', st) <- collect_constants t st;;
+     T' <- tmEval cbv T';;
+     t' <- tmEval cbv t';;
+     st <- tmEval hnf st;;
+     s <- tmEval (unfold qmap) (List_map_alt (fun '(i, qv, v, vT) => v) st);;
+     Γ <- tmEval (unfold qmap) (List_map_alt (fun '(i, qv, v, vT) => vT) st);;
+     ret (t', T', s, Γ).
+  (*
+  (cf : config.checker_flags) (Σ : global_env_ext)
+closed_substitution {cf : config.checker_flags} {Σ}
+  (s : list term)
+  (Γ' : list term)
+  (t T : term)
+  (Hs : All2_fold (fun s0 Γ'0 t T => Σ ;;; [] |- t : subst0 s0 T) s Γ')
+  (wfΣ : wf Σ)
+  (Γ'' := List.map (fun ty => {| BasicAst.decl_name := {| binder_name := nAnon; binder_relevance := Relevant |} ; BasicAst.decl_body := None ; BasicAst.decl_type := ty |}) Γ')
+  (Ht : Σ ;;; Γ'' |- t : T)
+  : Σ ;;; [] |- subst0 s t : subst0 s T.
+Proof.
+*)
 (*
 
 Definition replace_typing_for_safechecker (cf : config.checker_flags) Σ t T
@@ -352,7 +448,14 @@ Definition replace_typing_for_safechecker (cf : config.checker_flags) Σ t T
   infer_quotation_of_well_typed
  *)
 
-#[export] Instance well_typed_ground_quotable_of_bp {b P} (H : b = true -> P) {qH : quotation_of H} (H_for_safety : P -> b = true) {qP : quotation_of P} {cfH cfP : config.checker_flags} {ΣH ΣP} {qtyH : quotation_of_well_typed (cf:=cfH) ΣH H} {qtyP : quotation_of_well_typed (cf:=cfP) ΣP P} (Σ := merge_global_envs (typing_restriction_for_globals [bool; @eq bool]) (merge_global_envs ΣH ΣP)) : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) Σ _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
+#[export] Instance well_typed_ground_quotable_of_bp
+  {b P} (H : b = true -> P)
+  {qH : quotation_of H} (H_for_safety : P -> b = true)
+  {qP : quotation_of P}
+  {cfH cfP : config.checker_flags} {ΣH ΣP}
+  {qtyH : quotation_of_well_typed (cf:=cfH) ΣH H} {qtyP : quotation_of_well_typed (cf:=cfP) ΣP P}
+  (Σ := merge_global_envs (typing_restriction_for_globals [bool; @eq bool]) (merge_global_envs ΣH ΣP))
+  : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) Σ _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
 Proof.
   intros t wfΣ.
   cbv [PCUICProgram.global_env_ext_map_global_env_ext] in *.
@@ -361,9 +464,29 @@ Proof.
   specialize (H_for_safety t); subst.
   lazymatch goal with
   | [ |- @typing ?cf ?Σ ?Γ ?t ?T ]
-    => pose (collect_constants t []) as p
+    => let H := fresh in
+       run_template_program
+         (collect_constants_build_substituition t T)
+         (fun v
+          => lazymatch v with
+             | (?t', ?T', ?s', ?Γ')
+               => pose proof (@closed_substitution_cps cf Σ s' Γ' t' T') as H;
+                  cbv [All2_fold_cps] in H
+             | ?v => fail 0 "invalid collect_constants_build_substituition ret" v
+             end)
   end.
-  run_template_program p (fun v => pose v).
+  cbn [subst0] in H0.
+  simple apply H0.
+  end.
+  end.
+  run_template_program p (fun v => pose v as v').
+  Lemma closed_substitution_cps {cf : config.checker_flags} {Σ : global_env_ext}
+  (s : list term)
+  (Γ' : list term)
+  (t T : term)
+  (wfΣ : wf Σ)
+
+
   closed_substitution_nolift {cf : config.checker_flags} {Σ}
   (s : list term)
   (Γ' : list term)
