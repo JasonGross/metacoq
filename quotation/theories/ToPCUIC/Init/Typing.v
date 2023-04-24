@@ -75,6 +75,16 @@ Proof.
   all: try (eapply (@type_closed cf (_, _)); eassumption).
 Qed.
 
+Definition typing_quoted_term_of_general_empty_ctx
+  {cf : config.checker_flags} {Σ : global_env} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t}
+  {qty : @quotation_of_well_typed cf Σ T t _ _}
+  {cf' : config.checker_flags} {Σ' : global_env}
+  : @wf cf Σ -> @wf cf' Σ' -> extends Σ Σ' -> config.impl cf cf' -> @typing cf' (Σ', Monomorphic_ctx) [] qt qT.
+Proof.
+  intros; eapply (@typing_quoted_term_of_general cf Σ T t qT qt qty cf' Σ'); tea.
+  constructor.
+Qed.
+
 (*
 Class quotation_of_well_typed {Pcf : config.typing_restriction} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} := typing_quoted_term_of : forall cf Σ Γ, config.checker_flags_constraint cf -> config.global_env_ext_constraint Σ -> wf Σ -> wf_local Σ Γ -> Σ ;;; Γ |- qt : qT.
 Class ground_quotable_well_typed {Pcf : config.typing_restriction} T {qT : quotation_of T} {quoteT : ground_quotable T} := typing_quote_ground : forall t : T, quotation_of_well_typed t.
@@ -177,6 +187,192 @@ Module Export Instances.
        ; config.global_env_ext_constraint Σ := true |}.*)
   #[export] Existing Instance typing_quote_ground.
 End Instances.
+
+Definition lift_step
+  : forall (lift' : nat -> nat -> term -> term) (n k : nat) (t : term), term.
+Proof.
+  let v := (eval cbv delta [lift] in lift) in
+  let liftTy := lazymatch goal with |- ?T -> _ => T end in
+  run_template_program
+    (lift <- tmQuote v;;
+     qliftTy <- tmQuote liftTy;;
+     match lift with
+     | tFix [b] _
+       => tmUnquote
+            (tLambda
+               {| binder_name := nNamed "lift'"; binder_relevance := Relevant |}
+               qliftTy
+               b.(dbody))
+     | _ => tmPrint lift;; tmFail "bad lift body"
+     end)
+    (fun v => lazymatch v with
+              | {| my_projT2 := ?v |} => exact v
+              end).
+Defined.
+
+Definition prelift (lift : nat -> nat -> term -> term) (n k : nat) (t : term) : term
+  := if match n with 0 => true | _ => false end
+     then t
+     else lift n k t.
+Fixpoint lift' n k t {struct t} := lift_step (prelift lift') n k t.
+Definition lift_opt n k t := prelift lift' n k t.
+
+Lemma eq_prelift lift n k t
+  : lift n k t = PCUICAst.lift n k t
+    -> prelift lift n k t = PCUICAst.lift n k t.
+Proof.
+  destruct n; cbn; auto.
+  rewrite !lift0_id; reflexivity.
+Qed.
+
+Lemma eq_lift' n k t : lift' n k t = PCUICAst.lift n k t.
+Proof.
+  revert n k; induction t using term_forall_list_ind; intros; cbn -[prelift]; try reflexivity.
+  all: f_equal.
+  all: repeat first [ progress intros
+                    | reflexivity
+                    | solve [ eauto ]
+                    | rewrite eq_prelift
+                    | apply map_ext_in_iff
+                    | apply map_def_eq_spec
+                    | apply map_predicate_k_eq_spec
+                    | apply map_branch_k_eq_spec
+                    | progress cbv [shiftf] ].
+  all: repeat first [ progress hnf in *
+                    | solve [ eauto ]
+                    | progress rdest
+                    | progress sq
+                    | match goal with
+                      | [ H : All _ _ |- _ ] => pose proof (fun X H' => @All_In _ _ _ X H' H); clear H
+                      | [ H : forall X, In X ?v -> _ |- _ ]
+                        => exactly_once (idtac; multimatch goal with
+                                                | [ H' : In _ v |- _ ]
+                                                  => specialize (H _ H')
+                                                end)
+                      end ].
+Qed.
+
+Lemma eq_lift_opt n k t : lift_opt n k t = PCUICAst.lift n k t.
+Proof.
+  cbv [lift_opt]; rewrite eq_prelift; rewrite ?eq_lift'; reflexivity.
+Qed.
+
+Definition subst_step (lift' : nat -> nat -> term -> term)
+  : forall (subst' : list term -> nat -> term -> term) (s : list term) (k : nat) (u : term), term.
+Proof.
+  let v := (eval cbv delta [subst] in subst) in
+  let v := lazymatch (eval pattern (@PCUICAst.lift) in v) with
+           | ?f _ => f
+           end in
+  let v := (eval cbv beta in (v lift')) in
+  let substTy := lazymatch goal with |- ?T -> _ => T end in
+  run_template_program
+    (subst <- tmQuote v;;
+     qsubstTy <- tmQuote substTy;;
+     match subst with
+     | tFix [b] _
+       => tmUnquote
+            (tLambda
+               {| binder_name := nNamed "subst'"; binder_relevance := Relevant |}
+               qsubstTy
+               b.(dbody))
+     | _ => tmPrint subst;; tmFail "bad subst body"
+     end)
+    (fun v => lazymatch v with
+              | {| my_projT2 := ?v |} => exact v
+              end).
+Defined.
+
+Definition presubst (subst : list term -> nat -> term -> term) (s : list term) (k : nat) (u : term) : term
+  := if match s with [] => true | _ => false end
+     then u
+     else subst s k u.
+
+Fixpoint subst' s k u {struct u} := subst_step lift_opt (presubst subst') s k u.
+Definition subst_opt s k u := presubst subst' s k u.
+Fixpoint subst'_nolift s k u {struct u} := subst_step (fun _ _ v => v) (presubst subst'_nolift) s k u.
+Definition subst_nolift_opt s k u := presubst subst'_nolift s k u.
+
+Lemma eq_presubst subst s k u
+  : subst s k u = PCUICAst.subst s k u
+    -> presubst subst s k u = PCUICAst.subst s k u.
+Proof.
+  destruct s; cbn; auto.
+  rewrite !subst_empty; reflexivity.
+Qed.
+
+Lemma eq_subst' s k u : subst' s k u = PCUICAst.subst s k u.
+Proof.
+  revert s k; induction u using term_forall_list_ind; intros; cbn -[presubst]; try reflexivity.
+  all: repeat destruct ?; subst.
+  all: rewrite ?eq_lift_opt.
+  all: f_equal.
+  all: repeat first [ progress intros
+                    | reflexivity
+                    | solve [ eauto ]
+                    | rewrite eq_presubst
+                    | apply map_ext_in_iff
+                    | apply map_def_eq_spec
+                    | apply map_predicate_k_eq_spec
+                    | apply map_branch_k_eq_spec
+                    | progress cbv [shiftf] ].
+  all: repeat first [ progress hnf in *
+                    | solve [ eauto ]
+                    | progress rdest
+                    | progress sq
+                    | match goal with
+                      | [ H : All _ _ |- _ ] => pose proof (fun X H' => @All_In _ _ _ X H' H); clear H
+                      | [ H : forall X, In X ?v -> _ |- _ ]
+                        => exactly_once (idtac; multimatch goal with
+                                                | [ H' : In _ v |- _ ]
+                                                  => specialize (H _ H')
+                                                end)
+                      end ].
+Qed.
+
+Lemma eq_subst_opt s k u : subst_opt s k u = PCUICAst.subst s k u.
+Proof.
+  cbv [subst_opt]; rewrite eq_presubst; rewrite ?eq_subst'; reflexivity.
+Qed.
+
+Lemma eq_subst'_nolift s k u
+  (Hs : Forall (fun t => closed t) s)
+  : subst'_nolift s k u = PCUICAst.subst s k u.
+Proof.
+  revert k; induction u using term_forall_list_ind; intros; cbn -[presubst]; try reflexivity.
+  all: repeat destruct ?; subst.
+  all: rewrite ?lift_closed by now eapply Forall_forall in Hs; try eapply nth_error_In; tea.
+  all: f_equal.
+  all: repeat first [ progress intros
+                    | reflexivity
+                    | solve [ eauto ]
+                    | rewrite eq_presubst
+                    | apply map_ext_in_iff
+                    | apply map_def_eq_spec
+                    | apply map_predicate_k_eq_spec
+                    | apply map_branch_k_eq_spec
+                    | progress cbv [shiftf] ].
+  all: repeat first [ progress hnf in *
+                    | solve [ eauto ]
+                    | progress rdest
+                    | progress sq
+                    | match goal with
+                      | [ H : All _ _ |- _ ] => pose proof (fun X H' => @All_In _ _ _ X H' H); clear H
+                      | [ H : forall X, In X ?v -> _ |- _ ]
+                        => exactly_once (idtac; multimatch goal with
+                                                | [ H' : In _ v |- _ ]
+                                                  => specialize (H _ H')
+                                                end)
+                      end ].
+Qed.
+
+Lemma eq_subst_nolift_opt s k u
+  (Hs : Forall (fun t : term => closed t) s)
+  : subst_nolift_opt s k u = PCUICAst.subst s k u.
+Proof.
+  cbv [subst_nolift_opt]; rewrite eq_presubst; rewrite ?eq_subst'_nolift; tea; reflexivity.
+Qed.
+
 (*
 Definition subst_nolift : list term -> nat -> term -> term.
 Proof.
@@ -220,7 +416,7 @@ Proof.
                  | [ H : All _ ?x |- context[map _ ?x] ] => induction H; cbn [map]; f_equal; try congruence
                  end ].
 Qed.
-*)
+ *)
 Lemma closed_substitution {cf : config.checker_flags} {Σ : global_env_ext}
   (s : list term)
   (Γ' : list term)
@@ -238,6 +434,30 @@ Proof.
   (*{ rewrite subst_closedn; [ assumption | ].
     change 0 with #|[]:context|.
     eapply @type_closed; eassumption. }*)
+Qed.
+Notation subst0_opt t := (subst_opt t 0).
+Notation subst0_nolift_opt t := (subst_nolift_opt t 0).
+Lemma closed_substitution_opt {cf : config.checker_flags} {Σ : global_env_ext}
+  (s : list term)
+  (Γ' : list term)
+  (t T : term)
+  (wfΣ : wf Σ)
+  (Hs : All2_fold (fun s0 Γ'0 t T => Σ ;;; [] |- t : subst0_nolift_opt s0 T) s Γ')
+  (Γ'' := List.map (fun ty => {| BasicAst.decl_name := {| binder_name := nAnon; binder_relevance := Relevant |} ; BasicAst.decl_body := None ; BasicAst.decl_type := ty |}) Γ')
+  (Ht : Σ ;;; Γ'' |- t : T)
+  : Σ ;;; [] |- subst0_nolift_opt s t : subst0_nolift_opt s T.
+Proof.
+  assert (H : Forall (fun t0 : term => closed t0) s).
+  { clear -Hs wfΣ; induction Hs; constructor; eauto.
+    change 0 with #|[]:context|.
+    eapply @subject_closed; tea. }
+  rewrite !eq_subst_nolift_opt; tea.
+  eapply closed_substitution; tea.
+  clear -Hs H.
+  toAll.
+  induction Hs; constructor; auto.
+  all: match goal with H : All _ (_ :: _) |- _ => inversion H; subst; clear H end.
+  all: rewrite eq_subst_nolift_opt in *; tea; try toAll; eauto.
 Qed.
 
 Fixpoint All2_fold_cps {A} (P : list A -> list A -> A -> A -> Type) (Q : Type) (l1 l2 : list A) {struct l1}
@@ -265,11 +485,11 @@ Lemma closed_substitution_cps {cf : config.checker_flags} {Σ : global_env_ext}
   (wfΣ : wf Σ)
   (Γ'' := List.map (fun ty => {| BasicAst.decl_name := {| binder_name := nAnon; binder_relevance := Relevant |} ; BasicAst.decl_body := None ; BasicAst.decl_type := ty |}) Γ')
   : All2_fold_cps
-      (fun s0 Γ'0 t T => Σ ;;; [] |- t : subst0 s0 T)
-      ((Σ ;;; Γ'' |- t : T) -> (Σ ;;; [] |- subst0 s t : subst0 s T))
+      (fun s0 Γ'0 t T => Σ ;;; [] |- t : subst0_nolift_opt s0 T)
+      ((Σ ;;; Γ'' |- t : T) -> (Σ ;;; [] |- subst0_nolift_opt s t : subst0_nolift_opt s T))
       s Γ'.
 Proof.
-  apply All2_fold_cps_id; intros; eapply closed_substitution; eassumption.
+  apply All2_fold_cps_id; intros; eapply closed_substitution_opt; eassumption.
 Qed.
 
 (*Check All2_fold.*)
@@ -395,6 +615,28 @@ Definition collect_constants_k : nat -> term -> StateT (list (nat * term * term 
 Notation collect_constants := (collect_constants_k 0).
 
 Definition List_map_alt {A} {B} := Eval cbv in @List.map A B.
+Definition List_rev_alt {A} := Eval cbv in @rev A.
+
+Fixpoint redo_types_and_indices' (ls : list (nat * term * term * term))
+  : StateT _ TemplateMonad (list (nat * term * term * term))
+  := match ls with
+     | [] => ret []
+     | (_, qv, v, vT) :: ls
+       => State.set ls;;
+          ls <- redo_types_and_indices' ls;;
+          State.set ls;;
+          vT <- collect_constants_k 0 vT;;
+          ls <- monad_map (fun '(i, qt, t, vT) => ret (S i, qt, t, vT)) ls;;
+          State.set ls;;
+          ret ((0, qv, v, vT) :: ls)
+     end.
+
+Definition run_drop_state {S M T} {TM : Monad M} (p : StateT S M T) (st : S) : M T
+  := '(v, st) <- p st;;
+     ret v.
+
+Definition redo_types_and_indices (ls : list (nat * term * term * term)) : TemplateMonad (list (nat * term * term * term))
+  := run_drop_state (redo_types_and_indices' ls) ls.
 
 Definition collect_constants_build_substituition (t : term) (T : term)
   : TemplateMonad (term (* t *) * term (* T *) * list term (* s *) * list term (* Γ *) )
@@ -403,11 +645,20 @@ Definition collect_constants_build_substituition (t : term) (T : term)
              | Some kn => ret kn
              | None => tmPrint qmap;; tmFail "no List_map_alt"
              end;;
+     qrev <- tmQuoteToGlobalReference (@List_rev_alt);;
+     qrev <- match kername_of_global_reference qrev with
+             | Some kn => ret kn
+             | None => tmPrint qrev;; tmFail "no List_rev_alt"
+             end;;
      '(T', st) <- collect_constants T [];;
      '(t', st) <- collect_constants t st;;
+     st <- redo_types_and_indices st;;
+     T' <- run_drop_state (collect_constants T) st;;
+     t' <- run_drop_state (collect_constants t) st;;
      T' <- tmEval cbv T';;
      t' <- tmEval cbv t';;
      st <- tmEval hnf st;;
+     tmPrint st;;
      s <- tmEval (unfold qmap) (List_map_alt (fun '(i, qv, v, vT) => v) st);;
      Γ <- tmEval (unfold qmap) (List_map_alt (fun '(i, qv, v, vT) => vT) st);;
      ret (t', T', s, Γ).
@@ -454,17 +705,24 @@ Definition replace_typing_for_safechecker (cf : config.checker_flags) Σ t T
   {qP : quotation_of P}
   {cfH cfP : config.checker_flags} {ΣH ΣP}
   {qtyH : quotation_of_well_typed (cf:=cfH) ΣH H} {qtyP : quotation_of_well_typed (cf:=cfP) ΣP P}
-  (Σ := merge_global_envs (typing_restriction_for_globals [bool; @eq bool]) (merge_global_envs ΣH ΣP))
+  (Σ0 := typing_restriction_for_globals [bool; @eq bool])
+  (Σ := merge_global_envs Σ0 (merge_global_envs ΣH ΣP))
+  {Hc : Is_true (compatibleb ΣH ΣP && compatibleb Σ0 (merge_global_envs ΣH ΣP))}
+  (HwfP : @wf cfP ΣP)
+  (HwfH : @wf cfH ΣH)
   : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) Σ _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
 Proof.
   intros t wfΣ.
+  apply Is_true_eq_true in Hc.
+  rewrite !Bool.andb_true_iff in Hc.
+  destruct_head'_and.
   cbv [PCUICProgram.global_env_ext_map_global_env_ext] in *.
   cbn [PCUICProgram.trans_env_env fst] in *.
   cbv [quote_ground ground_quotable_of_bp Init.quote_bool] in *.
   specialize (H_for_safety t); subst.
   lazymatch goal with
   | [ |- @typing ?cf ?Σ ?Γ ?t ?T ]
-    => let H := fresh in
+    => let H := fresh "H'" in
        run_template_program
          (collect_constants_build_substituition t T)
          (fun v
@@ -475,8 +733,66 @@ Proof.
              | ?v => fail 0 "invalid collect_constants_build_substituition ret" v
              end)
   end.
-  cbn [subst0] in H0.
-  simple apply H0.
+  simple apply H'; tea.
+  all: cbv [subst_nolift_opt presubst subst'_nolift subst_step Nat.sub List.length nth_error Nat.leb].
+  all: try match goal with
+         | [ |- @typing ?cf (?Σ, Monomorphic_ctx) [] ?t ?T ]
+           => notypeclasses refine (@typing_quoted_term_of_general_empty_ctx _ _ _ _ T t _ cf Σ _ _ _ _);
+              [ typeclasses eauto | .. ]
+         end.
+  all: subst Σ.
+  all: repeat match goal with
+         | [ |- extends ?x ?x ] => apply extends_refl
+         | [ |- extends ?x (merge_global_envs ?y ?z) ]
+           => lazymatch z with
+              | context[x] => etransitivity; [ | apply extends_r_merge ]
+              | _ => idtac
+              end
+         | [ |- is_true (config.impl ?x ?x) ]
+           => apply config.impl_refl
+         | [ |- is_true (config.impl ?x (config.union_checker_flags ?y ?z)) ]
+           => lazymatch z with
+              | context[x]
+                => apply (@config.impl_trans x z (config.union_checker_flags y z));
+                   [ | apply config.union_checker_flags_spec ]
+              | _
+                => lazymatch y with
+                   | context[x]
+                     => apply (@config.impl_trans x y (config.union_checker_flags y z));
+                        [ | apply config.union_checker_flags_spec ]
+                   | _ => idtac
+                   end
+              end
+         end.
+  all: lazymatch goal with
+       | [ |- wf _ ] => try assumption
+       | [ H : context[compatibleb ?x ?y] |- compatible ?x ?y ]
+         => destruct (@compatibleP x y); [ assumption | clear -H; try congruence ]
+       | _ => idtac
+       end.
+  2: { let cf := match goal with |- @typing ?cf _ _ _ _ => cf end in
+    eapply (@weakening_env cf Σ0); tea.
+       all: try eapply (@weakening_config_wf config.strictest_checker_flags).
+       all: try eapply (@weakening_config config.strictest_checker_flags).
+       all: try apply config.strictest_checker_flags_strictest.
+       2: { vm_compute.
+
+            Check typecheck_program.
+       4: { exact wfΣ.
+
+  Set Printing All.
+Search config.impl config.union_checker_flags.
+
+  Search compatible compatibleb.
+  2: apply extends_refl.
+  2: etransitivity
+  Search extends merge_global_envs.
+  2: apply extends_m
+  all: try assumption.
+  all: subst
+  all: lazymatch goal iwth
+  Set Printing Implicit.
+  exact _.
   end.
   end.
   run_template_program p (fun v => pose v as v').
