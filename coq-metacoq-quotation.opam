@@ -31,6 +31,7 @@ depends: [
   "coq-metacoq-template" {= version}
   "coq-metacoq-pcuic" {= version}
   "coq-metacoq-template-pcuic" {= version}
+  "coq-metacoq-safechecker" {= version}
 ]
 synopsis: "Gallina quotation functions for Template Coq."
 description: """
