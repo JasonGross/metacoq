@@ -86,6 +86,15 @@ Proof.
   constructor.
 Qed.
 
+Definition weakening_quotation_of_well_typed
+  {cf1 cf2 : config.checker_flags} {Σ1 Σ2 : global_env} {T} {t : T} {qT : quotation_of T} {qt : quotation_of t}
+  {qty : @quotation_of_well_typed cf1 Σ1 T t _ _}
+  : config.impl cf1 cf2 -> extends Σ1 Σ2 -> @wf cf1 Σ1 -> @quotation_of_well_typed cf2 Σ2 T t _ _.
+Proof.
+  intros Hcf Hext Hwf1 Hwf2.
+  eapply (@typing_quoted_term_of_general_empty_ctx cf1); tea.
+Qed.
+
 (*
 Class quotation_of_well_typed {Pcf : config.typing_restriction} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} := typing_quoted_term_of : forall cf Σ Γ, config.checker_flags_constraint cf -> config.global_env_ext_constraint Σ -> wf Σ -> wf_local Σ Γ -> Σ ;;; Γ |- qt : qT.
 Class ground_quotable_well_typed {Pcf : config.typing_restriction} T {qT : quotation_of T} {quoteT : ground_quotable T} := typing_quote_ground : forall t : T, quotation_of_well_typed t.
@@ -714,8 +723,27 @@ Next Obligation. todo "this axiom is inconsitent, only used to make infer comput
 Next Obligation. todo "we should write a Template Monad program to prove normalization for the particular program being inferred, rather than axiomatizing it". Qed.
 #[local] Existing Instance PCUICSN.normalization.
 
-Check @check.
-Print typing_result_comp.
+Definition compact_type_error (t : type_error) : type_error
+  := match t with
+     | UnboundRel _
+     | UnboundVar _
+     | UnboundEvar _
+     | UndeclaredConstant _
+     | UndeclaredInductive _
+     | UndeclaredConstructor _ _
+     | NotASort _
+     | NotAProduct _ _
+     | NotAnInductive _
+     | NotAnArity _
+     | IllFormedFix _ _
+     | UnsatisfiedConstraints _
+     | Msg _
+       => t
+     | NotCumulSmaller abstract_structure le G Γ t u t' u' e
+       => NotCumulSmaller le tt Γ t u t' u' e
+     | NotConvertible abstract_structure G Γ t u
+       => NotConvertible tt Γ t u
+     end.
 
 Variant quotation_check_error :=
   | QTypeError (_ : type_error)
@@ -748,9 +776,9 @@ Proof.
                         => let c := typing_error_forget (@check cf _ optimized_abstract_env_impl X _ Γ wfΓ t T) in
                            match c with
                            | Checked _ => None
-                           | TypeError t => Some (QTypeError t)
+                           | TypeError t => Some (QTypeError (compact_type_error t))
                            end
-                      | TypeError t => Some (QContextTypeError t)
+                      | TypeError t => Some (QContextTypeError (compact_type_error t))
                       end
                  | EnvError st err
                    => Some (QEnvError (*st*) err)
@@ -1000,15 +1028,36 @@ Definition merge_universes (Σ : global_env_ext) (univs : ContextSet.t) : global
   := (merge_universes_env Σ univs, Σ.2).
 Definition merge_universe_levels (Σ : global_env_ext) (univs : LevelSet.t) : global_env_ext
   := (merge_universe_levels_env Σ univs, Σ.2).
-Axiom proof_admitted : False.
-Ltac admit := abstract case proof_admitted.
+
+Ltac prepare_quotation_goal _ :=
+  repeat first [ match goal with
+                 | [ H : Is_true _ |- _ ] => apply Is_true_eq_true in H
+                 | [ H : andb _ _ = true |- _ ] => rewrite !Bool.andb_true_iff in H
+                 | [ |- ground_quotable_well_typed _ _ ]
+                   => let t := fresh "t" in
+                      let wfΣ := fresh "wfΣ" in
+                      intros t wfΣ
+                 end
+               | progress destruct_head'_and
+               | progress cbv [PCUICProgram.global_env_ext_map_global_env_ext quote_ground] in *
+               | progress cbn [PCUICProgram.trans_env_env fst snd] in * ].
+
+Ltac prove_ground_quotable_well_typed cf0 Σ0 :=
+  [ > once prepare_quotation_goal ();
+    once handle_typing_by_factoring ();
+    [ > once handle_typing_by_tc () .. | ];
+    [ > once handle_typing_tc_side_conditions () .. | ];
+    [ > ];
+    once handle_typing_by_safechecker cf0 Σ0
+      .. ].
+
 #[export] Instance well_typed_ground_quotable_of_bp
   {b P} (H : b = true -> P)
   {qH : quotation_of H} (H_for_safety : P -> b = true)
   {qP : quotation_of P}
   {cfH cfP : config.checker_flags} {ΣH ΣP}
   {qtyH : quotation_of_well_typed (cf:=cfH) ΣH H} {qtyP : quotation_of_well_typed (cf:=cfP) ΣP P}
-  (Σ0' := typing_restriction_for_globals [bool; @eq bool])
+  (Σ0' := typing_restriction_for_globals [@eq bool])
   (Σ0 := merge_universe_levels
            Σ0'
            (LevelSet.union
@@ -1018,459 +1067,68 @@ Ltac admit := abstract case proof_admitted.
   {Hc : Is_true (compatibleb ΣH ΣP && compatibleb Σ0 (merge_global_envs ΣH ΣP))}
   (HwfP : @wf cfP ΣP)
   (HwfH : @wf cfH ΣH)
-  : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) Σ _ qP (@ground_quotable_of_bp b P H qH H_for_safety).
+  : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) Σ P _ (@ground_quotable_of_bp b P H qH H_for_safety).
 Proof.
   subst Σ0'.
   intros t wfΣ.
-  Time  (intros; lazymatch goal with |- @typing ?cf ?Σ ?Γ ?t ?T => pose proof (@quotation_check_valid config.strictest_checker_flags Σ0 Γ t T) as H' end; clear H'; admit). Time Timeout 1 Qed.
-  handle_typing_by_factoring ().
-  all: [ > handle_typing_by_tc () .. | ].
-  all: subst Σ.
-  all: [ > handle_typing_tc_side_conditions () .. | ].
-  all: [ > ].
-  repeat match goal with H : _ |- _ => revert H end.
-  match goal with |- ?T => refine (@id T _) end.
+  cbv [ground_quotable_of_bp Init.quote_bool] in *.
+  specialize (H_for_safety t); subst.
+  subst Σ.
+  prove_ground_quotable_well_typed config.strictest_checker_flags Σ0.
+Defined. (* Work around COQBUG(https://github.com/coq/coq/issues/17523), Qed is too slow *)
 
-
-Finished transaction in 0.161 secs (0.161u,0.s) (successful)
-                              Finished transaction in 0.2 secs (0.2u,0.s) (successful)
-Finished transaction in 0.195 secs (0.195u,0.s) (successful)
-                              Finished transaction in 7.062 secs (7.062u,0.s) (successful)
-Finished transaction in 0.116 secs (0.116u,0.s) (successful)
-
-         pose
-  Time admit. Time Qed.
-Finished transaction in 0.053 secs (0.053u,0.s) (successful)
-                              Finished transaction in 0.17 secs (0.17u,0.s) (successful)
-  Time abstract (intros; handle_typing_by_safechecker config.strictest_checker_flags Σ0).
-  Time Qed.
-  all: todo "foo". Qed.
-
-  todo "foo".
-Qed.
-
-  Search compatible compatibleb.
-  2: apply extends_refl.
-  2: etransitivity
-  Search extends merge_global_envs.
-  2: apply extends_m
-  all: try assumption.
-  all: subst
-  all: lazymatch goal iwth
-  Set Printing Implicit.
-  exact _.
-  end.
-  end.
-  run_template_program p (fun v => pose v as v').
-  Lemma closed_substitution_cps {cf : config.checker_flags} {Σ : global_env_ext}
-  (s : list term)
-  (Γ' : list term)
-  (t T : term)
-  (wfΣ : wf Σ)
-
-
-  closed_substitution_nolift {cf : config.checker_flags} {Σ}
-  (s : list term)
-  (Γ' : list term)
-  (t T : term)
-  (Hs : All2 (fun t T => Σ ;;; [] |- t : T) s Γ')
-  (wfΣ : wf Σ)
-  (Γ'' := List.map (fun ty => {| BasicAst.decl_name := {| binder_name := nAnon; binder_relevance := Relevant |} ; BasicAst.decl_body := None ; BasicAst.decl_type := ty |}) Γ')
-  (Ht : Σ ;;; Γ'' |- t : T)
-  : Σ ;;; [] |- subst_nolift s 0 t : subst_nolift s 0 T.
+#[export] Instance well_typed_ground_quotable_neg_of_bp
+  {b P} (H : b = false -> ~P)
+  {qH : quotation_of H} (H_for_safety : ~P -> b = false)
+  {qP : quotation_of P}
+  {cfH cfP : config.checker_flags} {ΣH ΣP}
+  {qtyH : quotation_of_well_typed (cf:=cfH) ΣH H} {qtyP : quotation_of_well_typed (cf:=cfP) ΣP P}
+  (Σ0' := typing_restriction_for_globals [@eq bool; not])
+  (Σ0 := merge_universe_levels
+           Σ0'
+           (LevelSet.union
+              (universes_of_type_of_quotation_of_well_typed qtyH)
+              (universes_of_type_of_quotation_of_well_typed qtyP)))
+  (Σ := merge_global_envs Σ0 (merge_global_envs ΣH ΣP))
+  {Hc : Is_true (compatibleb ΣH ΣP && compatibleb Σ0 (merge_global_envs ΣH ΣP))}
+  (HwfP : @wf cfP ΣP)
+  (HwfH : @wf cfH ΣH)
+  : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) Σ (~P) _ (@ground_quotable_neg_of_bp b P H qH H_for_safety).
 Proof.
-  erewrite <- !closed_subst_nolift by eassumption.
-  now eapply @closed_substitution.
-Qed.
-  cbn in p0.
-    => run_template_program (collect_constants t []) (fun v => pose v)
-  end.
+  subst Σ0'.
+  intros t wfΣ.
+  cbv [ground_quotable_neg_of_bp Init.quote_bool] in *.
+  specialize (H_for_safety t); subst.
+  subst Σ.
+  prove_ground_quotable_well_typed config.strictest_checker_flags Σ0.
+Defined. (* Work around COQBUG(https://github.com/coq/coq/issues/17523), Qed is too slow *)
 
-  Search typing subst.
-  Set Printing Implicit.
-  Print context_decl.
-  Print BasicAst.context_decl.
-  Print aname.
-  Print binder_annot.
-  Check @substitution.
-  epose (@substitution cf Σ Hwf []
-           [{| BasicAst.decl_name := {| binder_name := nAnon; binder_relevance := Relevant |} ; BasicAst.decl_body := None ; BasicAst.decl_type := ltac:(lazymatch type of qtyH with @quotation_of_well_typed _ _ _ ?T _ => exact T end) |};
-            {| BasicAst.decl_name := {| binder_name := nAnon; binder_relevance := Relevant |} ; BasicAst.decl_body := None ; BasicAst.decl_type := ltac:(lazymatch type of qtyP with @quotation_of_well_typed _ _ _ ?T _ => exact T end) |}] [qH; qP] []
-        (tApp (tRel 0)
-       (tApp
-          (tApp
-             (tConstruct
-                {|
-                  inductive_mind := (MPfile ["Logic"; "Init"; "Coq"], "eq");
-                  inductive_ind := 0
-                |} 0 [])
-             (tInd
-                {|
-                  inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool");
-                  inductive_ind := 0
-                |} []))
-          (tConstruct
-             {|
-               inductive_mind := (MPfile ["Datatypes"; "Init"; "Coq"], "bool");
-               inductive_ind := 0
-             |} 0 [])))
-        (tRel 1)
-        ) as v.
-  clearbody v.
-  cbn in v.
-  rewrite !lift_closed in v.
-  cbv [subst_context] in v.
-  cbv [fold_context_k] in v.
-  cbn in v.
-  apply v.
-  { constructor.
-    constructor.
-    constructor.
-    all: rewrite !subst_closedn.
-    3: apply qtyH.
-    1:apply qtyP.
-    all: try assumption.
-    all: try solve [ constructor ].
-    change (closedn 0) with (closedn #|[]:context|).
-    eapply type_closed.
-    eapply qtyH.
-    all: try eassumption.
-    now constructor. }
-    apply closedn_
-            eapply
-    3: { move qtyH at bottom.
-         hnf in qtyH.
-         Unset Printing Implicit.
-    2: apply qtyH.
-    all: cbv [subst0]; cbn.
-    2: {
-  Unset Printing Implicit.
-  Print aname.
-  Check {| binder_name := nAnon; binder_relevance := Relevant |} : aname.
-  Check nAnon.
-  Search closedn lift.
-  Print lift0.
-  all: repeat
-         repeat first [ assumption
-                    | now constructor
-                    | progress cbv [subst1] in *
-                    | rewrite subst_closedn
-                    | progress cbn [List.app ind_type]
-                    | progress cbn [subst_instance subst_instance_constr subst_instance_univ]
-                    | progress cbn [type_of_constructor]
-                    | progress cbv [PCUICLookup.declared_minductive_gen]
-                    | match goal with
-                      | [ |- _;;;_ |- tApp _ _ : _ ] => eapply type_App
-                      | [ |- _;;;_ |- tInd _ _ : _ ] => eapply type_Ind
-                      | [ |- _;;;_ |- tConstruct _ _ _ : _ ] => eapply type_Construct
-                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
-                        => (idtac + eapply type_Cumul); [ eapply H | .. ]
-                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- is_true (closedn 0 ?qP) ]
-                        => eapply @subject_closed with (Γ:=[]); [ | eapply H ]; tea
-                      | [ |- wf_local _ [] ] => constructor
-                      | [ |- wf_local _ (_ ,, _) ] => constructor
-                      | [ |- _;;;_ |- tProd _ _ _ : _ ] => eapply type_Prod
-                      | [ |- _;;;_ |- tSort _ : _ ] => eapply type_Sort
-                      | [ |- lift_typing _ _ _ _ _ ] => hnf; try eexists
-                      | [ |- context[tApp ?f ?x] ]
-                        => change (tApp f x) with (mkApps f [x])
-                      | [ |- context[mkApps (mkApps ?f ?x) ?y] ]
-                        => change (mkApps (mkApps f x) y) with (mkApps f (x ++ y))
-                      | [ |- _;;;_ |- mkApps _ _ : _ ]
-                        => eapply type_mkApps
-                      | [ |- PCUICArities.typing_spine _ _ _ _ _ ]
-                        => econstructor
-                      | [ |- declared_inductive _ _ _ _ ] => eapply declared_inductive_from_gen; constructor; hnf
-                      | [ |- declared_constructor _ _ _ _ _ ] => eapply declared_constructor_from_gen; repeat apply conj
-                      | [ |- isType _ _ (tProd _ _ _) ] => apply isType_tProd; split
-                      | [ |- isType _ _ (tSort _) ] => apply isType_Sort
-                      | [ |- _ = _ ] => eassumption
-                      | [ |- _;;;_ |- tSort _ <=s tSort _ ] => apply cumul_Sort
-                      end ].
-  all: lazymatch goal with
-       | [ |- isType _ _ _ ] => cbn; econstructor
-       | [ |- wf_universe _ _ ] => idtac
-       | _ => cbn
-       end.
-  all: repeat
-         repeat first [ assumption
-                      | reflexivity
-                    | progress cbv [subst1] in *
-                    | rewrite subst_closedn
-                    | progress cbn [List.app ind_type]
-                    | progress cbn [subst_instance subst_instance_constr subst_instance_univ]
-                    | progress cbn [type_of_constructor]
-                    | progress cbv [PCUICLookup.declared_minductive_gen]
-                    | match goal with
-                      | [ |- context[tApp ?f ?x] ]
-                        => change (tApp f x) with (mkApps f [x])
-                      | [ |- context[mkApps (mkApps ?f ?x) ?y] ]
-                        => change (mkApps (mkApps f x) y) with (mkApps f (x ++ y))
-                      | [ |- _;;;_ |- mkApps _ _ : _ ]
-                        => eapply type_mkApps
-                      | [ |- _;;;_ |- tInd _ _ : _ ] => eapply type_Ind
-                      | [ |- _;;;_ |- tConstruct _ _ _ : _ ] => eapply type_Construct
-                      | [ |- _;;;_ |- tRel _ : _ ] => (idtac + eapply type_Cumul); [ eapply type_Rel | .. ]
-                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
-                        => (idtac + eapply type_Cumul); [ eapply H | .. ]
-                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- is_true (closedn 0 ?qP) ]
-                        => eapply @subject_closed with (Γ:=[]); [ | eapply H ]; tea
-                      | [ |- wf_local _ [] ] => constructor
-                      | [ |- wf_local _ (_ ,, _) ] => constructor
-                      | [ |- _;;;_ |- tProd _ _ _ : _ ] => eapply type_Prod
-                      | [ |- _;;;_ |- tSort _ : _ ] => eapply type_Sort
-                      | [ |- lift_typing _ _ _ _ _ ] => hnf; try eexists
-                      | [ |- PCUICArities.typing_spine _ _ _ _ _ ]
-                        => econstructor
-                      | [ |- declared_inductive _ _ _ _ ] => eapply declared_inductive_from_gen; constructor; hnf
-                      | [ |- declared_constructor _ _ _ _ _ ] => eapply declared_constructor_from_gen; repeat apply conj
-                      | [ |- isType _ _ (tProd _ _ _) ] => apply isType_tProd; split
-                      | [ |- isType _ _ (tSort _) ] => apply isType_Sort
-                      | [ |- _ = _ ] => eassumption
-                      | [ |- _;;;_ |- tSort _ <=s tSort _ ] => apply cumul_Sort
-                      end ].
-
-  all: lazymatch goal with
-       | [ |- isType _ _ _ ] => cbn; econstructor
-       | [ |- wf_universe _ _ ] => idtac
-       | _ => cbn
-       end.
-  all: repeat
-         repeat first [ assumption
-                      | reflexivity
-                    | progress cbv [subst1] in *
-                    | rewrite subst_closedn
-                    | progress cbn [List.app ind_type]
-                    | progress cbn [subst_instance subst_instance_constr subst_instance_univ]
-                      | progress cbn [type_of_constructor]
-                      | progress cbn [lift0 decl_type vass]
-                    | progress cbv [PCUICLookup.declared_minductive_gen]
-                    | match goal with
-                      | [ |- context[tApp ?f ?x] ]
-                        => change (tApp f x) with (mkApps f [x])
-                      | [ |- context[mkApps (mkApps ?f ?x) ?y] ]
-                        => change (mkApps (mkApps f x) y) with (mkApps f (x ++ y))
-                      | [ |- _;;;_ |- mkApps _ _ : _ ]
-                        => eapply type_mkApps
-                      | [ |- _;;;_ |- tInd _ _ : _ ] => (idtac + eapply type_Cumul); [ eapply type_Ind | .. ]
-                      | [ |- _;;;_ |- tConstruct _ _ _ : _ ] => eapply type_Construct
-                      | [ |- _;;;_ |- tRel _ : _ ] => (idtac + eapply type_Cumul); [ eapply type_Rel | .. ]
-                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
-                        => (idtac + eapply type_Cumul); [ eapply H | .. ]
-                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- is_true (closedn 0 ?qP) ]
-                        => eapply @subject_closed with (Γ:=[]); [ | eapply H ]; tea
-                      | [ |- wf_local _ [] ] => constructor
-                      | [ |- wf_local _ (_ ,, _) ] => constructor
-                      | [ |- _;;;_ |- tProd _ _ _ : _ ] => eapply type_Prod
-                      | [ |- _;;;_ |- tSort _ : _ ] => eapply type_Sort
-                      | [ |- lift_typing _ _ _ _ _ ] => hnf; try eexists
-                      | [ |- PCUICArities.typing_spine _ _ _ _ _ ]
-                        => econstructor
-                      | [ |- declared_inductive _ _ _ _ ] => eapply declared_inductive_from_gen; constructor; hnf
-                      | [ |- declared_constructor _ _ _ _ _ ] => eapply declared_constructor_from_gen; repeat apply conj
-                      | [ |- isType _ _ (tProd _ _ _) ] => apply isType_tProd; split
-                      | [ |- isType _ _ (tSort _) ] => apply isType_Sort
-                      | [ |- _ = _ ] => eassumption
-                      | [ |- _;;;_ |- tSort _ <=s tSort _ ] => apply cumul_Sort
-                      end ].
-  all: lazymatch goal with
-       | [ |- wf_universe _ _ ] => shelve
-       | _ => idtac
-       end.
-  2: { constructor 1; try refine (@eq_refl bool true).
-       2: { hnf.
-            Print PCUICEquality.eq_term_upto_univ_napp.
-             reflexivity.
-             constructor.
-             reflexivity.
-        cbn.
-       refine (eq_refl true).
-        cbn.
-  2: { match goal with
-  match goal
-  all: match goal with |- _ ;;; _ |- ?e : _ => is_evar e; shelve | _ => idtac end.
-  4: {
-  match goal with
-  all: try apply cumul_Sort.
-  Print cumulSpec0.
-Set Printing All.
-
-  all:
-  21: { cbv [type_of_constructor inductive_mind fst snd cstr_type ind_bodies subst0 inds List.length subst_instance subst_instance_constr].
-  all: lazymatch goal with
-       | [ |- isType _ _ _ ] => econstructor
-       | _ => idtac
-       end.
-    end ].
-  all: cbn.
-  Search isType tApp.
-  47: {
-  all: cbn.
-  53: { cbv [PCUICLookup.declared_minductive_gen].
-  Search isType tRel.
-  cbn -[wf_universe].
-  cbv [subst_instance subst_instance_univ0 NonEmptySetFacts.map].
-  Set Printing All.
-  Search isType tSort.
-  lazymatch goal with
-  end.
-  Search isType tProd.
-  all: repeat first [ progress cbn [type_of_constructor ind_type ind_bodies inductive_ind nth_error]
-                    | eassumption
-                    | reflexivity
-                    | match goal with
-                      | [ |- declared_inductive _ _ _ _ ] => eapply declared_inductive_from_gen; constructor; hnf
-                      | [ |- declared_constructor _ _ _ _ _ ] => eapply declared_constructor_from_gen; repeat apply conj
-                      end ].
-  all: repeat first [ progress cbn [type_of_constructor ind_type ind_bodies inductive_ind nth_error]
-                    | progress cbv [type_of_constructor ind_type]
-                    | eassumption
-                    | reflexivity
-                    | match goal with
-                      | [ |- declared_inductive _ _ _ _ ] => eapply declared_inductive_from_gen; constructor; hnf
-                      | [ |- declared_constructor _ _ _ _ _ ] => eapply declared_constructor_from_gen; repeat apply conj
-                      | [ |- isType _ _ _ ] => eexists
-                      end ].
-  all: cbn.
-  all: repeat first [ reflexivity
-                    | eassumption
-                    | match goal with
-                      | [ |- _;;;_ |- tProd _ _ _ : _ ] => eapply type_Prod
-                      | [ |- _;;;_ |- tSort _ : _ ] => eapply type_Sort
-                      | [ |- _;;;_ |- tRel _ : _ ] => (idtac + eapply type_Cumul); [ eapply type_Rel | .. ]
-                      | [ |- _;;;_ |- tInd _ _ : _ ] => (idtac + eapply type_Cumul); [ eapply type_Ind | .. ]
-                      | [ |- wf_local _ [] ] => constructor
-                      | [ |- wf_local _ [] ] => constructor
-                      | [ |- wf_local _ (_ ,, _) ] => constructor
-                      | [ |- lift_typing _ _ _ _ _ ] => hnf; try eexists
-                      | [ |- declared_inductive _ _ _ _ ] => eapply declared_inductive_from_gen; constructor; hnf
-                      | [ |- declared_constructor _ _ _ _ _ ] => eapply declared_constructor_from_gen; repeat apply conj
-                      end ].
-  all: match goal with |- wf_universe _ _ => shelve | _ => idtac end.
-  all: cbn.
-  cbn.
-  Search wf_universe.
-  2: {  Set Printing All.
-                      | [ |- _;;;_ |- tInd _ _ : _ ] => eapply type_Ind
-                      | [ |- _;;;_ |- tConstruct _ _ _ : _ ] => eapply type_Construct
-Print type_of_constructor.
-  hnf.
-  Print isType.
-  cbn [ind_type].
-  all: lazymatch goal with
-       | _ => idtac
-       end.
-  { constructor.
-    hnf.
-    eassumption.
-  match goal with
-  end.
-  Search declared_inductive lookup_env.
-  Set Printing Implicit.
-  { repeat match goal with
-           end.
-    Search eqb.
-    match goal with
-    end.
-
-  24: {
-  Locate weaken_ctx.
-  Check weaken_ctx.
-  HERE
-  3: { cbn.
-       match goal with
-       end.
-  7: {
-    match goal with
-   end.
-
-  eapply type_Ind.
-  eapply type_mkApps.
-  match goal with
-  end.
-  eapply type_App.
-  2: {
-    match goal with
-    cbn [lift_typing].
-  2: constructor.
-  3: { lazymatch goal with
-    end.
-           (idtac + eapply type_Cumul); [ eapply H | .. ]
-                                         ; eassumption
-
-        constructor 3
-  all: repeat first [ assumption
-                    | match goal with
-                      | [ |- _;;;_ |- tApp _ _ : _ ] => eapply type_App
-                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
-                        => (idtac + eapply type_Cumul); [ eapply H | .. ]
-                      end ].
-  2: {
-  all: repeat first [ assumption
-                    | match goal with
-                      | [ |- _;;;_ |- tApp _ _ : _ ] => eapply type_App
-                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
-                        => (idtac + eapply type_Cumul); [ eapply H | .. ]
-                      end ].
-  2: { match goal with
-                      | [ |- _;;;_ |- tApp _ _ : _ ] => eapply type_App
-                      | [ H : @quotation_of_well_typed _ _ _ _ ?qP  |- _;;;_ |- ?qP : _ ]
-                        => (idtac + eapply type_Cumul); [ eapply H | .. ]
-                      end.
-  eapply type_Prod.
-  3: {
-  all: repeat first [ assumption
-                    | match goal with
-                      | [ |- _;;;_ |- tApp _ _ : _ ] => eapply type_App
-                      | [ |- _;;;_ |- qH : _ ]
-                        => (idtac + eapply type_Cumul); [ eapply qtyH | .. ]
-                      | [ |- _;;;_ |- qP : _ ]
-                        => (idtac + eapply type_Cumul); [ eapply qtyP | .. ]
-                      end ].
-  3: { match goal with
-                 | [ |- _;;;_ |- qP : _ ]
-                   => (idtac + eapply type_Cumul); [ eapply qtyP | .. ]
-    end.
-      eapply qtyP.
-  2: { exactly_once econstructor.
-       Show Proof.
-  2: eapply qtyH.
-         | [ |- _;;;_ |- tProd _ _ _ : _ ] => eapply type_Prod
-  { eapply type_App.
-    eapply type_Prod.
-    3: { eapply qtyH; assumption.
-         assumption.
-         assumption.
-         assumption.
-      hnf in qtyH.
-
-  cbn [mkApps].
-
-  Search typing tApp.
-  Search mkApps typing.
-
-  hnf in qtyH.
-  hnf.
-
-
-Class quotation_of_well_typed {Pcf : config.typing_restriction} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} := typing_quoted_term_of : forall cf Σ Γ, config.checker_flags_constraint cf -> config.global_env_ext_constraint Σ -> wf_local Σ Γ -> Σ ;;; Γ |- qt : qT.
-Class ground_quotable_well_typed {Pcf : config.typing_restriction} T {qT : quotation_of T} {quoteT : ground_quotable T} := typing_quote_ground : forall t : T, quotation_of_well_typed t.
-
-
-ground_quotable_well_typed {Pcf : config.typing_restriction} T {qT : quotation_of T} {quoteT : ground_quotable T} := typing_quote_ground : forall t : T, quotation_of_well_typed t.
-
-(** Some helper lemmas for defining quotations *)
-Definition ground_quotable_of_bp {b P} (H : b = true -> P) {qH : quotation_of H} (H_for_safety : P -> b = true) : ground_quotable P.
+#[export] Instance well_typed_ground_quotable_of_dec
+  {P} {H : {P} + {~P}}
+  {qP : quotation_of P} {qH : quotation_of H}
+  {cfH cfP : config.checker_flags} {ΣH ΣP}
+  {qtyH : quotation_of_well_typed (cf:=cfH) ΣH H} {qtyP : quotation_of_well_typed (cf:=cfP) ΣP P}
+  (Σ0' := typing_restriction_for_globals [@eq bool; sumbool; not])
+  (Σ0 := merge_universe_levels
+           Σ0'
+           (LevelSet.union
+              (universes_of_type_of_quotation_of_well_typed qtyH)
+              (universes_of_type_of_quotation_of_well_typed qtyP)))
+  (Σ := merge_global_envs Σ0 (merge_global_envs ΣH ΣP))
+  {Hc : Is_true (compatibleb ΣH ΣP && compatibleb Σ0 (merge_global_envs ΣH ΣP))}
+  (HwfP : @wf cfP ΣP)
+  (HwfH : @wf cfH ΣH)
+  : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) Σ P qP (@ground_quotable_of_dec P H qP qH).
 Proof.
-  intro p.
-  exact (Ast.mkApps qH [_ : quotation_of (@eq_refl bool true)]).
-Defined.
-
-Definition ground_quotable_neg_of_bp {b P} (H : b = false -> ~P) {qH : quotation_of H} (H_for_safety : ~P -> b = false) : ground_quotable (~P).
-Proof.
-  intro p.
-  exact (Ast.mkApps qH [_ : quotation_of (@eq_refl bool false)]).
-Defined.
+  Set Printing Implicit.
+  cbv [ground_quotable_of_dec].
+  eapply @
+    simple 
+  subst Σ0'.
+  intros t wfΣ.
+  cbv [ground_quotable_of_dec Init.quote_bool] in *.
+  prepare_quotation_goal ().
+  pose (
 
 Definition ground_quotable_of_dec {P} (H : {P} + {~P}) {qP : quotation_of P} {qH : quotation_of H} : ground_quotable P
   := ground_quotable_of_bp bp_of_dec pb_of_dec.
