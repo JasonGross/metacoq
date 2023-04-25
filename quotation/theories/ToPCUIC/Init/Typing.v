@@ -641,12 +641,8 @@ Fixpoint redo_types_and_indices' (ls : list (nat * term * term * term))
           ret ((0, qv, v, vT) :: ls)
      end.
 
-Definition evalStateT {S M T} {TM : Monad M} (p : StateT S M T) (st : S) : M T
-  := '(v, st) <- p st;;
-     ret v.
-Fail Check State.evalStateT.
 Definition redo_types_and_indices (ls : list (nat * term * term * term)) : TemplateMonad (list (nat * term * term * term))
-  := evalStateT (redo_types_and_indices' ls) ls.
+  := State.evalStateT (redo_types_and_indices' ls) ls.
 
 Definition collect_constants_build_substituition (t : term) (T : term)
   : TemplateMonad (term (* t *) * term (* T *) * list term (* s *) * list term (* Γ *) )
@@ -663,8 +659,8 @@ Definition collect_constants_build_substituition (t : term) (T : term)
      '(T', st) <- collect_constants T [];;
      '(t', st) <- collect_constants t st;;
      st <- redo_types_and_indices st;;
-     T' <- evalStateT (collect_constants T) st;;
-     t' <- evalStateT (collect_constants t) st;;
+     T' <- State.evalStateT (collect_constants T) st;;
+     t' <- State.evalStateT (collect_constants t) st;;
      T' <- tmEval cbv T';;
      t' <- tmEval cbv t';;
      st <- tmEval hnf st;;
@@ -1003,10 +999,10 @@ Definition universes_of_partial_term (t : term) : StateT LevelSet.t TemplateMona
   := preuniverses_of_partial_term universes_of_term' t;; State.get.
 
 Definition get_universes_of_partial_term (t : term) : TemplateMonad LevelSet.t
-  := evalStateT (universes_of_partial_term t) LevelSet.empty.
+  := State.evalStateT (universes_of_partial_term t) LevelSet.empty.
 
 Definition universes_of_type_of_quotation_of_well_typed' {cf Σ T t qT qt} (_ : @quotation_of_well_typed cf Σ T t qT qt) : TemplateMonad LevelSet.t
-  := v <- evalStateT (universes_of_partial_term qT;; universes_of_partial_term qt) LevelSet.empty;;
+  := v <- State.evalStateT (universes_of_partial_term qT;; universes_of_partial_term qt) LevelSet.empty;;
      tmEval cbv v.
 Notation universes_of_type_of_quotation_of_well_typed qty
   := (match qty return _ with
@@ -1123,7 +1119,7 @@ Proof.
   Set Printing Implicit.
   cbv [ground_quotable_of_dec].
   eapply @
-    simple 
+    simple
   subst Σ0'.
   intros t wfΣ.
   cbv [ground_quotable_of_dec Init.quote_bool] in *.
