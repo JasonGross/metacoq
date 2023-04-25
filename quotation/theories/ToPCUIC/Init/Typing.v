@@ -635,7 +635,7 @@ Fixpoint redo_types_and_indices' (ls : list (nat * term * term * term))
 Definition evalStateT {S M T} {TM : Monad M} (p : StateT S M T) (st : S) : M T
   := '(v, st) <- p st;;
      ret v.
-Fail Check State.evalStateT.
+
 Definition redo_types_and_indices (ls : list (nat * term * term * term)) : TemplateMonad (list (nat * term * term * term))
   := evalStateT (redo_types_and_indices' ls) ls.
 
