@@ -9,7 +9,8 @@ From MetaCoq.TemplatePCUIC Require Import PCUICTemplateMonad Loader.
 From MetaCoq.SafeChecker Require Import PCUICErrors PCUICTypeChecker PCUICSafeChecker PCUICWfEnvImpl PCUICWfEnv.
 From MetaCoq.Quotation Require Export CommonUtils.
 From MetaCoq.Quotation.ToPCUIC Require Export Init.
-From MetaCoq.Quotation.ToPCUIC Require Import (hints) Coq.Init.
+From MetaCoq.Quotation.ToPCUIC Require Coq.Init.
+Import (hints) MetaCoq.Quotation.ToPCUIC.Coq.Init.
 Require Import Equations.Prop.Classes.
 Require Import Coq.Lists.List.
 Export TemplateMonad.Common (export, local, global).
