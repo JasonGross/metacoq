@@ -23,6 +23,7 @@ theories/ToPCUIC/Coq/ssr.v
 theories/ToPCUIC/Equations.v
 theories/ToPCUIC/Equations/Type.v
 theories/ToPCUIC/Init.v
+theories/ToPCUIC/Init/Typing.v
 theories/ToPCUIC/PCUIC/Induction.v
 theories/ToPCUIC/PCUIC/PCUICAst.v
 theories/ToPCUIC/PCUIC/PCUICCumulativitySpec.v
