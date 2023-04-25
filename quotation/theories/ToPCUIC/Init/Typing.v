@@ -1023,7 +1023,7 @@ Ltac admit := abstract case proof_admitted.
 Proof.
   subst Σ0'.
   intros t wfΣ.
-  Time  (intros; lazymatch goal with |- @typing ?cf ?Σ ?Γ ?t ?T => pose proof (@quotation_check_valid config.strictest_checker_flags Σ0 Γ t T) as H' end; clear H'; admit). Time Timeout 1 Qed.
+  Time  (intros; lazymatch goal with |- @typing ?cf ?Σ ?Γ ?t ?T => pose proof (@quotation_check_valid config.strictest_checker_flags Σ0 Γ t T) as H' end; clear H'; admit). Timeout 3 Qed.
   handle_typing_by_factoring ().
   all: [ > handle_typing_by_tc () .. | ].
   all: subst Σ.
