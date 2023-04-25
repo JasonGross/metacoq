@@ -95,6 +95,16 @@ Proof.
   eapply (@typing_quoted_term_of_general_empty_ctx cf1); tea.
 Qed.
 
+Definition weakening_ground_quotable_well_typed
+  {cf1 cf2 : config.checker_flags} {Σ1 Σ2 : global_env} {T} {qT : quotation_of T} {quoteT : ground_quotable T}
+  {qty : @ground_quotable_well_typed cf1 Σ1 T qT quoteT}
+  : config.impl cf1 cf2 -> extends Σ1 Σ2 -> @wf cf1 Σ1 -> @ground_quotable_well_typed cf2 Σ2 T qT quoteT.
+Proof.
+  intros Hcf Hext Hwf1 t.
+  specialize (qty t).
+  eapply (@weakening_quotation_of_well_typed cf1 cf2); tea.
+Qed.
+
 (*
 Class quotation_of_well_typed {Pcf : config.typing_restriction} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} := typing_quoted_term_of : forall cf Σ Γ, config.checker_flags_constraint cf -> config.global_env_ext_constraint Σ -> wf Σ -> wf_local Σ Γ -> Σ ;;; Γ |- qt : qT.
 Class ground_quotable_well_typed {Pcf : config.typing_restriction} T {qT : quotation_of T} {quoteT : ground_quotable T} := typing_quote_ground : forall t : T, quotation_of_well_typed t.
@@ -437,6 +447,9 @@ Lemma closed_substitution {cf : config.checker_flags} {Σ : global_env_ext}
   (Ht : Σ ;;; Γ'' |- t : T)
   : Σ ;;; [] |- subst0 s t : subst0 s T.
 Proof.
+  Search typing Polymorphic_ctx.
+  PCUICUnivSubstitutionTyp.typing_subst_instance_ctx
+  Check @substitution.
   apply (@substitution cf Σ wfΣ [] Γ'' s [] t T);
     try (cbn; rewrite app_context_nil_l; assumption).
   clear Ht t T.
@@ -789,7 +802,7 @@ Proof.
     | [ |- Some _ = None -> _ ] => congruence
     end.
   match goal with
-  | [ |- ?P ] => cut (∥ @wf_ext cf Σ * wf_local Σ Γ * @typing cf Σ Γ t T ∥)
+  | [ |- ?P ] => cut (∥ P ∥)
   end.
   { todo "Find a way to get the safechecker to produce unsquashed judgments". }
   lazymatch goal with
@@ -800,6 +813,35 @@ Proof.
          | [ H : _ |- _ ] => unique pose proof (H _ eq_refl)
          end.
   sq; auto.
+Qed.
+
+Definition quotation_check_wf_ext (cf : config.checker_flags) (Σ : global_env_ext) : option quotation_check_error.
+Proof.
+  destruct (dec_normalizing cf); [ | exact (Some (QConfigNotNormalizing cf)) ].
+  simple refine (let cwf := @check_wf_ext cf _ optimized_abstract_env_impl Σ _ in
+                 match cwf with
+                 | CorrectDecl (exist A pf) => None
+                 | EnvError st err
+                   => Some (QEnvError (*st*) err)
+                 end).
+Defined.
+Lemma quotation_check_wf_ext_valid {cf Σ} : quotation_check_wf_ext cf Σ = None -> @wf_ext cf Σ.
+Proof.
+  cbv [quotation_check_wf_ext].
+  repeat destruct ?; subst;
+    lazymatch goal with
+    | [ |- None = None -> _ ] => intros _
+    | [ |- Some _ = None -> _ ] => congruence
+    end.
+  match goal with
+  | [ |- ?P ] => cut (∥ P ∥)
+  end.
+  { todo "Find a way to get the safechecker to produce unsquashed judgments". }
+  lazymatch goal with
+  | [ H : _ = CorrectDecl _ (exist _ ?pf) |- _ ]
+    => pose proof (abstract_env_ext_wf (abstract_env_prop:=optimized_abstract_env_prop) _ pf)
+  end.
+  assumption.
 Qed.
 
 Ltac handle_typing_by_factoring _ :=
@@ -1091,6 +1133,8 @@ Defined. (* Work around COQBUG(https://github.com/coq/coq/issues/17523), Qed is 
   (HwfH : @wf cfH ΣH)
   : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) Σ (~P) _ (@ground_quotable_neg_of_bp b P H qH H_for_safety).
 Proof.
+  Set Printing Implicit.
+  FIXME need general universe for type of H
   subst Σ0'.
   intros t wfΣ.
   cbv [ground_quotable_neg_of_bp Init.quote_bool] in *.
@@ -1116,8 +1160,53 @@ Defined. (* Work around COQBUG(https://github.com/coq/coq/issues/17523), Qed is 
   (HwfH : @wf cfH ΣH)
   : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) Σ P qP (@ground_quotable_of_dec P H qP qH).
 Proof.
-  Set Printing Implicit.
   cbv [ground_quotable_of_dec].
+  subst Σ Σ0'.
+  lazymatch goal with
+  | [ |- @ground_quotable_well_typed ?cf2 ?Σ2 ?T ?qT ?quoteT ]
+    => notypeclasses refine (@weakening_ground_quotable_well_typed _ cf2 _ Σ2 T qT quoteT _ _ _ _)
+  end.
+  1: notypeclasses refine (@well_typed_ground_quotable_of_bp _ _ _ _ _ _ _ _ _ _ _ _ _ _ _).
+  Set Printing Implicit.
+  2: lazymatch goal with
+       | [ H : quotation_of_well_typed _ ?X |- quotation_of_well_typed _ ?X ] => refine H
+       | _ => idtac
+       end.
+  {b P} (H : b = true -> P)
+  {qH : quotation_of H} (H_for_safety : P -> b = true)
+  {qP : quotation_of P}
+  {cfH cfP : config.checker_flags} {ΣH ΣP}
+  {qtyH : quotation_of_well_typed (cf:=cfH) ΣH H} {qtyP : quotation_of_well_typed (cf:=cfP) ΣP P}
+  (Σ0' := typing_restriction_for_globals [@eq bool])
+  (Σ0 := merge_universe_levels
+           Σ0'
+           (LevelSet.union
+              (universes_of_type_of_quotation_of_well_typed qtyH)
+              (universes_of_type_of_quotation_of_well_typed qtyP)))
+  (Σ := merge_global_envs Σ0 (merge_global_envs ΣH ΣP))
+  {Hc : Is_true (compatibleb ΣH ΣP && compatibleb Σ0 (merge_global_envs ΣH ΣP))}
+  (HwfP : @wf cfP ΣP)
+  (HwfH : @wf cfH ΣH)
+
+
+Definition weakening_ground_quotable_well_typed
+  {cf1 cf2 : config.checker_flags} {Σ1 Σ2 : global_env} {T} {qT : quotation_of T} {quoteT : ground_quotable T}
+  {qty : @ground_quotable_well_typed cf1 Σ1 T qT quoteT}
+  : config.impl cf1 cf2 -> extends Σ1 Σ2 -> @wf cf1 Σ1 -> @ground_quotable_well_typed cf2 Σ2 T qT quoteT.
+
+
+  {cf1 cf2 : config.checker_flags} {Σ1 Σ2 : global_env} {T} {t : T} {qT : quotation_of T} {qt : quotation_of t}
+  {qty : @quotation_of_well_typed cf1 Σ1 T t _ _}
+  : config.impl cf1 cf2 -> extends Σ1 Σ2 -> @wf cf1 Σ1 -> @quotation_of_well_typed cf2 Σ2 T t _ _.
+Proof.
+  intros Hcf Hext Hwf1 Hwf2.
+  eapply (@typing_quoted_term_of_general_empty_ctx cf1); tea.
+Qed.
+
+
+  Set Printing Implicit.
+
+  weakening_quotation_of_well_typed
   eapply @
     simple
   subst Σ0'.
