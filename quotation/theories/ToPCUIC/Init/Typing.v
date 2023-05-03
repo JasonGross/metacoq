@@ -118,7 +118,7 @@ Class infer_quotation_of_well_typed (qt : term)
      ; wt_t : wt_T
      ; wt_qT : quotation_of wt_T
      ; wt_qt : quotation_of wt_t := qt
-     ; wt_ϕ : universes_of [wt_qt; wt_qT]
+     ; wt_ϕ : universes_of _
      ; wt_q : @quotation_of_well_typed wt_cf wt_Σ wt_T wt_t _ _ wt_ϕ }.
 Class infer_type_of (qt : term) := qtype_of : term.
 Ltac infer_type_of qt
@@ -934,50 +934,103 @@ Definition universes_of_universe (t : Universe.t) (acc : LevelSet.t) : LevelSet.
      | Universe.lType l => universes_of_LevelAlgExpr l acc
      end.
 
-Definition universes_of_prim_model {A} (universes_of_term' : A -> StateT LevelSet.t TemplateMonad A) {tg} (t : PCUICPrimitive.prim_model A tg) : StateT LevelSet.t TemplateMonad (PCUICPrimitive.prim_model A tg)
+Definition universes_of_prim_model {T} {M : Monad T} {A} (universes_of_term' : A -> T A) {tg} (t : PCUICPrimitive.prim_model A tg) : T (PCUICPrimitive.prim_model A tg)
   := match t with
      | primIntModel _
      | primFloatModel _
        => ret t
      end.
-Definition universes_of_prim_val {A} (universes_of_term' : A -> StateT LevelSet.t TemplateMonad A) (t : PCUICPrimitive.prim_val A) : StateT LevelSet.t TemplateMonad (PCUICPrimitive.prim_val A)
+Definition universes_of_prim_val {T} {M : Monad T} {A} (universes_of_term' : A -> T A) (t : PCUICPrimitive.prim_val A) : T (PCUICPrimitive.prim_val A)
   := _ <- universes_of_prim_model universes_of_term' t.π2;;
      ret t.
 
-Definition preuniverses_of_partial_term
-  (universes_of_term : term -> StateT LevelSet.t TemplateMonad term)
-  (t : term)
-  : StateT LevelSet.t TemplateMonad term
-  := qt <- State.lift (tmQuote t);;
-     let '(qh, qargs) := decompose_app qt in
-     rv <- match qh, qargs with
-           | tRel _, _
-           | tVar _, _
-           | tEvar _ _, _
-           | tConst _ _, _
-             => ret (Some t)
-           | tApp _ _, _
-             => State.lift (tmPrint qt;; tmFail "preuniverses_of_partial_term: decompose_app should not return tApp")
-           | tConstruct _ _ _, _
-             => ret None
-           | _, _
-             => State.lift (tmPrint qt;; tmPrint (qh, qargs);; tmFail "preuniverses_of_partial_term: requires constructor tree or tRel, tVar, tEvar, tConst")
-           end;;
-     match rv with
-     | Some rv => ret rv
-     | None
-       => universes_of_term t
-     end.
+Definition CacheT'@{c s d} (C : Type@{c}) (M1 M2 : Type@{s} -> Type@{d}) (use_cache : bool) T := if use_cache then M2 T else M1 T.
+Definition CacheT'_Monad {C M1 M2 use_cache} {M1M : Monad M1} {M2M : Monad M2} : Monad (CacheT' C M1 M2 use_cache)
+  := {| ret A
+       := if use_cache return _ -> (if use_cache then M2 _ else M1 _)
+          then ret
+          else ret
+     ; bind A B
+       := if use_cache return (if use_cache then M2 _ else M1 _) -> (_ -> (if use_cache then M2 _ else M1 _)) -> (if use_cache then M2 _ else M1 _)
+          then bind
+          else bind |}.
+#[export] Hint Extern 1 (Monad (CacheT' ?C ?M1 ?M2 ?use_cache)) => simple apply (@CacheT'_Monad C M1 M2 use_cache) : typeclass_instances.
 
-Definition visit_universes (univs : LevelSet.t) : StateT LevelSet.t TemplateMonad unit
+Definition CacheT C M T := forall use_cache : bool, list C -> CacheT' C M (fun T => T) use_cache (T * list C).
+(*Print Build_Monad.
+Arguments Build_Monad _ & _ _.*)
+Definition CacheT_Monad {C T} {TM : Monad T} : Monad (CacheT C T) :=
+  {| ret A a use_cache st := ret (a, st) ;
+    bind A B m f use_cache st := '(m, st) <- m use_cache st;; f m use_cache st
+  |}.
+#[export] Hint Extern 1 (Monad (CacheT ?C ?T)) => simple apply (@CacheT_Monad C T) : typeclass_instances.
+
+Module Cache.
+  Definition choose' {C T1 T2} {TM1 : Monad T1} {TM2 : Monad T2} {T} (p1 : T1 T) (p2 : T2 T) {use_cache} : CacheT' C T1 T2 use_cache T
+    := if use_cache return CacheT' C T1 T2 use_cache T
+       then p2
+       else p1.
+  Definition lift_error {C T} {TM : Monad T} (p : T C) : CacheT C T (option C)
+    := fun use_cache cache
+       => choose'
+            (c <- p;; ret (Some c, c :: cache))
+            match cache with
+            | [] => (None, [])
+            | c :: cache => (Some c, cache)
+            end.
+  Definition lift {C T} {TM : Monad T} (default : C) (p : T C) : CacheT C T C
+    := c <- lift_error p;;
+       match c with
+       | Some c => ret c
+       | None => ret default
+       end.
+  Definition evalDropCache {C T A} {TM : Monad T} (p : CacheT C T A) : T A
+    := '(v, _) <- (p false [] : T _);;
+       ret v.
+  Definition evalToCache {C T A} {TM : Monad T} (p : CacheT C T A) : T (list C)
+    := '(_, ls) <- (p false [] : T _);;
+       ret (rev ls).
+  Definition evalCached {C T A} {TM : Monad T} (p : CacheT C T A) (cache : list C) : A
+    := fst (p true cache).
+End Cache.
+
+Definition missing_cache_entry : term -> bool. Proof. intros; exact true. Qed.
+Definition preuniverses_of_partial_term
+  (universes_of_term : term -> StateT LevelSet.t (CacheT bool TemplateMonad) term)
+  (t : term)
+  : StateT LevelSet.t (CacheT bool TemplateMonad) term
+  := is_opaque
+     <- State.lift
+          (Cache.lift
+             (missing_cache_entry t)
+             (qt <- tmQuote t;;
+              let '(qh, qargs) := decompose_app qt in
+              match qh, qargs with
+              | tRel _, _
+              | tVar _, _
+              | tEvar _ _, _
+              | tConst _ _, _
+                => ret true
+              | tApp _ _, _
+                => tmPrint qt;; tmFail "preuniverses_of_partial_term: decompose_app should not return tApp"
+              | tConstruct _ _ _, _
+                => ret false
+              | _, _
+                => tmPrint qt;; tmPrint (qh, qargs);; tmFail "preuniverses_of_partial_term: requires constructor tree or tRel, tVar, tEvar, tConst"
+              end));;
+     if is_opaque
+     then ret t
+     else universes_of_term t.
+
+Definition visit_universes {T} {TM : Monad T} (univs : LevelSet.t) : StateT LevelSet.t T unit
   := State.update (fun acc => LevelSet.union acc univs).
 
-Definition monad_map_universes {A} (f : A -> LevelSet.t -> LevelSet.t) (t : A) : StateT LevelSet.t TemplateMonad A
+Definition monad_map_universes {T} {TM : Monad T} {A} (f : A -> LevelSet.t -> LevelSet.t) (t : A) : StateT LevelSet.t T A
   := acc <- State.get;;
      State.set (f t acc);;
      ret t.
 
-Fixpoint universes_of_term' (t : term) : StateT LevelSet.t TemplateMonad term
+Fixpoint universes_of_term' (t : term) : StateT LevelSet.t (CacheT bool TemplateMonad) term
   := let universes_of_term := preuniverses_of_partial_term universes_of_term' in
      match t with
      | tRel _
@@ -1026,19 +1079,19 @@ Fixpoint universes_of_term' (t : term) : StateT LevelSet.t TemplateMonad term
           ret t
      end.
 
-Definition universes_of_partial_term_list (t : list term) : StateT LevelSet.t TemplateMonad LevelSet.t
+Definition universes_of_partial_term_list (t : list term) : StateT LevelSet.t (CacheT bool TemplateMonad) LevelSet.t
   := monad_map (preuniverses_of_partial_term universes_of_term') t;; State.get.
 
-Definition get_universes_of_partial_term_list (t : list term) : TemplateMonad LevelSet.t
+Definition get_universes_of_partial_term_list (t : list term) : CacheT bool TemplateMonad LevelSet.t
   := State.evalStateT (universes_of_partial_term_list t) LevelSet.empty.
 
-Definition universes_of_partial_term (t : term) : StateT LevelSet.t TemplateMonad LevelSet.t
+Definition universes_of_partial_term (t : term) : StateT LevelSet.t (CacheT bool TemplateMonad) LevelSet.t
   := universes_of_partial_term_list [t].
 
-Definition get_universes_of_partial_term (t : term) : TemplateMonad LevelSet.t
+Definition get_universes_of_partial_term (t : term) : CacheT bool TemplateMonad LevelSet.t
   := get_universes_of_partial_term_list [t].
 
-Definition get_universes_decl_of_partial_term_list (t : list term) : TemplateMonad universes_decl
+Definition get_universes_decl_of_partial_term_list_gen (t : list term) : CacheT bool TemplateMonad universes_decl
   := ls <- get_universes_of_partial_term_list t;;
      let ls := LevelSet.fold
                  (fun l acc
@@ -1050,8 +1103,15 @@ Definition get_universes_decl_of_partial_term_list (t : list term) : TemplateMon
                  [] in
      match ls with
      | [] => ret Monomorphic_ctx
-     | ls => tmEval cbv (Polymorphic_ctx (ls, ConstraintSet.empty))
+     | ls => ret (Polymorphic_ctx (ls, ConstraintSet.empty))
      end.
+
+Definition get_universes_decl_of_partial_term_list (t : list term) : TemplateMonad universes_decl
+  := Cache.evalDropCache (get_universes_decl_of_partial_term_list_gen t).
+Definition get_universes_decl_of_partial_term_cache (t : list term) : TemplateMonad _
+  := Cache.evalToCache (get_universes_decl_of_partial_term_list_gen t).
+Definition get_universes_decl_of_partial_term_from_cache (t : list term) : _ -> universes_decl
+  := Cache.evalCached (get_universes_decl_of_partial_term_list_gen t).
 
 Definition merge_universes_env (Σ : global_env) (univs : ContextSet.t) : global_env
   := {| universes := ContextSet.union Σ.(universes) univs
@@ -1082,7 +1142,7 @@ Ltac infer_universes_of _ :=
 Module Export Instances.
   #[export] Existing Instance Build_infer_quotation_of_well_typed.
   #[export] Hint Extern 0 (infer_quotation_of_well_typed ?qt)
-  => simple notypeclasses refine (@Build_infer_quotation_of_well_typed qt _ _ _ _ _ _);
+  => simple notypeclasses refine (@Build_infer_quotation_of_well_typed qt _ _ _ _ _ _ _);
      [ .. | typeclasses eauto ]
        : typeclass_instances.
   #[export] Hint Extern 0 (infer_type_of ?qt) => infer_type_of qt : typeclass_instances.
@@ -1095,8 +1155,8 @@ Module Export Instances.
   #[export] Existing Instance typing_quote_ground.
 End Instances.
 
-
-Definition universes_of_type_of_quotation_of_well_typed' {cf Σ T t qT qt} (_ : @quotation_of_well_typed cf Σ T t qT qt) : TemplateMonad LevelSet.t
+(*
+Definition universes_of_type_of_quotation_of_well_typed' {cf Σ T t qT qt} (_ : @quotation_of_well_typed cf Σ T t qT qt) : (CacheT bool TemplateMonad) LevelSet.t
   := v <- State.evalStateT (universes_of_partial_term qT;; universes_of_partial_term qt) LevelSet.empty;;
      tmEval cbv v.
 Notation universes_of_type_of_quotation_of_well_typed qty
@@ -1104,6 +1164,7 @@ Notation universes_of_type_of_quotation_of_well_typed qty
       | qtyv
         => ltac:(run_template_program (universes_of_type_of_quotation_of_well_typed' qtyv) (fun v => exact v))
       end) (only parsing).
+ *)
 
 Ltac prepare_quotation_goal _ :=
   repeat first [ match goal with
@@ -1116,7 +1177,7 @@ Ltac prepare_quotation_goal _ :=
                  end
                | progress destruct_head'_and
                | progress cbv [PCUICProgram.global_env_ext_map_global_env_ext quote_ground] in *
-               | progress cbn [PCUICProgram.trans_env_env fst snd] in * ].
+               | progress cbn [PCUICProgram.trans_env_env fst snd PCUICAstUtils.fst_ctx PCUICEnvironment.fst_ctx] in * ].
 
 Ltac prove_ground_quotable_well_typed cf0 Σ0 :=
   [ > once prepare_quotation_goal ();
@@ -1126,6 +1187,125 @@ Ltac prove_ground_quotable_well_typed cf0 Σ0 :=
     [ > ];
     once handle_typing_by_safechecker cf0 Σ0
       .. ].
+Check ground_quotable_well_typed.
+Section __.
+  Local Notation use x := (typing_restriction_for_globals x) (only parsing).
+  Context (cf:=config.strictest_checker_flags).
+  #[local] Existing Instance cf.
+  #[local] Instance ground_quotable_well_typed_True (Σ:=use [True]) : ground_quotable_well_typed Σ True
+    := ltac:(intros [] Hwf; cbv; handle_typing_by_safechecker cf Σ; apply extends_refl).
+  #[local] Instance ground_quotable_well_typed_False (Σ:=use [False]) : ground_quotable_well_typed Σ False
+    := ltac:(intros [] Hwf; cbv; handle_typing_by_safechecker cf Σ; apply extends_refl).
+  #[local] Instance ground_quotable_well_typed_byte (Σ:=use [Byte.byte]) : ground_quotable_well_typed Σ Byte.byte.
+  Proof using Type.
+    intros b Hwf; cbv [quote_ground].
+    let b' := open_constr:(ltac:(clear -b) : term) in
+    replace (Init.quote_byte b) with b';
+    [ | clear ].
+    2: { lazymatch goal with
+      | [ |- ?T ]
+        => let pf := open_constr:(ltac:(destruct b; cbv [Init.quote_byte];
+                                        (apply f_equal2; [ | reflexivity ]);
+                                        [ > instantiate (1:=ltac:(destruct b)) | .. ]; cbv beta iota; reflexivity
+                                       )
+                                   : T) in
+           abstract (destruct b; reflexivity)
+      end. }
+    set (ty := tInd _ _).
+    let ty' := open_constr:(_) in
+    replace ty with ty'; subst ty.
+    { eapply type_Construct.
+      { constructor. }
+      { repeat split; cbn; try (left; reflexivity); try reflexivity; cbn.
+        { repeat match goal with H : _ |- _ => clear H end.
+          instantiate (1:=ltac:(destruct b)); destruct b; cbv.
+          all: reflexivity. } }
+      { reflexivity. } }
+    { clear.
+      abstract (destruct b; cbv; reflexivity). }
+  Qed.
+  #[local] Instance ground_quotable_well_typed_Empty_set (Σ:=use [Empty_set]) : ground_quotable_well_typed Σ Empty_set
+    := ltac:(intros [] Hwf; cbv; handle_typing_by_safechecker cf Σ; apply extends_refl).
+  #[local] Instance ground_quotable_well_typed_unit (Σ:=use [unit]) : ground_quotable_well_typed Σ unit
+    := ltac:(intros [] Hwf; cbv; handle_typing_by_safechecker cf Σ; apply extends_refl).
+  #[local] Instance ground_quotable_well_typed_bool (Σ:=use [bool]) : ground_quotable_well_typed Σ bool
+    := ltac:(intros [] Hwf; cbv; handle_typing_by_safechecker cf Σ; apply extends_refl).
+
+#[export] Instance quote_eq {A} {qA : quotation_of A} {quoteA : ground_quotable A} {x y : A} : ground_quotable (x = y :> A) := ltac:(intros []; exact _).
+#[export] Instance quote_eq_refl_l {A} {qA : quotation_of A} {x y : A} {qx : quotation_of x} : ground_quotable (x = y :> A) := ltac:(intros []; exact _).
+#[export] Instance quote_eq_refl_r {A} {qA : quotation_of A} {x y : A} {qy : quotation_of y} : ground_quotable (x = y :> A) := ltac:(intro; subst; exact _).
+
+
+
+(* avoid universe inconsistencies *)
+#[export] Polymorphic Instance well_typed_qfst_cps
+  {A B} {qA : quotation_of A} {qB : quotation_of B}
+  {qTypeA qTypeB}
+  {cf Σ} {ϕ}
+  {qtyA : @quotation_of_well_typed cf Σ _ A qTypeA qA ϕ}
+  {qtyB : @quotation_of_well_typed cf Σ _ B qTypeB qB ϕ}
+  (Σ0 := typing_restriction_for_globals [@prod A B])
+  (*(Σ := merge_global_envs Σ0 (merge_global_envs ΣA ΣB))*)
+  {Hc : Is_true (extendsb Σ0 Σ
+                 && isSort qTypeA && isSort qTypeB)}
+  (*(Hwf : @wf cf Σ)*)
+  (*(HwfB : @wf cf ΣB)*)
+  : @quotation_of_well_typed cf Σ _ _ _ (@qfst_cps A B qA qB) ϕ.
+Proof.
+  intro Hwf; cbv [qfst_cps mkApps].
+  prepare_quotation_goal ().
+  cbv [isSort] in *; destruct qTypeA; try discriminate; destruct qTypeB; try discriminate.
+  handle_typing_by_factoring ().
+
+    once handle_typing_by_factoring ();
+    [ > once handle_typing_by_tc () .. | ];
+    [ > once handle_typing_tc_side_conditions () .. | ];
+    [ > ];
+    once handle_typing_by_safechecker cf0 Σ0
+      .. ].
+Set Printing Implicit.
+  : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) (Σ, Monomorphic_ctx) P _ (@ground_quotable_of_bp b P H qH H_for_safety).
+
+  : quotation_of (@fst A B) | 0.
+
+  {b P} (H : b = true -> P)
+  {qH : quotation_of H} (H_for_safety : P -> b = true)
+  {qP : quotation_of P}
+  {cfH cfP : config.checker_flags} {ΣH ΣP}
+  {qtyH : quotation_of_well_typed (cf:=cfH) ΣH H} {qtyP : quotation_of_well_typed (cf:=cfP) ΣP P}
+  (Σ0 := typing_restriction_for_globals [@eq bool])
+  (*Σ0 := merge_universe_levels
+           Σ0'
+           (LevelSet.union
+              (universes_of_type_of_quotation_of_well_typed qtyH)
+              (universes_of_type_of_quotation_of_well_typed qtyP))*)
+  (Σ := merge_global_envs Σ0 (merge_global_envs ΣH ΣP))
+  {Hc : Is_true (compatibleb ΣH ΣP && compatibleb Σ0 (merge_global_envs ΣH ΣP))}
+  (HwfP : @wf cfP ΣP)
+  (HwfH : @wf cfH ΣH)
+  : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) (Σ, Monomorphic_ctx) P _ (@ground_quotable_of_bp b P H qH H_for_safety).
+
+
+  := tApp <% @fst %> [qA; qB].
+#[export] Polymorphic Instance qsnd_cps {A B} {qA : quotation_of A} {qB : quotation_of B} : quotation_of (@snd A B) | 0
+  := tApp <% @snd %> [qA; qB].
+#[export] Polymorphic Instance qpair_cps {A B} {qA : quotation_of A} {qB : quotation_of B} : quotation_of (@pair A B) | 0
+  := tApp <% @pair %> [qA; qB].
+#[export] Polymorphic Instance qprod_cps {A B} {qA : quotation_of A} {qB : quotation_of B} : quotation_of (@prod A B) | 0
+  := tApp <% @prod %> [qA; qB].
+#[export] Polymorphic Instance qSome_cps {A} {qA : quotation_of A} : quotation_of (@Some A) | 0
+  := tApp <% @Some %> [qA].
+#[export] Polymorphic Instance qNone_cps {A} {qA : quotation_of A} : quotation_of (@None A) | 0
+  := tApp <% @None %> [qA].
+#[export] Polymorphic Instance qoption_cps {A} {qA : quotation_of A} : quotation_of (@option A) | 0
+  := tApp <% @option %> [qA].
+#[export] Polymorphic Instance qcons_cps {A} {qA : quotation_of A} : quotation_of (@cons A) | 0
+  := tApp <% @cons %> [qA].
+#[export] Polymorphic Instance qnil_cps {A} {qA : quotation_of A} : quotation_of (@nil A) | 0
+  := tApp <% @nil %> [qA].
+#[export] Polymorphic Instance qlist_cps {A} {qA : quotation_of A} : quotation_of (@list A) | 0
+  := tApp <% @list %> [qA].
+
 
 #[export] Instance well_typed_ground_quotable_of_bp
   {b P} (H : b = true -> P)
@@ -1133,23 +1313,32 @@ Ltac prove_ground_quotable_well_typed cf0 Σ0 :=
   {qP : quotation_of P}
   {cfH cfP : config.checker_flags} {ΣH ΣP}
   {qtyH : quotation_of_well_typed (cf:=cfH) ΣH H} {qtyP : quotation_of_well_typed (cf:=cfP) ΣP P}
-  (Σ0' := typing_restriction_for_globals [@eq bool])
-  (Σ0 := merge_universe_levels
+  (Σ0 := typing_restriction_for_globals [@eq bool])
+  (*Σ0 := merge_universe_levels
            Σ0'
            (LevelSet.union
               (universes_of_type_of_quotation_of_well_typed qtyH)
-              (universes_of_type_of_quotation_of_well_typed qtyP)))
+              (universes_of_type_of_quotation_of_well_typed qtyP))*)
   (Σ := merge_global_envs Σ0 (merge_global_envs ΣH ΣP))
   {Hc : Is_true (compatibleb ΣH ΣP && compatibleb Σ0 (merge_global_envs ΣH ΣP))}
   (HwfP : @wf cfP ΣP)
   (HwfH : @wf cfH ΣH)
-  : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) Σ P _ (@ground_quotable_of_bp b P H qH H_for_safety).
+  : @ground_quotable_well_typed (config.union_checker_flags cfH cfP) (Σ, Monomorphic_ctx) P _ (@ground_quotable_of_bp b P H qH H_for_safety).
 Proof.
-  subst Σ0'.
+  (*subst Σ0'.*)
   intros t wfΣ.
   cbv [ground_quotable_of_bp Init.quote_bool] in *.
   specialize (H_for_safety t); subst.
   subst Σ.
+  prepare_quotation_goal ().
+  handle_typing_by_factoring ().
+    [ > once handle_typing_by_tc () .. | ];
+    [ > once handle_typing_tc_side_conditions () .. | ];
+    [ > ];
+    once handle_typing_by_safechecker cf0 Σ0
+      .. ].
+  cbn [fst snd PCUICAstUtils.fst_ctx] in *.
+  Set Printing Implicit.
   prove_ground_quotable_well_typed config.strictest_checker_flags Σ0.
 Defined. (* Work around COQBUG(https://github.com/coq/coq/issues/17523), Qed is too slow *)
 
@@ -1260,28 +1449,6 @@ Definition ground_quotable_neg_of_dec {P} (H : {P} + {~P}) {qP : quotation_of P}
 Definition ground_quotable_neq_of_EqDec {A x y} {qA : quotation_of A} {quoteA : ground_quotable A} {H : EqDec A} {qH : quotation_of H} : ground_quotable (x <> y :> A)
   := ground_quotable_neg_of_dec (H x y).
 #[export] Hint Extern 1 (ground_quotable (?x <> ?y :> ?A)) => simple notypeclasses refine (@ground_quotable_neq_of_EqDec A x y _ _ _ _) : typeclass_instances.
-
-(* avoid universe inconsistencies *)
-#[export] Polymorphic Instance qfst_cps {A B} {qA : quotation_of A} {qB : quotation_of B} : quotation_of (@fst A B) | 0
-  := tApp <% @fst %> [qA; qB].
-#[export] Polymorphic Instance qsnd_cps {A B} {qA : quotation_of A} {qB : quotation_of B} : quotation_of (@snd A B) | 0
-  := tApp <% @snd %> [qA; qB].
-#[export] Polymorphic Instance qpair_cps {A B} {qA : quotation_of A} {qB : quotation_of B} : quotation_of (@pair A B) | 0
-  := tApp <% @pair %> [qA; qB].
-#[export] Polymorphic Instance qprod_cps {A B} {qA : quotation_of A} {qB : quotation_of B} : quotation_of (@prod A B) | 0
-  := tApp <% @prod %> [qA; qB].
-#[export] Polymorphic Instance qSome_cps {A} {qA : quotation_of A} : quotation_of (@Some A) | 0
-  := tApp <% @Some %> [qA].
-#[export] Polymorphic Instance qNone_cps {A} {qA : quotation_of A} : quotation_of (@None A) | 0
-  := tApp <% @None %> [qA].
-#[export] Polymorphic Instance qoption_cps {A} {qA : quotation_of A} : quotation_of (@option A) | 0
-  := tApp <% @option %> [qA].
-#[export] Polymorphic Instance qcons_cps {A} {qA : quotation_of A} : quotation_of (@cons A) | 0
-  := tApp <% @cons %> [qA].
-#[export] Polymorphic Instance qnil_cps {A} {qA : quotation_of A} : quotation_of (@nil A) | 0
-  := tApp <% @nil %> [qA].
-#[export] Polymorphic Instance qlist_cps {A} {qA : quotation_of A} : quotation_of (@list A) | 0
-  := tApp <% @list %> [qA].
 
 Polymorphic Definition ground_quotable_of_iffT {A B} {quoteA : ground_quotable A} {qA : quotation_of A} {qB : quotation_of B} (H : A <~> B) {qH : quotation_of H} : ground_quotable B.
 Proof.
