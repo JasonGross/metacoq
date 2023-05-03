@@ -54,14 +54,16 @@ End config.
 Export config.Notations.
 *)
 (* TODO: Right now, quotation / translation always claims constants are monomorphic; if there's eventually support for polymorphic quotation, we may want to not restrict typing to be monomorphic here *)
-Class quotation_of_well_typed {cf : config.checker_flags} (Σ : global_env) {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} := typing_quoted_term_of : wf Σ -> (Σ, Monomorphic_ctx) ;;; [] |- qt : qT.
-Class ground_quotable_well_typed {cf : config.checker_flags} (Σ : global_env) T {qT : quotation_of T} {quoteT : ground_quotable T} := typing_quote_ground : forall t : T, quotation_of_well_typed Σ t.
+Class universes_of (ls : list term) := infer_universes_of : universes_decl.
+Class quotation_of_well_typed {cf : config.checker_flags} (Σ : global_env) {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} {ϕ : universes_of [qT; qt]} := typing_quoted_term_of : wf Σ -> (Σ, ϕ) ;;; [] |- qt : qT.
+(* TODO: FIXME: better inference on global env *)
+Class ground_quotable_well_typed {cf : config.checker_flags} (Σ : global_env_ext) T {qT : quotation_of T} {quoteT : ground_quotable T} := typing_quote_ground : forall t : T, quotation_of_well_typed Σ t (ϕ:=Σ.2).
 
 Definition typing_quoted_term_of_general
-  {cf : config.checker_flags} {Σ : global_env} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t}
-  {qty : @quotation_of_well_typed cf Σ T t _ _}
+  {cf : config.checker_flags} {Σ : global_env} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} {ϕ}
+  {qty : @quotation_of_well_typed cf Σ T t _ _ ϕ}
   {cf' : config.checker_flags} {Σ' : global_env} {Γ}
-  : @wf cf Σ -> @wf cf' Σ' -> (let _ := cf' in wf_local (Σ', Monomorphic_ctx) Γ) -> extends Σ Σ' -> config.impl cf cf' -> @typing cf' (Σ', Monomorphic_ctx) Γ qt qT.
+  : @wf cf Σ -> @wf cf' Σ' -> (let _ := cf' in wf_local (Σ', ϕ) Γ) -> extends Σ Σ' -> config.impl cf cf' -> @typing cf' (Σ', ϕ) Γ qt qT.
 Proof.
   intros wfΣ wfΣ' wfΓ Hext Hcf.
   specialize (qty wfΣ).
@@ -77,28 +79,28 @@ Proof.
 Qed.
 
 Definition typing_quoted_term_of_general_empty_ctx
-  {cf : config.checker_flags} {Σ : global_env} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t}
-  {qty : @quotation_of_well_typed cf Σ T t _ _}
+  {cf : config.checker_flags} {Σ : global_env} {T} (t : T) {qT : quotation_of T} {qt : quotation_of t} {ϕ}
+  {qty : @quotation_of_well_typed cf Σ T t _ _ ϕ}
   {cf' : config.checker_flags} {Σ' : global_env}
-  : @wf cf Σ -> @wf cf' Σ' -> extends Σ Σ' -> config.impl cf cf' -> @typing cf' (Σ', Monomorphic_ctx) [] qt qT.
+  : @wf cf Σ -> @wf cf' Σ' -> extends Σ Σ' -> config.impl cf cf' -> @typing cf' (Σ', ϕ) [] qt qT.
 Proof.
-  intros; eapply (@typing_quoted_term_of_general cf Σ T t qT qt qty cf' Σ'); tea.
+  intros; eapply (@typing_quoted_term_of_general cf Σ T t qT qt ϕ qty cf' Σ'); tea.
   constructor.
 Qed.
 
 Definition weakening_quotation_of_well_typed
-  {cf1 cf2 : config.checker_flags} {Σ1 Σ2 : global_env} {T} {t : T} {qT : quotation_of T} {qt : quotation_of t}
-  {qty : @quotation_of_well_typed cf1 Σ1 T t _ _}
-  : config.impl cf1 cf2 -> extends Σ1 Σ2 -> @wf cf1 Σ1 -> @quotation_of_well_typed cf2 Σ2 T t _ _.
+  {cf1 cf2 : config.checker_flags} {Σ1 Σ2 : global_env} {T} {t : T} {qT : quotation_of T} {qt : quotation_of t} {ϕ}
+  {qty : @quotation_of_well_typed cf1 Σ1 T t _ _ ϕ}
+  : config.impl cf1 cf2 -> extends Σ1 Σ2 -> @wf cf1 Σ1 -> @quotation_of_well_typed cf2 Σ2 T t _ _ ϕ.
 Proof.
   intros Hcf Hext Hwf1 Hwf2.
   eapply (@typing_quoted_term_of_general_empty_ctx cf1); tea.
 Qed.
 
 Definition weakening_ground_quotable_well_typed
-  {cf1 cf2 : config.checker_flags} {Σ1 Σ2 : global_env} {T} {qT : quotation_of T} {quoteT : ground_quotable T}
-  {qty : @ground_quotable_well_typed cf1 Σ1 T qT quoteT}
-  : config.impl cf1 cf2 -> extends Σ1 Σ2 -> @wf cf1 Σ1 -> @ground_quotable_well_typed cf2 Σ2 T qT quoteT.
+  {cf1 cf2 : config.checker_flags} {Σ1 Σ2 : global_env} {T} {qT : quotation_of T} {quoteT : ground_quotable T} {ϕ}
+  {qty : @ground_quotable_well_typed cf1 (Σ1, ϕ) T qT quoteT}
+  : config.impl cf1 cf2 -> extends Σ1 Σ2 -> @wf cf1 Σ1 -> @ground_quotable_well_typed cf2 (Σ2, ϕ) T qT quoteT.
 Proof.
   intros Hcf Hext Hwf1 t.
   specialize (qty t).
@@ -116,7 +118,8 @@ Class infer_quotation_of_well_typed (qt : term)
      ; wt_t : wt_T
      ; wt_qT : quotation_of wt_T
      ; wt_qt : quotation_of wt_t := qt
-     ; wt_q : @quotation_of_well_typed wt_cf wt_Σ wt_T wt_t _ _ }.
+     ; wt_ϕ : universes_of [wt_qt; wt_qT]
+     ; wt_q : @quotation_of_well_typed wt_cf wt_Σ wt_T wt_t _ _ wt_ϕ }.
 Class infer_type_of (qt : term) := qtype_of : term.
 Ltac infer_type_of qt
   := lazymatch (eval hnf in (_ : infer_quotation_of_well_typed qt)) with
@@ -191,22 +194,6 @@ Notation typing_restriction_for_globals ls
                    (fun Σ => refine Σ))
       end)
        (only parsing).
-
-
-Module Export Instances.
-  #[export] Existing Instance Build_infer_quotation_of_well_typed.
-  #[export] Hint Extern 0 (infer_quotation_of_well_typed ?qt)
-  => simple notypeclasses refine (@Build_infer_quotation_of_well_typed qt _ _ _ _ _ _);
-     [ .. | typeclasses eauto ]
-       : typeclass_instances.
-  #[export] Hint Extern 0 (infer_type_of ?qt) => infer_type_of qt : typeclass_instances.
-  (* #[export] *)
-  Coercion wt_q : infer_quotation_of_well_typed >-> quotation_of_well_typed.
-  (*#[export] Instance default_typing_restriction : config.typing_restriction | 1000
-    := {| config.checker_flags_constraint cf := true
-       ; config.global_env_ext_constraint Σ := true |}.*)
-  #[export] Existing Instance typing_quote_ground.
-End Instances.
 
 Definition lift_step
   : forall (lift' : nat -> nat -> term -> term) (n k : nat) (t : term), term.
@@ -447,9 +434,11 @@ Lemma closed_substitution {cf : config.checker_flags} {Σ : global_env_ext}
   (Ht : Σ ;;; Γ'' |- t : T)
   : Σ ;;; [] |- subst0 s t : subst0 s T.
 Proof.
+  (*
   Search typing Polymorphic_ctx.
   PCUICUnivSubstitutionTyp.typing_subst_instance_ctx
   Check @substitution.
+*)
   apply (@substitution cf Σ wfΣ [] Γ'' s [] t T);
     try (cbn; rewrite app_context_nil_l; assumption).
   clear Ht t T.
@@ -1037,20 +1026,32 @@ Fixpoint universes_of_term' (t : term) : StateT LevelSet.t TemplateMonad term
           ret t
      end.
 
+Definition universes_of_partial_term_list (t : list term) : StateT LevelSet.t TemplateMonad LevelSet.t
+  := monad_map (preuniverses_of_partial_term universes_of_term') t;; State.get.
+
+Definition get_universes_of_partial_term_list (t : list term) : TemplateMonad LevelSet.t
+  := State.evalStateT (universes_of_partial_term_list t) LevelSet.empty.
+
 Definition universes_of_partial_term (t : term) : StateT LevelSet.t TemplateMonad LevelSet.t
-  := preuniverses_of_partial_term universes_of_term' t;; State.get.
+  := universes_of_partial_term_list [t].
 
 Definition get_universes_of_partial_term (t : term) : TemplateMonad LevelSet.t
-  := State.evalStateT (universes_of_partial_term t) LevelSet.empty.
+  := get_universes_of_partial_term_list [t].
 
-Definition universes_of_type_of_quotation_of_well_typed' {cf Σ T t qT qt} (_ : @quotation_of_well_typed cf Σ T t qT qt) : TemplateMonad LevelSet.t
-  := v <- State.evalStateT (universes_of_partial_term qT;; universes_of_partial_term qt) LevelSet.empty;;
-     tmEval cbv v.
-Notation universes_of_type_of_quotation_of_well_typed qty
-  := (match qty return _ with
-      | qtyv
-        => ltac:(run_template_program (universes_of_type_of_quotation_of_well_typed' qtyv) (fun v => exact v))
-      end) (only parsing).
+Definition get_universes_decl_of_partial_term_list (t : list term) : TemplateMonad universes_decl
+  := ls <- get_universes_of_partial_term_list t;;
+     let ls := LevelSet.fold
+                 (fun l acc
+                  => match l with
+                     | Level.level n => nNamed n :: acc
+                     | Level.lzero | Level.lvar _ => acc
+                     end)
+                 ls
+                 [] in
+     match ls with
+     | [] => ret Monomorphic_ctx
+     | ls => tmEval cbv (Polymorphic_ctx (ls, ConstraintSet.empty))
+     end.
 
 Definition merge_universes_env (Σ : global_env) (univs : ContextSet.t) : global_env
   := {| universes := ContextSet.union Σ.(universes) univs
@@ -1066,6 +1067,43 @@ Definition merge_universes (Σ : global_env_ext) (univs : ContextSet.t) : global
   := (merge_universes_env Σ univs, Σ.2).
 Definition merge_universe_levels (Σ : global_env_ext) (univs : LevelSet.t) : global_env_ext
   := (merge_universe_levels_env Σ univs, Σ.2).
+
+Ltac infer_universes_of' ls :=
+  run_template_program
+    (get_universes_decl_of_partial_term_list ls)
+    (fun v => exact v).
+
+Ltac infer_universes_of _ :=
+  lazymatch goal with
+  | [ |- universes_of ?ls ]
+    => infer_universes_of' ls
+  end.
+
+Module Export Instances.
+  #[export] Existing Instance Build_infer_quotation_of_well_typed.
+  #[export] Hint Extern 0 (infer_quotation_of_well_typed ?qt)
+  => simple notypeclasses refine (@Build_infer_quotation_of_well_typed qt _ _ _ _ _ _);
+     [ .. | typeclasses eauto ]
+       : typeclass_instances.
+  #[export] Hint Extern 0 (infer_type_of ?qt) => infer_type_of qt : typeclass_instances.
+  #[export] Hint Extern 0 (universes_of ?ls) => infer_universes_of' ls : typeclass_instances.
+  (* #[export] *)
+  Coercion wt_q : infer_quotation_of_well_typed >-> quotation_of_well_typed.
+  (*#[export] Instance default_typing_restriction : config.typing_restriction | 1000
+    := {| config.checker_flags_constraint cf := true
+       ; config.global_env_ext_constraint Σ := true |}.*)
+  #[export] Existing Instance typing_quote_ground.
+End Instances.
+
+
+Definition universes_of_type_of_quotation_of_well_typed' {cf Σ T t qT qt} (_ : @quotation_of_well_typed cf Σ T t qT qt) : TemplateMonad LevelSet.t
+  := v <- State.evalStateT (universes_of_partial_term qT;; universes_of_partial_term qt) LevelSet.empty;;
+     tmEval cbv v.
+Notation universes_of_type_of_quotation_of_well_typed qty
+  := (match qty return _ with
+      | qtyv
+        => ltac:(run_template_program (universes_of_type_of_quotation_of_well_typed' qtyv) (fun v => exact v))
+      end) (only parsing).
 
 Ltac prepare_quotation_goal _ :=
   repeat first [ match goal with
