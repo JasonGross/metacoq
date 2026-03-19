@@ -21,7 +21,7 @@ let rs_lazy = Genredexpr.Cbv Redops.all_flags
 let rs_unfold (env : Environ.env) (gr : global_reference) =
   try
     Genredexpr.Unfold [Locus.AllOccurrences,
-                       Tacred.evaluable_of_global_reference gr]
+                       Tacred.evaluable_of_global_reference env gr]
   with
   | Tacred.NotEvaluableRef _ -> CErrors.user_err
            Pp.(str "Not a constant: " ++ Printer.pr_global gr ++ str ".")
